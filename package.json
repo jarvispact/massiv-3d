@@ -4,7 +4,7 @@
   "description": "a simple high performance webgl library",
   "main": "dist/massiv-3d.js",
   "scripts": {
-    "test": "mocha --require @babel/register ./specs/**/*.specs.js",
+    "test": "nyc mocha --require @babel/register ./specs/**/*.specs.js",
     "build": "webpack --config webpack.config.dev.js --mode development",
     "build:min": "webpack -p --config webpack.config.prod.js --mode production",
     "build:all": "webpack --config webpack.config.dev.js --mode development && webpack -p --config webpack.config.prod.js --mode production"
@@ -38,7 +38,13 @@
     "eslint-config-airbnb-base": "^13.1.0",
     "eslint-plugin-import": "^2.16.0",
     "mocha": "^5.2.0",
+    "nyc": "^13.2.0",
     "webpack": "^4.29.3",
     "webpack-cli": "^3.2.3"
+  },
+  "nyc": {
+    "exclude": [
+      "specs/**/*"
+    ]
   }
 }
