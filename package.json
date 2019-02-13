@@ -9,7 +9,7 @@
     "build": "webpack --config webpack.config.dev.js --mode development",
     "build:min": "webpack -p --config webpack.config.prod.js --mode production",
     "build:all": "webpack --config webpack.config.dev.js --mode development && webpack -p --config webpack.config.prod.js --mode production",
-    "git-add-dist": "git add ."
+    "git-add-dist": "git add dist/*"
   },
   "repository": {
     "type": "git",
