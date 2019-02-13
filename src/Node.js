@@ -34,7 +34,7 @@ export default class Node {
 
     translate(x, y, z) {
         this.position = addVec3(this.position, this.position, createVec3(x, y, z));
-        // this.transformDirty = true;
+        this.transformDirty = true;
     }
 
     scale(x, y, z) {
