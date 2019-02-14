@@ -1,4 +1,4 @@
-import { mat4Perspective } from './math-utils';
+import { mat4Perspective } from '../utils/math-utils';
 import Camera from './Camera';
 
 export default class PerspectiveCamera extends Camera {

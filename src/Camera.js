@@ -1,4 +1,4 @@
-import { createVec3, createMat4, mat4LookAt } from './math-utils';
+import { createVec3, createMat4, mat4LookAt } from '../utils/math-utils';
 import Node from './Node';
 
 // Abstract Class

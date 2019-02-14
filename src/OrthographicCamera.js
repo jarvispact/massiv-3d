@@ -1,4 +1,4 @@
-import { mat4Ortho } from './math-utils';
+import { mat4Ortho } from '../utils/math-utils';
 import Camera from './Camera';
 
 export default class OrthographicCamera extends Camera {

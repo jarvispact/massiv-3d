@@ -1,7 +1,7 @@
 /* eslint-disable camelcase */
 import { expect } from 'chai';
 import Node from '../src/Node';
-import { identityMatrix } from './helpers';
+import { identityMatrix } from '../spec-helpers';
 
 describe('Node', () => {
     it('should create a new instance of a Node', () => {

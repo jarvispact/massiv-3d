@@ -1,4 +1,4 @@
-import { createVec3, createQuat, createMat4, addVec3, quatFromEuler, multiplyQuat } from './math-utils';
+import { createVec3, createQuat, createMat4, addVec3, quatFromEuler, multiplyQuat } from '../utils/math-utils';
 
 export default class Node {
     constructor() {

@@ -2,8 +2,8 @@ import { expect } from 'chai';
 import Node from '../src/Node';
 import Camera from '../src/Camera';
 import PerspectiveCamera from '../src/PerspectiveCamera';
-import { identityMatrix } from './helpers';
-import { copyMat4, createMat4 } from '../src/math-utils';
+import { identityMatrix } from '../spec-helpers';
+import { copyMat4, createMat4 } from '../utils/math-utils';
 
 describe('PerspectiveCamera', () => {
     it('should create a new instance of a PerspectiveCamera', () => {
