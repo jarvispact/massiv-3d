@@ -3,8 +3,10 @@ import Material from '../src/Material';
 
 describe('Material', () => {
     it('should create a new instance of a Material', () => {
-        const material = new Material();
+        const name = 'test-material';
+        const material = new Material({ name });
         expect(material instanceof Material).to.equal(true);
+        expect(material.name).to.equal(name);
         expect(material.ambientColor).to.eql([]);
         expect(material.diffuseColor).to.eql([]);
         expect(material.specularColor).to.eql([]);

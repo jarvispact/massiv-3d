@@ -106,21 +106,21 @@ const parseMeshes = (objFileLines, materials) => {
     return meshes;
 };
 
-const getVerticesPerMeshes = (objFileLines) => {
+const getVertexOffsetPerMesh = (objFileLines) => {
     let meshCounter = -1;
 
     let positionCounter = 0;
     let normalCounter = 0;
     let uvCounter = 0;
 
-    const positionsPerMesh = [];
-    const normalsPerMesh = [];
-    const uvsPerMesh = [];
+    const positionOffsets = [];
+    const normalOffsets = [];
+    const uvOffsets = [];
 
     const setVerticesPerMesh = (idx) => {
-        positionsPerMesh[idx] = positionCounter;
-        normalsPerMesh[idx] = normalCounter;
-        uvsPerMesh[idx] = uvCounter;
+        positionOffsets[idx] = positionCounter;
+        normalOffsets[idx] = normalCounter;
+        uvOffsets[idx] = uvCounter;
     };
 
     objFileLines.forEach((line) => {
@@ -139,7 +139,7 @@ const getVerticesPerMeshes = (objFileLines) => {
     });
 
     setVerticesPerMesh(meshCounter + 1);
-    return { positionsPerMesh, normalsPerMesh, uvsPerMesh };
+    return { positionOffsets, normalOffsets, uvOffsets };
 };
 
 const remap = offset => idxList => idxList.map(idx => idx - offset);
@@ -161,7 +161,7 @@ const extractIndices = (v1, v2, v3, { positionOffset, normalOffset, uvOffset }) 
     return { positionIndices, normalIndices, uvIndices };
 };
 
-const addIndicesToMeshes = (objFileLines, meshes, { positionsPerMesh, normalsPerMesh, uvsPerMesh }) => {
+const addIndicesToMeshes = (objFileLines, meshes, { positionOffsets, normalOffsets, uvOffsets }) => {
     let meshCounter = -1;
     let materialCounter = -1;
 
@@ -180,9 +180,9 @@ const addIndicesToMeshes = (objFileLines, meshes, { positionsPerMesh, normalsPer
         if (triangleFaceMatch) {
             const [, v1, v2, v3] = triangleFaceMatch;
 
-            const positionOffset = positionsPerMesh[meshCounter];
-            const normalOffset = normalsPerMesh[meshCounter];
-            const uvOffset = uvsPerMesh[meshCounter];
+            const positionOffset = positionOffsets[meshCounter];
+            const normalOffset = normalOffsets[meshCounter];
+            const uvOffset = uvOffsets[meshCounter];
             const { positionIndices, normalIndices, uvIndices } = extractIndices(v1, v2, v3, { positionOffset, normalOffset, uvOffset });
 
             positionIndices.forEach(idx => meshes[meshCounter].materials[materialCounter].positionIndices.push(idx));
@@ -198,7 +198,7 @@ export default (objFileContent, mtlFileContent) => {
     const materials = parseMaterials(mtlFileLines);
     const meshes = parseMeshes(objFileLines, materials);
 
-    const verticesPerMeshes = getVerticesPerMeshes(objFileLines);
-    addIndicesToMeshes(objFileLines, meshes, verticesPerMeshes);
+    const vertexOffsetPerMeshes = getVertexOffsetPerMesh(objFileLines);
+    addIndicesToMeshes(objFileLines, meshes, vertexOffsetPerMeshes);
     return meshes;
 };
