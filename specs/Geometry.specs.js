@@ -7,6 +7,6 @@ describe('Geometry', () => {
         expect(geometry instanceof Geometry).to.equal(true);
         expect(geometry.positions).to.eql([]);
         expect(geometry.normals).to.eql([]);
-        expect(geometry.texCoords).to.eql([]);
+        expect(geometry.uvs).to.eql([]);
     });
 });

@@ -47,7 +47,8 @@
   },
   "nyc": {
     "exclude": [
-      "specs/**/*"
+      "specs/**/*",
+      "spec-helpers.js"
     ]
   },
   "pre-commit": [

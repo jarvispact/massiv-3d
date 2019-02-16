@@ -1,11 +1,10 @@
 import Node from './Node';
-import Geometry from './Geometry';
-import Material from './Material';
 
 export default class Mesh extends Node {
-    constructor() {
+    constructor({ name, geometry, materials } = {}) {
         super();
-        this.geometry = new Geometry();
-        this.materials = [new Material()];
+        this.name = name;
+        this.geometry = geometry;
+        this.materials = Array.isArray(materials) ? materials : [materials];
     }
 }

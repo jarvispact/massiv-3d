@@ -1,8 +1,12 @@
 export default class Material {
-    constructor() {
+    constructor({ name } = {}) {
+        this.name = name;
         this.ambientColor = [];
         this.diffuseColor = [];
         this.specularColor = [];
-        this.indices = [];
+        this.specularExponent = 0.0;
+        this.positionIndices = [];
+        this.normalIndices = [];
+        this.uvIndices = [];
     }
 }
