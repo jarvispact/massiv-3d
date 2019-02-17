@@ -6,10 +6,11 @@
   "scripts": {
     "test": "nyc mocha --require @babel/register ./specs/**/*.specs.js",
     "clean": "rm -f ./dist/*",
-    "build": "webpack --config webpack.config.dev.js --mode development",
-    "build:min": "webpack -p --config webpack.config.prod.js --mode production",
-    "build:all": "webpack --config webpack.config.dev.js --mode development && webpack -p --config webpack.config.prod.js --mode production",
-    "git-add-dist": "git add dist/*"
+    "build": "webpack --config webpack.config.build.js --mode development",
+    "build:min": "webpack -p --config webpack.config.build.min.js --mode production",
+    "build:all": "webpack --config webpack.config.build.js --mode development && webpack -p --config webpack.config.build.min.js --mode production",
+    "git-add-dist": "git add dist/*",
+    "dev": "webpack-dev-server --content-base ./tests --config webpack.config.dev.js --mode development"
   },
   "repository": {
     "type": "git",
@@ -43,7 +44,8 @@
     "nyc": "^13.2.0",
     "pre-commit": "^1.2.2",
     "webpack": "^4.29.3",
-    "webpack-cli": "^3.2.3"
+    "webpack-cli": "^3.2.3",
+    "webpack-dev-server": "^3.1.14"
   },
   "nyc": {
     "exclude": [

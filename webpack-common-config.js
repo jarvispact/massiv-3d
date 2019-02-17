@@ -1,10 +1,10 @@
 const path = require('path');
 
-module.exports = ({ minified }) => ({
+module.exports = ({ outputFolder, minified }) => ({
     entry: './src/index.js',
 
     output: {
-        path: path.resolve(__dirname, 'dist'),
+        path: path.resolve(__dirname, outputFolder),
         filename: minified ? 'massiv-3d.min.js' : 'massiv-3d.js',
         libraryTarget: 'umd',
     },

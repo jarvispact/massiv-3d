@@ -1,3 +1,3 @@
 const webpackCommonConfig = require('./webpack-common-config');
 
-module.exports = webpackCommonConfig({ minified: false });
+module.exports = webpackCommonConfig({ outputFolder: 'tests', minified: false });
