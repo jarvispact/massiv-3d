@@ -7,12 +7,18 @@ describe('Material', () => {
         const material = new Material({ name });
         expect(material instanceof Material).to.equal(true);
         expect(material.name).to.equal(name);
-        expect(material.ambientColor).to.eql([]);
-        expect(material.diffuseColor).to.eql([]);
-        expect(material.specularColor).to.eql([]);
-        expect(material.specularExponent).to.equal(0.0);
-        expect(material.positionIndices).to.eql([]);
-        expect(material.normalIndices).to.eql([]);
-        expect(material.uvIndices).to.eql([]);
+        expect(material.indices).to.eql([]);
+    });
+
+    it('should get the indices as Uint32Array', () => {
+        const material = new Material({ name: 'test', indices: [1, 2, 3] });
+        const result = material.getIndicesBuffer();
+        expect(result).to.eql(new Uint32Array([1, 2, 3]));
+    });
+
+    it('should get the indices length', () => {
+        const material = new Material({ name: 'test', indices: [1, 2, 3] });
+        const result = material.getIndicesLength();
+        expect(result).to.equal(3);
     });
 });

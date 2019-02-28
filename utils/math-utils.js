@@ -20,6 +20,6 @@ export const mat4Ortho = (out, left, right, bottom, top, near, far) => mat4.orth
 
 export const copyMat4 = (out, matToCopy) => mat4.copy(out, matToCopy);
 
-// export const multiplyMat4 = (out, mat1, mat2) => mat4.multiply(out, mat1, mat2);
+export const multiplyMat4 = (out, mat1, mat2) => mat4.multiply(out, mat1, mat2);
 
-// export const mat4FromQuatPosScl = (out, rot, pos, scl) => mat4.fromRotationTranslationScale(out, rot, pos, scl);
+export const mat4FromQuatPosScl = (out, rot, pos, scl) => mat4.fromRotationTranslationScale(out, rot, pos, scl);

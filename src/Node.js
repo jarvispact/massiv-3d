@@ -1,4 +1,4 @@
-import { createVec3, createQuat, createMat4, addVec3, quatFromEuler, multiplyQuat } from '../utils/math-utils';
+import { createVec3, createQuat, createMat4, addVec3, quatFromEuler, multiplyQuat, multiplyMat4, mat4FromQuatPosScl } from '../utils/math-utils';
 
 export default class Node {
     constructor() {
@@ -46,5 +46,32 @@ export default class Node {
         const quaternion = quatFromEuler(createQuat(), x, y, z);
         this.quaternion = multiplyQuat(this.quaternion, this.quaternion, quaternion);
         this.transformDirty = true;
+    }
+
+    computeModelMatrix(parentMatrix) {
+        const pos = this.position;
+        const scl = this.scaling;
+        const rot = this.quaternion;
+
+        if (parentMatrix) {
+            if (this.transformDirty) {
+                const transformationMatrix = mat4FromQuatPosScl(createMat4(), rot, pos, scl);
+                this.modelMatrix = multiplyMat4(this.modelMatrix, parentMatrix, transformationMatrix);
+            } else {
+                this.modelMatrix = multiplyMat4(this.modelMatrix, parentMatrix, this.modelMatrix);
+            }
+        } else {
+            if (this.transformDirty) { // eslint-disable-line
+                this.modelMatrix = mat4FromQuatPosScl(this.modelMatrix, rot, pos, scl);
+            }
+        }
+
+        for (let i = 0; i < this.children.length; i++) {
+            if (parentMatrix || this.transformDirty) {
+                this.children[i].computeModelMatrix(this.modelMatrix);
+            } else {
+                this.children[i].computeModelMatrix();
+            }
+        }
     }
 }

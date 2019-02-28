@@ -26,52 +26,45 @@
                 const img = await ImageLoader.load('assets/cube-texture.png');
 
                 const { positions, normals, uvs, indices } = Cube;
-                const geometry = new Geometry({ positions, normals, uvs });
-                const material = new BlinnPhongMaterial({ indices, diffuseTexture: img });
-                const mesh = new Mesh({ geometry, materials: [material] });
+                const translations = [];
+                const cubeSize = 15;
 
+                for (let x = -cubeSize; x < cubeSize; x += 3) {
+                    for (let y = -cubeSize; y < cubeSize; y += 3) {
+                        for (let z = -cubeSize; z < cubeSize; z += 3) {
+                            translations.push([x, y, z]);
+                        }
+                    }
+                }
+
+                const meshes = translations.map((translation) => {
+                    const geometry = new Geometry({ positions, normals, uvs });
+                    const material = new BlinnPhongMaterial({ indices, diffuseTexture: img });
+                    const mesh = new Mesh({ geometry, materials: [material] });
+                    mesh.translate(...translation);
+                    return mesh;
+                });                
+                
                 const w = domNode.clientWidth;
                 const h = domNode.clientHeight;
                 
                 const camera = new PerspectiveCamera(45 * Math.PI / 180, w / h, 0.1, 100);
-                camera.translate(0, 5, 10);
+                camera.translate(0, 40, -80);
                 camera.lookAt(0, 0, 0);
                 camera.computeModelMatrix();
+                console.log({ camera });
 
                 const scene = new Node();
-                scene.addChild(mesh);
+                meshes.forEach(mesh => scene.addChild(mesh));
 
                 const renderer = new WebGL2Renderer(domNode, scene, camera);
                 renderer.init();
-                renderer.render();
-
-                window.addEventListener('resize', (e) => {                    
-                    const nw = domNode.clientWidth;
-                    const nh = domNode.clientHeight;
-                    renderer.resize();
-                    camera.updateProjectionMatrix(45 * Math.PI / 180, nw / nh, 0.1, 100);
-                });
-
-                document.body.addEventListener('keyup', (e) => {
-                    if(e.keyCode == 32){
-                        mesh.rotate(5, 0, 5);
-                        renderer.render();
-                    }
-                    if(e.keyCode == 87){
-                        mesh.translate(0, 0, -0.2);
-                        renderer.render();
-                    }
-                    if(e.keyCode == 83){
-                        mesh.translate(0, 0, 0.2);
-                        renderer.render();
-                    }
-                });
 
                 let then = 0;
                 let oneSecond = Date.now() + 1000;
                 let fps = 0;
 
-                let rotation = 20;
+                let rotation = 30;
 
                 const tick = (now) => {
                     now *= 0.001;
@@ -87,7 +80,8 @@
                         oneSecond = currentTime + 1000;
                     }
 
-                    mesh.rotate(rotation * delta, 0, rotation * delta);
+                    scene.rotate(0, rotation * delta, 0);
+                    meshes.forEach(mesh => mesh.rotate(rotation * delta, rotation * delta, 0));
                     renderer.render();
 
                     requestAnimationFrame(tick);

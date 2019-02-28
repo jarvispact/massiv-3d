@@ -1,6 +1,10 @@
+export { default as BlinnPhongMaterial } from './BlinnPhongMaterial';
 export { default as Geometry } from './Geometry';
+export { default as ImageLoader } from './ImageLoader';
 export { default as Material } from './Material';
 export { default as Mesh } from './Mesh';
 export { default as Node } from './Node';
 export { default as OrthographicCamera } from './OrthographicCamera';
 export { default as PerspectiveCamera } from './PerspectiveCamera';
+export { default as VertexColorMaterial } from './VertexColorMaterial';
+export { default as WebGL2Renderer } from './WebGL2Renderer';
