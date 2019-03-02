@@ -41,7 +41,7 @@
                 const scene = new Node();
                 scene.addChild(mesh);
 
-                const renderer = new WebGL2Renderer(domNode, scene, camera);
+                const renderer = new WebGLRenderer(domNode, scene, camera);
                 renderer.init();
                 renderer.render();
 
@@ -50,21 +50,6 @@
                     const nh = domNode.clientHeight;
                     renderer.resize();
                     camera.updateProjectionMatrix(45 * Math.PI / 180, nw / nh, 0.1, 100);
-                });
-
-                document.body.addEventListener('keyup', (e) => {
-                    if(e.keyCode == 32){
-                        mesh.rotate(5, 0, 5);
-                        renderer.render();
-                    }
-                    if(e.keyCode == 87){
-                        mesh.translate(0, 0, -0.2);
-                        renderer.render();
-                    }
-                    if(e.keyCode == 83){
-                        mesh.translate(0, 0, 0.2);
-                        renderer.render();
-                    }
                 });
 
                 let then = 0;

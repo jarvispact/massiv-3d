@@ -56,8 +56,15 @@
                 const scene = new Node();
                 meshes.forEach(mesh => scene.addChild(mesh));
 
-                const renderer = new WebGL2Renderer(domNode, scene, camera);
+                const renderer = new WebGLRenderer(domNode, scene, camera);
                 renderer.init();
+
+                window.addEventListener('resize', (e) => {                    
+                    const nw = domNode.clientWidth;
+                    const nh = domNode.clientHeight;
+                    renderer.resize();
+                    camera.updateProjectionMatrix(45 * Math.PI / 180, nw / nh, 0.1, 100);
+                });
 
                 let then = 0;
                 let oneSecond = Date.now() + 1000;

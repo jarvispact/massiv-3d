@@ -1,7 +1,7 @@
 import { mat3, mat4 } from 'gl-matrix';
 import { getBlinnPhongShaderSource } from '../utils/shader-utils';
 
-const WebGL2Renderer = class {
+const WebGLRenderer = class {
     constructor(domNode, scene, camera) {
         this.domNode = domNode;
         this.scene = scene;
@@ -74,23 +74,23 @@ const WebGL2Renderer = class {
         const { gl } = this;
 
         const lookupTable = {
-            [WebGL2Renderer.BUFFER_TYPE_POSITION]: g => ({
-                loc: WebGL2Renderer.SHADER_POSITION_LOCATION,
+            [WebGLRenderer.BUFFER_TYPE_POSITION]: g => ({
+                loc: WebGLRenderer.SHADER_POSITION_LOCATION,
                 bufferData: g.getPositionsBuffer(),
                 bufferSize: g.getPositionsBufferSize(),
             }),
-            [WebGL2Renderer.BUFFER_TYPE_NORMAL]: g => ({
-                loc: WebGL2Renderer.SHADER_NORMAL_LOCATION,
+            [WebGLRenderer.BUFFER_TYPE_NORMAL]: g => ({
+                loc: WebGLRenderer.SHADER_NORMAL_LOCATION,
                 bufferData: g.getNormalsBuffer(),
                 bufferSize: g.getNormalsBufferSize(),
             }),
-            [WebGL2Renderer.BUFFER_TYPE_UV]: g => ({
-                loc: WebGL2Renderer.SHADER_UV_LOCATION,
+            [WebGLRenderer.BUFFER_TYPE_UV]: g => ({
+                loc: WebGLRenderer.SHADER_UV_LOCATION,
                 bufferData: g.getUvsBuffer(),
                 bufferSize: g.getUvsBufferSize(),
             }),
-            [WebGL2Renderer.BUFFER_TYPE_VERTEXCOLOR]: g => ({
-                loc: WebGL2Renderer.SHADER_VERTEXCOLOR_LOCATION,
+            [WebGLRenderer.BUFFER_TYPE_VERTEXCOLOR]: g => ({
+                loc: WebGLRenderer.SHADER_VERTEXCOLOR_LOCATION,
                 bufferData: g.getVertexColorsBuffer(),
                 bufferSize: g.getVertexColorsBufferSize(),
             }),
@@ -111,16 +111,16 @@ const WebGL2Renderer = class {
         gl.bindVertexArray(vao);
 
         const hasPositions = geometry.positions.length > 0;
-        if (hasPositions) this.createArrayBuffer(WebGL2Renderer.BUFFER_TYPE_POSITION, geometry);
+        if (hasPositions) this.createArrayBuffer(WebGLRenderer.BUFFER_TYPE_POSITION, geometry);
 
         const hasNormals = geometry.normals.length > 0;
-        if (hasNormals) this.createArrayBuffer(WebGL2Renderer.BUFFER_TYPE_NORMAL, geometry);
+        if (hasNormals) this.createArrayBuffer(WebGLRenderer.BUFFER_TYPE_NORMAL, geometry);
 
         const hasUvs = geometry.uvs.length > 0;
-        if (hasUvs) this.createArrayBuffer(WebGL2Renderer.BUFFER_TYPE_UV, geometry);
+        if (hasUvs) this.createArrayBuffer(WebGLRenderer.BUFFER_TYPE_UV, geometry);
 
         const hasVertexColors = geometry.vertexColors.length > 0;
-        if (hasVertexColors) this.createArrayBuffer(WebGL2Renderer.BUFFER_TYPE_VERTEXCOLOR, geometry);
+        if (hasVertexColors) this.createArrayBuffer(WebGLRenderer.BUFFER_TYPE_VERTEXCOLOR, geometry);
 
         return vao;
     }
@@ -134,12 +134,12 @@ const WebGL2Renderer = class {
     }
 
     static getShaderSourceForMaterial({ material }) {
-        const floatPrecision = WebGL2Renderer.SHADER_FLOAT_PRECISION_DEFAULT;
-        const intPrecision = WebGL2Renderer.SHADER_INT_PRECISION_DEFAULT;
-        const positionLocation = WebGL2Renderer.SHADER_POSITION_LOCATION;
-        const normalLocation = WebGL2Renderer.SHADER_NORMAL_LOCATION;
-        const uvLocation = WebGL2Renderer.SHADER_UV_LOCATION;
-        const vertexColorLocation = WebGL2Renderer.SHADER_VERTEXCOLOR_LOCATION;
+        const floatPrecision = WebGLRenderer.SHADER_FLOAT_PRECISION_DEFAULT;
+        const intPrecision = WebGLRenderer.SHADER_INT_PRECISION_DEFAULT;
+        const positionLocation = WebGLRenderer.SHADER_POSITION_LOCATION;
+        const normalLocation = WebGLRenderer.SHADER_NORMAL_LOCATION;
+        const uvLocation = WebGLRenderer.SHADER_UV_LOCATION;
+        const vertexColorLocation = WebGLRenderer.SHADER_VERTEXCOLOR_LOCATION;
 
         const sharedArgs = {
             floatPrecision,
@@ -205,7 +205,7 @@ const WebGL2Renderer = class {
                     material,
                 };
 
-                const { vertexShaderSource, fragmentShaderSource } = WebGL2Renderer.getShaderSourceForMaterial(shaderSourceArgs);
+                const { vertexShaderSource, fragmentShaderSource } = WebGLRenderer.getShaderSourceForMaterial(shaderSourceArgs);
                 const vertexShader = this.createShader(gl.VERTEX_SHADER, vertexShaderSource);
                 const fragmentShader = this.createShader(gl.FRAGMENT_SHADER, fragmentShaderSource);
                 this.shaders[childIndex][materialIndex] = this.createProgram(vertexShader, fragmentShader);
@@ -270,18 +270,18 @@ const WebGL2Renderer = class {
     }
 };
 
-WebGL2Renderer.SHADER_POSITION_LOCATION = 0;
-WebGL2Renderer.SHADER_NORMAL_LOCATION = 1;
-WebGL2Renderer.SHADER_UV_LOCATION = 2;
-WebGL2Renderer.SHADER_VERTEXCOLOR_LOCATION = 3;
-WebGL2Renderer.BUFFER_TYPE_POSITION = 'position';
-WebGL2Renderer.BUFFER_TYPE_NORMAL = 'normal';
-WebGL2Renderer.BUFFER_TYPE_UV = 'uv';
-WebGL2Renderer.BUFFER_TYPE_VERTEXCOLOR = 'vertexColor';
-WebGL2Renderer.SHADER_PRECISION_HIGH = 'highp';
-WebGL2Renderer.SHADER_PRECISION_MEDIUM = 'mediump';
-WebGL2Renderer.SHADER_PRECISION_LOW = 'lowp';
-WebGL2Renderer.SHADER_FLOAT_PRECISION_DEFAULT = WebGL2Renderer.SHADER_PRECISION_MEDIUM;
-WebGL2Renderer.SHADER_INT_PRECISION_DEFAULT = WebGL2Renderer.SHADER_PRECISION_MEDIUM;
+WebGLRenderer.SHADER_POSITION_LOCATION = 0;
+WebGLRenderer.SHADER_NORMAL_LOCATION = 1;
+WebGLRenderer.SHADER_UV_LOCATION = 2;
+WebGLRenderer.SHADER_VERTEXCOLOR_LOCATION = 3;
+WebGLRenderer.BUFFER_TYPE_POSITION = 'position';
+WebGLRenderer.BUFFER_TYPE_NORMAL = 'normal';
+WebGLRenderer.BUFFER_TYPE_UV = 'uv';
+WebGLRenderer.BUFFER_TYPE_VERTEXCOLOR = 'vertexColor';
+WebGLRenderer.SHADER_PRECISION_HIGH = 'highp';
+WebGLRenderer.SHADER_PRECISION_MEDIUM = 'mediump';
+WebGLRenderer.SHADER_PRECISION_LOW = 'lowp';
+WebGLRenderer.SHADER_FLOAT_PRECISION_DEFAULT = WebGLRenderer.SHADER_PRECISION_MEDIUM;
+WebGLRenderer.SHADER_INT_PRECISION_DEFAULT = WebGLRenderer.SHADER_PRECISION_MEDIUM;
 
-export default WebGL2Renderer;
+export default WebGLRenderer;

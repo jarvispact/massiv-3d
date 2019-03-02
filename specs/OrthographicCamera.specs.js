@@ -1,7 +1,7 @@
 import { expect } from 'chai';
-import Node from '../src/Node';
-import Camera from '../src/Camera';
-import OrthographicCamera from '../src/OrthographicCamera';
+import Node from '../src/node';
+import Camera from '../src/camera';
+import OrthographicCamera from '../src/orthographic-camera';
 import { identityMatrix } from '../spec-helpers';
 import { copyMat4, createMat4 } from '../utils/math-utils';
 

@@ -1,5 +1,5 @@
 import { mat4Ortho } from '../utils/math-utils';
-import Camera from './Camera';
+import Camera from './camera';
 
 export default class OrthographicCamera extends Camera {
     constructor(left, right, bottom, top, near, far) {

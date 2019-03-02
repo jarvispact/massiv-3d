@@ -1,5 +1,5 @@
 import { expect } from 'chai';
-import Material from '../src/Material';
+import Material from '../src/material';
 
 describe('Material', () => {
     it('should create a new instance of a Material', () => {

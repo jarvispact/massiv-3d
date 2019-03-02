@@ -1,5 +1,5 @@
 import { expect } from 'chai';
-import Geometry from '../src/Geometry';
+import Geometry from '../src/geometry';
 
 describe('Geometry', () => {
     it('should create a new instance of a Geometry', () => {

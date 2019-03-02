@@ -1,4 +1,4 @@
-import Node from './Node';
+import Node from './node';
 
 export default class Mesh extends Node {
     constructor({ name, geometry, materials }) {

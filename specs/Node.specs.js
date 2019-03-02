@@ -1,6 +1,6 @@
 /* eslint-disable camelcase */
 import { expect } from 'chai';
-import Node from '../src/Node';
+import Node from '../src/node';
 import { identityMatrix } from '../spec-helpers';
 
 describe('Node', () => {

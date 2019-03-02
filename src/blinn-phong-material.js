@@ -1,4 +1,4 @@
-import Material from './Material';
+import Material from './material';
 
 export default class BlinnPhongMaterial extends Material {
     constructor({ name, indices, diffuseTexture } = {}) {

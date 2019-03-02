@@ -1,8 +1,8 @@
 import { expect } from 'chai';
-import Node from '../src/Node';
-import Mesh from '../src/Mesh';
-import Geometry from '../src/Geometry';
-import Material from '../src/Material';
+import Node from '../src/node';
+import Mesh from '../src/mesh';
+import Geometry from '../src/geometry';
+import Material from '../src/material';
 
 describe('Mesh', () => {
     it('should create a new instance of a Mesh', () => {

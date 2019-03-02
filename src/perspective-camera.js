@@ -1,5 +1,5 @@
 import { mat4Perspective } from '../utils/math-utils';
-import Camera from './Camera';
+import Camera from './camera';
 
 export default class PerspectiveCamera extends Camera {
     constructor(fov, aspect, near, far) {
