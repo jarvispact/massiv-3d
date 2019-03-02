@@ -23,25 +23,25 @@
         <script type="text/javascript">
             (async () => {
                 const domNode = document.getElementById('container');
-                const img = await ImageLoader.load('assets/cube-texture.png');
+                const img = await MASSIV.ImageLoader.load('assets/cube-texture.png');
 
                 const { positions, normals, uvs, indices } = Cube;
-                const geometry = new Geometry({ positions, normals, uvs });
-                const material = new BlinnPhongMaterial({ indices, diffuseTexture: img });
-                const mesh = new Mesh({ geometry, materials: [material] });
+                const geometry = new MASSIV.Geometry({ positions, normals, uvs });
+                const material = new MASSIV.BlinnPhongMaterial({ indices, diffuseTexture: img });
+                const mesh = new MASSIV.Mesh({ geometry, materials: [material] });
 
                 const w = domNode.clientWidth;
                 const h = domNode.clientHeight;
                 
-                const camera = new PerspectiveCamera(45 * Math.PI / 180, w / h, 0.1, 100);
+                const camera = new MASSIV.PerspectiveCamera(45 * Math.PI / 180, w / h, 0.1, 100);
                 camera.translate(0, 5, 10);
                 camera.lookAt(0, 0, 0);
                 camera.computeModelMatrix();
 
-                const scene = new Node();
+                const scene = new MASSIV.Node();
                 scene.addChild(mesh);
 
-                const renderer = new WebGLRenderer(domNode, scene, camera);
+                const renderer = new MASSIV.WebGLRenderer(domNode, scene, camera);
                 renderer.init();
                 renderer.render();
 

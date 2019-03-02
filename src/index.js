@@ -1,9 +1,21 @@
-export { default as BlinnPhongMaterial } from './blinn-phong-material';
-export { default as Geometry } from './geometry';
-export { default as ImageLoader } from './image-loader';
-export { default as Material } from './material';
-export { default as Mesh } from './mesh';
-export { default as Node } from './node';
-export { default as OrthographicCamera } from './orthographic-camera';
-export { default as PerspectiveCamera } from './perspective-camera';
-export { default as WebGLRenderer } from './webgl-renderer';
+import BlinnPhongMaterial from './blinn-phong-material';
+import Geometry from './geometry';
+import ImageLoader from './image-loader';
+import Material from './material';
+import Mesh from './mesh';
+import Node from './node';
+import OrthographicCamera from './orthographic-camera';
+import PerspectiveCamera from './perspective-camera';
+import WebGLRenderer from './webgl-renderer';
+
+export const MASSIV = {
+    BlinnPhongMaterial,
+    Geometry,
+    ImageLoader,
+    Material,
+    Mesh,
+    Node,
+    OrthographicCamera,
+    PerspectiveCamera,
+    WebGLRenderer,
+};
