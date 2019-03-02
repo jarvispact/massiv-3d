@@ -14,48 +14,6 @@ export const getUniformsDeclaration = (uniforms) => {
     return keys.map(key => `uniform ${uniforms[key]} ${key};`).join('\n');
 };
 
-export const getVertexColorShaderSource = (rendererArguments) => {
-    const {
-        floatPrecision,
-        intPrecision,
-        positionLocation,
-        vertexColorLocation,
-        uniforms,
-    } = rendererArguments;
-
-    const { vertexShader: vUniforms, fragmentShader: fUniforms } = uniforms;
-
-    const vSource = `
-        layout(location = ${positionLocation}) in vec3 position;
-        layout(location = ${vertexColorLocation}) in vec4 vertexColor;
-
-        ${getUniformsDeclaration(vUniforms)}
-
-        out vec4 vColor;
-
-        void main() {
-            vColor = vertexColor;
-            gl_Position = mvp * vec4(position, 1.0);
-        }
-    `;
-
-    const fSource = `
-        in vec4 vColor;
-
-        ${getUniformsDeclaration(fUniforms)}
-
-        out vec4 color;
-
-        void main() {
-            color = vColor;
-        }
-    `;
-
-    const vertexShaderSource = `${getShaderHeader({ floatPrecision, intPrecision })}${vSource}`;
-    const fragmentShaderSource = `${getShaderHeader({ floatPrecision, intPrecision })}${fSource}`;
-    return { vertexShaderSource, fragmentShaderSource };
-};
-
 export const getBlinnPhongShaderSource = (rendererArguments) => {
     const {
         floatPrecision,

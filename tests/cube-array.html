@@ -52,7 +52,6 @@
                 camera.translate(0, 40, -80);
                 camera.lookAt(0, 0, 0);
                 camera.computeModelMatrix();
-                console.log({ camera });
 
                 const scene = new Node();
                 meshes.forEach(mesh => scene.addChild(mesh));

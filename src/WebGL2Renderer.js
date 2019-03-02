@@ -1,7 +1,5 @@
 import { mat3, mat4 } from 'gl-matrix';
-import { getVertexColorShaderSource, getBlinnPhongShaderSource } from '../utils/shader-utils';
-import VertexColorMaterial from './VertexColorMaterial';
-import BlinnPhongMaterial from './BlinnPhongMaterial';
+import { getBlinnPhongShaderSource } from '../utils/shader-utils';
 
 const WebGL2Renderer = class {
     constructor(domNode, scene, camera) {
@@ -135,21 +133,13 @@ const WebGL2Renderer = class {
         return buffer;
     }
 
-    static getShaderSourceForMaterial(args) {
+    static getShaderSourceForMaterial({ material }) {
         const floatPrecision = WebGL2Renderer.SHADER_FLOAT_PRECISION_DEFAULT;
         const intPrecision = WebGL2Renderer.SHADER_INT_PRECISION_DEFAULT;
         const positionLocation = WebGL2Renderer.SHADER_POSITION_LOCATION;
         const normalLocation = WebGL2Renderer.SHADER_NORMAL_LOCATION;
         const uvLocation = WebGL2Renderer.SHADER_UV_LOCATION;
         const vertexColorLocation = WebGL2Renderer.SHADER_VERTEXCOLOR_LOCATION;
-
-        const {
-            material,
-            hasPositions,
-            hasNormals,
-            hasUvs,
-            hasVertexColors,
-        } = args;
 
         const sharedArgs = {
             floatPrecision,
@@ -158,10 +148,6 @@ const WebGL2Renderer = class {
             normalLocation,
             uvLocation,
             vertexColorLocation,
-            hasPositions,
-            hasNormals,
-            hasUvs,
-            hasVertexColors,
         };
 
         const uniforms = {
@@ -179,15 +165,7 @@ const WebGL2Renderer = class {
             uniforms.fragmentShader.diffuseTexture = 'sampler2D';
         }
 
-        if (material instanceof VertexColorMaterial) {
-            return getVertexColorShaderSource({ ...sharedArgs, uniforms });
-        }
-
-        if (material instanceof BlinnPhongMaterial) {
-            return getBlinnPhongShaderSource({ ...sharedArgs, uniforms });
-        }
-
-        throw new Error('Cannot render Material');
+        return getBlinnPhongShaderSource({ ...sharedArgs, uniforms });
     }
 
     init() {

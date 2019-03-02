@@ -6,5 +6,4 @@ export { default as Mesh } from './Mesh';
 export { default as Node } from './Node';
 export { default as OrthographicCamera } from './OrthographicCamera';
 export { default as PerspectiveCamera } from './PerspectiveCamera';
-export { default as VertexColorMaterial } from './VertexColorMaterial';
 export { default as WebGL2Renderer } from './WebGL2Renderer';
