@@ -3,7 +3,7 @@ import Node from '../src/node';
 import Camera from '../src/camera';
 import PerspectiveCamera from '../src/perspective-camera';
 import { identityMatrix } from '../spec-helpers';
-import { copyMat4, createMat4 } from '../utils/math-utils';
+import MathUtils from '../src/math-utils';
 
 describe('PerspectiveCamera', () => {
     it('should create a new instance of a PerspectiveCamera', () => {
@@ -29,7 +29,7 @@ describe('PerspectiveCamera', () => {
 
     it('should have a updateProjectionMatrix function', () => {
         const camera = new PerspectiveCamera(65, 1920 / 1080, 0.1, 100);
-        const projectionMatrixCopy = copyMat4(createMat4(), camera.projectionMatrix);
+        const projectionMatrixCopy = MathUtils.copyMat4(MathUtils.createMat4(), camera.projectionMatrix);
         expect(projectionMatrixCopy).to.not.eql(identityMatrix);
         camera.updateProjectionMatrix(45, 4 / 3, 1, 1000);
         expect(camera.projectionMatrix).to.not.eql(projectionMatrixCopy);

@@ -2,6 +2,7 @@ import BlinnPhongMaterial from './blinn-phong-material';
 import Geometry from './geometry';
 import ImageLoader from './image-loader';
 import Material from './material';
+import MathUtils from './math-utils';
 import Mesh from './mesh';
 import Node from './node';
 import OrthographicCamera from './orthographic-camera';
@@ -13,6 +14,7 @@ export const MASSIV = {
     Geometry,
     ImageLoader,
     Material,
+    MathUtils,
     Mesh,
     Node,
     OrthographicCamera,

@@ -1,4 +1,4 @@
-import { mat4Ortho } from '../utils/math-utils';
+import MathUtils from './math-utils';
 import Camera from './camera';
 
 export default class OrthographicCamera extends Camera {
@@ -20,6 +20,6 @@ export default class OrthographicCamera extends Camera {
         this.top = top;
         this.near = near;
         this.far = far;
-        this.projectionMatrix = mat4Ortho(this.projectionMatrix, left, right, bottom, top, near, far);
+        this.projectionMatrix = MathUtils.mat4Ortho(this.projectionMatrix, left, right, bottom, top, near, far);
     }
 }

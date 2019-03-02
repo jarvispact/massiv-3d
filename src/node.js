@@ -1,14 +1,14 @@
-import { createVec3, createQuat, createMat4, addVec3, quatFromEuler, multiplyQuat, multiplyMat4, mat4FromQuatPosScl } from '../utils/math-utils';
+import MathUtils from './math-utils';
 
 export default class Node {
     constructor() {
         this.parent = null;
         this.children = [];
-        this.position = createVec3();
-        this.scaling = createVec3(1, 1, 1);
-        this.quaternion = createQuat(0, 0, 0, 1);
+        this.position = MathUtils.createVec3();
+        this.scaling = MathUtils.createVec3(1, 1, 1);
+        this.quaternion = MathUtils.createQuat(0, 0, 0, 1);
         this.transformDirty = false;
-        this.modelMatrix = createMat4();
+        this.modelMatrix = MathUtils.createMat4();
     }
 
     addChild(child) {
@@ -33,18 +33,18 @@ export default class Node {
     }
 
     translate(x, y, z) {
-        this.position = addVec3(this.position, this.position, createVec3(x, y, z));
+        this.position = MathUtils.addVec3(this.position, this.position, MathUtils.createVec3(x, y, z));
         this.transformDirty = true;
     }
 
     scale(x, y, z) {
-        this.scaling = addVec3(this.scaling, this.scaling, createVec3(x, y, z));
+        this.scaling = MathUtils.addVec3(this.scaling, this.scaling, MathUtils.createVec3(x, y, z));
         this.transformDirty = true;
     }
 
     rotate(x, y, z) {
-        const quaternion = quatFromEuler(createQuat(), x, y, z);
-        this.quaternion = multiplyQuat(this.quaternion, this.quaternion, quaternion);
+        const quaternion = MathUtils.quatFromEuler(MathUtils.createQuat(), x, y, z);
+        this.quaternion = MathUtils.multiplyQuat(this.quaternion, this.quaternion, quaternion);
         this.transformDirty = true;
     }
 
@@ -55,14 +55,14 @@ export default class Node {
 
         if (parentMatrix) {
             if (this.transformDirty) {
-                const transformationMatrix = mat4FromQuatPosScl(createMat4(), rot, pos, scl);
-                this.modelMatrix = multiplyMat4(this.modelMatrix, parentMatrix, transformationMatrix);
+                const transformationMatrix = MathUtils.mat4FromQuatPosScl(MathUtils.createMat4(), rot, pos, scl);
+                this.modelMatrix = MathUtils.multiplyMat4(this.modelMatrix, parentMatrix, transformationMatrix);
             } else {
-                this.modelMatrix = multiplyMat4(this.modelMatrix, parentMatrix, this.modelMatrix);
+                this.modelMatrix = MathUtils.multiplyMat4(this.modelMatrix, parentMatrix, this.modelMatrix);
             }
         } else {
             if (this.transformDirty) { // eslint-disable-line
-                this.modelMatrix = mat4FromQuatPosScl(this.modelMatrix, rot, pos, scl);
+                this.modelMatrix = MathUtils.mat4FromQuatPosScl(this.modelMatrix, rot, pos, scl);
             }
         }
 

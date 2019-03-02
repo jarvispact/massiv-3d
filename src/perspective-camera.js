@@ -1,4 +1,4 @@
-import { mat4Perspective } from '../utils/math-utils';
+import MathUtils from './math-utils';
 import Camera from './camera';
 
 export default class PerspectiveCamera extends Camera {
@@ -16,6 +16,6 @@ export default class PerspectiveCamera extends Camera {
         this.aspect = aspect;
         this.near = near;
         this.far = far;
-        this.projectionMatrix = mat4Perspective(this.projectionMatrix, fov, aspect, near, far);
+        this.projectionMatrix = MathUtils.mat4Perspective(this.projectionMatrix, fov, aspect, near, far);
     }
 }

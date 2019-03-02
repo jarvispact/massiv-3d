@@ -1,4 +1,4 @@
-import { mat3, mat4 } from 'gl-matrix';
+import MathUtils from './math-utils';
 import { getBlinnPhongShaderSource } from '../utils/shader-utils';
 
 const WebGLRenderer = class {
@@ -238,9 +238,9 @@ const WebGLRenderer = class {
         for (let childIndex = 0; childIndex < this.sceneChildren.length; childIndex++) {
             const child = this.sceneChildren[childIndex];
 
-            const mv = mat4.multiply(mat4.create(), this.camera.viewMatrix, child.modelMatrix);
-            const mvp = mat4.multiply(mat4.create(), this.camera.projectionMatrix, mv);
-            const normalMatrix = mat3.normalFromMat4(mat3.create(), mv);
+            const mv = MathUtils.multiplyMat4(MathUtils.createMat4(), this.camera.viewMatrix, child.modelMatrix);
+            const mvp = MathUtils.multiplyMat4(MathUtils.createMat4(), this.camera.projectionMatrix, mv);
+            const normalMatrix = MathUtils.normalMatFromMat4(MathUtils.createMat3(), mv);
 
             gl.bindVertexArray(this.vaos[childIndex]);
 
