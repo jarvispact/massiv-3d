@@ -50,7 +50,8 @@
   "nyc": {
     "exclude": [
       "specs/**/*",
-      "spec-helpers.js"
+      "spec-helpers.js",
+      "src/math-utils.js"
     ]
   },
   "pre-commit": [

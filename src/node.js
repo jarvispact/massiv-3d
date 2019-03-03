@@ -1,3 +1,5 @@
+/* eslint-disable no-lonely-if */
+
 import MathUtils from './math-utils';
 
 export default class Node {
@@ -61,7 +63,7 @@ export default class Node {
                 this.modelMatrix = MathUtils.multiplyMat4(this.modelMatrix, parentMatrix, this.modelMatrix);
             }
         } else {
-            if (this.transformDirty) { // eslint-disable-line
+            if (this.transformDirty) {
                 this.modelMatrix = MathUtils.mat4FromQuatPosScl(this.modelMatrix, rot, pos, scl);
             }
         }

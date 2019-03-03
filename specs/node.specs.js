@@ -119,4 +119,121 @@ describe('Node', () => {
 
         expect(quat2).to.eql(['0', '0', '0', '-1']);
     });
+
+    it('should compute the modelMatrix of a Node', () => {
+        const node = new Node();
+
+        node.translate(2, 2, 2);
+        node.rotate(90, 180, 240);
+        node.scale(2, 2, 2);
+
+        expect(node.modelMatrix).to.eql(identityMatrix);
+        node.computeModelMatrix();
+        expect(node.modelMatrix).to.not.eql(identityMatrix);
+    });
+
+    it('should compute the modelMatrix of a Node and its children', () => {
+        const parentNode = new Node();
+        const childNode1 = new Node();
+        const childNode2 = new Node();
+        const childNode3 = new Node();
+
+        parentNode.addChild(childNode1);
+        parentNode.addChild(childNode2);
+        parentNode.addChild(childNode3);
+
+        parentNode.translate(2, 2, 2);
+        parentNode.rotate(90, 180, 240);
+        parentNode.scale(2, 2, 2);
+
+        expect(parentNode.modelMatrix).to.eql(identityMatrix);
+        expect(childNode1.modelMatrix).to.eql(identityMatrix);
+        expect(childNode2.modelMatrix).to.eql(identityMatrix);
+        expect(childNode3.modelMatrix).to.eql(identityMatrix);
+
+        parentNode.computeModelMatrix();
+
+        expect(parentNode.modelMatrix).to.not.eql(identityMatrix);
+        expect(childNode1.modelMatrix).to.not.eql(identityMatrix);
+        expect(childNode2.modelMatrix).to.not.eql(identityMatrix);
+        expect(childNode3.modelMatrix).to.not.eql(identityMatrix);
+    });
+
+    it('should compute the modelMatrix of a Node and its children recursively', () => {
+        const parentNode = new Node();
+        const childNode1 = new Node();
+        const childNode2 = new Node();
+        const childNode3 = new Node();
+        const child1_childNode1 = new Node();
+        const child2_childNode1 = new Node();
+        const child1_childNode2 = new Node();
+
+        childNode1.addChild(child1_childNode1);
+        childNode1.addChild(child2_childNode1);
+        childNode2.addChild(child1_childNode2);
+
+        parentNode.addChild(childNode1);
+        parentNode.addChild(childNode2);
+        parentNode.addChild(childNode3);
+
+        parentNode.translate(2, 2, 2);
+        parentNode.rotate(90, 180, 240);
+        parentNode.scale(2, 2, 2);
+
+        childNode1.translate(3, 3, 3);
+        childNode1.translate(45, 90, 45);
+        childNode1.scale(3, 3, 3);
+
+        expect(parentNode.modelMatrix).to.eql(identityMatrix);
+        expect(childNode1.modelMatrix).to.eql(identityMatrix);
+        expect(childNode2.modelMatrix).to.eql(identityMatrix);
+        expect(childNode3.modelMatrix).to.eql(identityMatrix);
+        expect(child1_childNode1.modelMatrix).to.eql(identityMatrix);
+        expect(child2_childNode1.modelMatrix).to.eql(identityMatrix);
+
+        parentNode.computeModelMatrix();
+
+        expect(parentNode.modelMatrix).to.not.eql(identityMatrix);
+        expect(childNode1.modelMatrix).to.not.eql(identityMatrix);
+        expect(childNode2.modelMatrix).to.not.eql(identityMatrix);
+        expect(childNode3.modelMatrix).to.not.eql(identityMatrix);
+        expect(child1_childNode1.modelMatrix).to.not.eql(identityMatrix);
+        expect(child2_childNode1.modelMatrix).to.not.eql(identityMatrix);
+
+        expect(childNode2.modelMatrix).to.eql(parentNode.modelMatrix);
+        expect(child1_childNode2.modelMatrix).to.eql(parentNode.modelMatrix);
+        expect(childNode3.modelMatrix).to.eql(parentNode.modelMatrix);
+
+        expect(childNode1.modelMatrix).to.not.eql(parentNode.modelMatrix);
+        expect(child1_childNode1.modelMatrix).to.not.eql(parentNode.modelMatrix);
+        expect(child2_childNode1.modelMatrix).to.not.eql(parentNode.modelMatrix);
+    });
+
+    it('should compute the modelMatrix of a Node recursivley also if nothing has changed', () => {
+        const parentNode = new Node();
+        const childNode1 = new Node();
+        const childNode2 = new Node();
+        const child1_childNode1 = new Node();
+        const child2_childNode1 = new Node();
+
+        childNode1.addChild(child1_childNode1);
+        childNode1.addChild(child2_childNode1);
+
+        parentNode.addChild(childNode1);
+        parentNode.addChild(childNode2);
+
+        expect(parentNode.modelMatrix).to.eql(identityMatrix);
+        expect(childNode1.modelMatrix).to.eql(identityMatrix);
+        expect(childNode2.modelMatrix).to.eql(identityMatrix);
+        expect(child1_childNode1.modelMatrix).to.eql(identityMatrix);
+        expect(child2_childNode1.modelMatrix).to.eql(identityMatrix);
+
+        parentNode.computeModelMatrix();
+
+        expect(parentNode.modelMatrix).to.eql(identityMatrix);
+        expect(childNode1.modelMatrix).to.eql(identityMatrix);
+        expect(childNode2.modelMatrix).to.eql(identityMatrix);
+        expect(child1_childNode1.modelMatrix).to.eql(identityMatrix);
+        expect(child2_childNode1.modelMatrix).to.eql(identityMatrix);
+    });
 });
