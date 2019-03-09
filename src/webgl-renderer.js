@@ -1,5 +1,5 @@
+/* eslint-disable no-console */
 import MathUtils from './math-utils';
-import { getBlinnPhongShaderSource } from '../utils/shader-utils';
 
 const WebGLRenderer = class {
     constructor(domNode, scene, camera) {
@@ -11,7 +11,7 @@ const WebGLRenderer = class {
     }
 
     createAndAppendCanvas() {
-        this.canvas = document.createElement('canvas'); // eslint-disable-line
+        this.canvas = document.createElement('canvas');
         this.domNode.appendChild(this.canvas);
         this.canvas.style.position = 'relative';
         this.canvas.style.top = '0px';
@@ -35,7 +35,7 @@ const WebGLRenderer = class {
         gl.compileShader(shader);
         const success = gl.getShaderParameter(shader, gl.COMPILE_STATUS);
         if (success) return shader;
-        console.error(gl.getShaderInfoLog(shader)); // eslint-disable-line
+        console.error(gl.getShaderInfoLog(shader));
         gl.deleteShader(shader);
         return undefined;
     }
@@ -48,7 +48,7 @@ const WebGLRenderer = class {
         gl.linkProgram(program);
         const success = gl.getProgramParameter(program, gl.LINK_STATUS);
         if (success) return program;
-        console.error(gl.getProgramInfoLog(program)); // eslint-disable-line
+        console.error(gl.getProgramInfoLog(program));
         gl.deleteProgram(program);
         return undefined;
     }
@@ -133,41 +133,6 @@ const WebGLRenderer = class {
         return buffer;
     }
 
-    static getShaderSourceForMaterial({ material }) {
-        const floatPrecision = WebGLRenderer.SHADER_FLOAT_PRECISION_DEFAULT;
-        const intPrecision = WebGLRenderer.SHADER_INT_PRECISION_DEFAULT;
-        const positionLocation = WebGLRenderer.SHADER_POSITION_LOCATION;
-        const normalLocation = WebGLRenderer.SHADER_NORMAL_LOCATION;
-        const uvLocation = WebGLRenderer.SHADER_UV_LOCATION;
-        const vertexColorLocation = WebGLRenderer.SHADER_VERTEXCOLOR_LOCATION;
-
-        const sharedArgs = {
-            floatPrecision,
-            intPrecision,
-            positionLocation,
-            normalLocation,
-            uvLocation,
-            vertexColorLocation,
-        };
-
-        const uniforms = {
-            vertexShader: {
-                modelMatrix: 'mat4',
-                viewMatrix: 'mat4',
-                projectionMatrix: 'mat4',
-                normalMatrix: 'mat3',
-                mvp: 'mat4',
-            },
-            fragmentShader: {},
-        };
-
-        if (material.diffuseTexture) {
-            uniforms.fragmentShader.diffuseTexture = 'sampler2D';
-        }
-
-        return getBlinnPhongShaderSource({ ...sharedArgs, uniforms });
-    }
-
     init() {
         const { gl } = this;
 
@@ -201,29 +166,21 @@ const WebGLRenderer = class {
 
                 this.indicesBuffers[childIndex][materialIndex] = this.createElementArrayBuffer(material);
 
-                const shaderSourceArgs = {
-                    material,
-                };
-
-                const { vertexShaderSource, fragmentShaderSource } = WebGLRenderer.getShaderSourceForMaterial(shaderSourceArgs);
+                const { vertexShaderSource, fragmentShaderSource, uniforms, textures } = material.getShaderSource();
                 const vertexShader = this.createShader(gl.VERTEX_SHADER, vertexShaderSource);
                 const fragmentShader = this.createShader(gl.FRAGMENT_SHADER, fragmentShaderSource);
                 this.shaders[childIndex][materialIndex] = this.createProgram(vertexShader, fragmentShader);
 
-                this.uniforms[childIndex][materialIndex] = {
-                    modelMatrix: gl.getUniformLocation(this.shaders[childIndex][materialIndex], 'modelMatrix'),
-                    viewMatrix: gl.getUniformLocation(this.shaders[childIndex][materialIndex], 'viewMatrix'),
-                    projectionMatrix: gl.getUniformLocation(this.shaders[childIndex][materialIndex], 'projectionMatrix'),
-                    normalMatrix: gl.getUniformLocation(this.shaders[childIndex][materialIndex], 'normalMatrix'),
-                    mvp: gl.getUniformLocation(this.shaders[childIndex][materialIndex], 'mvp'),
-                    // diffuseTexture: gl.getUniformLocation(this.shaders[childIndex][materialIndex], 'diffuseTexture'),
-                };
+                const flatUniforms = { ...uniforms.vertexShader, ...uniforms.fragmentShader };
+                this.uniforms[childIndex][materialIndex] = Object.keys(flatUniforms).filter(key => flatUniforms[key]).reduce((accum, key) => {
+                    accum[key] = gl.getUniformLocation(this.shaders[childIndex][materialIndex], key);
+                    return accum;
+                }, {});
 
-                const hasDiffuseTexture = !!material.diffuseTexture;
-                if (hasDiffuseTexture) {
-                    this.textures[childIndex][materialIndex] = this.createTexture(material.diffuseTexture);
-                    this.uniforms[childIndex][materialIndex].diffuseTexture = gl.getUniformLocation(this.shaders[childIndex][materialIndex], 'diffuseTexture');
-                }
+                this.textures[childIndex][materialIndex] = Object.keys(textures).reduce((accum, key) => {
+                    accum[key] = this.createTexture(textures[key]);
+                    return accum;
+                }, {});
             }
         }
     }
@@ -238,8 +195,10 @@ const WebGLRenderer = class {
         for (let childIndex = 0; childIndex < this.sceneChildren.length; childIndex++) {
             const child = this.sceneChildren[childIndex];
 
+            // TODO: dont compute this values if they are not used in the shader
+            // maybe solved by a scene optimizer (groupby material and mesh)
             const mv = MathUtils.multiplyMat4(MathUtils.createMat4(), this.camera.viewMatrix, child.modelMatrix);
-            const mvp = MathUtils.multiplyMat4(MathUtils.createMat4(), this.camera.projectionMatrix, mv);
+            const modelViewProjectionMatrix = MathUtils.multiplyMat4(MathUtils.createMat4(), this.camera.projectionMatrix, mv);
             const normalMatrix = MathUtils.normalMatFromMat4(MathUtils.createMat3(), mv);
 
             gl.bindVertexArray(this.vaos[childIndex]);
@@ -250,18 +209,22 @@ const WebGLRenderer = class {
                 const material = child.materials[materialIndex];
 
                 gl.useProgram(this.shaders[childIndex][materialIndex]);
-                gl.uniformMatrix4fv(this.uniforms[childIndex][materialIndex].modelMatrix, false, child.modelMatrix);
-                gl.uniformMatrix4fv(this.uniforms[childIndex][materialIndex].viewMatrix, false, this.camera.viewMatrix);
-                gl.uniformMatrix4fv(this.uniforms[childIndex][materialIndex].projectionMatrix, false, this.camera.projectionMatrix);
-                gl.uniformMatrix3fv(this.uniforms[childIndex][materialIndex].normalMatrix, false, normalMatrix);
-                gl.uniformMatrix4fv(this.uniforms[childIndex][materialIndex].mvp, false, mvp);
+                const uniformKeys = Object.keys(this.uniforms[childIndex][materialIndex]);
+                const textureKeys = Object.keys(this.textures[childIndex][materialIndex]);
 
-                const hasDiffuseTexture = !!material.diffuseTexture;
-                if (hasDiffuseTexture) {
+                if (uniformKeys.includes('modelMatrix')) gl.uniformMatrix4fv(this.uniforms[childIndex][materialIndex].modelMatrix, false, child.modelMatrix);
+                if (uniformKeys.includes('viewMatrix')) gl.uniformMatrix4fv(this.uniforms[childIndex][materialIndex].viewMatrix, false, this.camera.viewMatrix);
+                if (uniformKeys.includes('projectionMatrix')) gl.uniformMatrix4fv(this.uniforms[childIndex][materialIndex].projectionMatrix, false, this.camera.projectionMatrix);
+                if (uniformKeys.includes('normalMatrix')) gl.uniformMatrix3fv(this.uniforms[childIndex][materialIndex].normalMatrix, false, normalMatrix);
+                if (uniformKeys.includes('modelViewProjectionMatrix')) gl.uniformMatrix4fv(this.uniforms[childIndex][materialIndex].modelViewProjectionMatrix, false, modelViewProjectionMatrix);
+
+                if (uniformKeys.includes('diffuseTexture') && textureKeys.includes('diffuseTexture')) {
                     gl.activeTexture(gl.TEXTURE0);
-                    gl.bindTexture(gl.TEXTURE_2D, this.textures[childIndex][materialIndex]);
+                    gl.bindTexture(gl.TEXTURE_2D, this.textures[childIndex][materialIndex].diffuseTexture);
                     gl.uniform1i(this.uniforms[childIndex][materialIndex].diffuseTexture, 0);
                 }
+
+                if (uniformKeys.includes('cameraPosition')) gl.uniform3fv(this.uniforms[childIndex][materialIndex].cameraPosition, this.camera.position);
 
                 gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.indicesBuffers[childIndex][materialIndex]);
                 gl.drawElements(gl.TRIANGLES, material.getIndicesLength(), gl.UNSIGNED_INT, 0);
@@ -281,7 +244,7 @@ WebGLRenderer.BUFFER_TYPE_VERTEXCOLOR = 'vertexColor';
 WebGLRenderer.SHADER_PRECISION_HIGH = 'highp';
 WebGLRenderer.SHADER_PRECISION_MEDIUM = 'mediump';
 WebGLRenderer.SHADER_PRECISION_LOW = 'lowp';
-WebGLRenderer.SHADER_FLOAT_PRECISION_DEFAULT = WebGLRenderer.SHADER_PRECISION_MEDIUM;
-WebGLRenderer.SHADER_INT_PRECISION_DEFAULT = WebGLRenderer.SHADER_PRECISION_MEDIUM;
+WebGLRenderer.SHADER_FLOAT_PRECISION = WebGLRenderer.SHADER_PRECISION_MEDIUM;
+WebGLRenderer.SHADER_INT_PRECISION = WebGLRenderer.SHADER_PRECISION_MEDIUM;
 
 export default WebGLRenderer;
