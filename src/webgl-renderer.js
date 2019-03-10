@@ -1,4 +1,4 @@
-/* eslint-disable no-console */
+/* eslint-disable no-console, no-bitwise */
 import MathUtils from './math-utils';
 
 const WebGLRenderer = class {
@@ -141,94 +141,77 @@ const WebGLRenderer = class {
         gl.enable(gl.DEPTH_TEST);
         gl.depthFunc(gl.LEQUAL);
 
-        this.sceneChildren = this.scene.getChildren({ recursive: true });
-        // all the following logic should only apply to children of class 'Mesh'
-        // in fact group all of it in a update function to be able to react on scene updates
-        // e.g. when objects are added to / removed from the scene
-        this.shaders = [];
-        this.vaos = [];
-        this.indicesBuffers = [];
-        this.uniforms = [];
-        this.textures = [];
+        const { meshes } = this.scene.getChildren({ recursive: true });
+        this.meshBuffers = [];
 
-        for (let childIndex = 0; childIndex < this.sceneChildren.length; childIndex++) {
-            const child = this.sceneChildren[childIndex];
+        for (let meshIndex = 0; meshIndex < meshes.length; meshIndex++) {
+            const mesh = meshes[meshIndex];
+            const { geometry, materials } = mesh;
+            const material = materials[0];
 
-            this.shaders[childIndex] = [];
-            this.uniforms[childIndex] = [];
-            this.indicesBuffers[childIndex] = [];
-            this.textures[childIndex] = [];
+            this.meshBuffers[meshIndex] = {
+                modelMatrix: mesh.modelMatrix,
+                indicesLength: material.getIndicesLength(),
+                material,
+            };
 
-            this.vaos[childIndex] = this.createVertexArray(child.geometry);
+            this.meshBuffers[meshIndex].vao = this.createVertexArray(geometry);
+            this.meshBuffers[meshIndex].elementIndexBuffer = this.createElementArrayBuffer(material);
 
-            for (let materialIndex = 0; materialIndex < child.materials.length; materialIndex++) {
-                const material = child.materials[materialIndex];
+            const { vertexShaderSource, fragmentShaderSource, uniforms, textures } = material.getShaderSource();
+            const vertexShader = this.createShader(gl.VERTEX_SHADER, vertexShaderSource);
+            const fragmentShader = this.createShader(gl.FRAGMENT_SHADER, fragmentShaderSource);
+            this.meshBuffers[meshIndex].shader = this.createProgram(vertexShader, fragmentShader);
 
-                this.indicesBuffers[childIndex][materialIndex] = this.createElementArrayBuffer(material);
+            const flatUniforms = { ...uniforms.vertexShader, ...uniforms.fragmentShader };
 
-                const { vertexShaderSource, fragmentShaderSource, uniforms, textures } = material.getShaderSource();
-                const vertexShader = this.createShader(gl.VERTEX_SHADER, vertexShaderSource);
-                const fragmentShader = this.createShader(gl.FRAGMENT_SHADER, fragmentShaderSource);
-                this.shaders[childIndex][materialIndex] = this.createProgram(vertexShader, fragmentShader);
+            this.meshBuffers[meshIndex].uniforms = Object.keys(flatUniforms).filter(key => flatUniforms[key]).reduce((accum, key) => {
+                accum[key] = gl.getUniformLocation(this.meshBuffers[meshIndex].shader, key);
+                return accum;
+            }, {});
 
-                const flatUniforms = { ...uniforms.vertexShader, ...uniforms.fragmentShader };
-                this.uniforms[childIndex][materialIndex] = Object.keys(flatUniforms).filter(key => flatUniforms[key]).reduce((accum, key) => {
-                    accum[key] = gl.getUniformLocation(this.shaders[childIndex][materialIndex], key);
-                    return accum;
-                }, {});
-
-                this.textures[childIndex][materialIndex] = Object.keys(textures).reduce((accum, key) => {
-                    accum[key] = this.createTexture(textures[key]);
-                    return accum;
-                }, {});
-            }
+            this.meshBuffers[meshIndex].textures = Object.keys(textures).reduce((accum, key) => {
+                accum[key] = this.createTexture(textures[key]);
+                return accum;
+            }, {});
         }
     }
 
     render() {
         const { gl } = this;
 
-        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT); // eslint-disable-line
+        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
         this.scene.computeModelMatrix();
 
-        for (let childIndex = 0; childIndex < this.sceneChildren.length; childIndex++) {
-            const child = this.sceneChildren[childIndex];
+        for (let meshIndex = 0; meshIndex < this.meshBuffers.length; meshIndex++) {
+            const meshBuffer = this.meshBuffers[meshIndex];
+            gl.bindVertexArray(meshBuffer.vao);
+            gl.useProgram(meshBuffer.shader);
 
-            // TODO: dont compute this values if they are not used in the shader
-            // maybe solved by a scene optimizer (groupby material and mesh)
-            const mv = MathUtils.multiplyMat4(MathUtils.createMat4(), this.camera.viewMatrix, child.modelMatrix);
+            const uniformKeys = Object.keys(meshBuffer.uniforms);
+            const textureKeys = Object.keys(meshBuffer.textures);
+
+            const mv = MathUtils.multiplyMat4(MathUtils.createMat4(), this.camera.viewMatrix, meshBuffer.modelMatrix);
             const modelViewProjectionMatrix = MathUtils.multiplyMat4(MathUtils.createMat4(), this.camera.projectionMatrix, mv);
             const normalMatrix = MathUtils.normalMatFromMat4(MathUtils.createMat3(), mv);
 
-            gl.bindVertexArray(this.vaos[childIndex]);
+            if (uniformKeys.includes('modelMatrix')) gl.uniformMatrix4fv(meshBuffer.uniforms.modelMatrix, false, meshBuffer.modelMatrix);
+            if (uniformKeys.includes('viewMatrix')) gl.uniformMatrix4fv(meshBuffer.uniforms.viewMatrix, false, this.camera.viewMatrix);
+            if (uniformKeys.includes('projectionMatrix')) gl.uniformMatrix4fv(meshBuffer.uniforms.projectionMatrix, false, this.camera.projectionMatrix);
+            if (uniformKeys.includes('normalMatrix')) gl.uniformMatrix3fv(meshBuffer.uniforms.normalMatrix, false, normalMatrix);
+            if (uniformKeys.includes('modelViewProjectionMatrix')) gl.uniformMatrix4fv(meshBuffer.uniforms.modelViewProjectionMatrix, false, modelViewProjectionMatrix);
 
-            let materialIndex = 0;
-            const materialMax = child.materials.length;
-            for (; materialIndex < materialMax; materialIndex++) {
-                const material = child.materials[materialIndex];
-
-                gl.useProgram(this.shaders[childIndex][materialIndex]);
-                const uniformKeys = Object.keys(this.uniforms[childIndex][materialIndex]);
-                const textureKeys = Object.keys(this.textures[childIndex][materialIndex]);
-
-                if (uniformKeys.includes('modelMatrix')) gl.uniformMatrix4fv(this.uniforms[childIndex][materialIndex].modelMatrix, false, child.modelMatrix);
-                if (uniformKeys.includes('viewMatrix')) gl.uniformMatrix4fv(this.uniforms[childIndex][materialIndex].viewMatrix, false, this.camera.viewMatrix);
-                if (uniformKeys.includes('projectionMatrix')) gl.uniformMatrix4fv(this.uniforms[childIndex][materialIndex].projectionMatrix, false, this.camera.projectionMatrix);
-                if (uniformKeys.includes('normalMatrix')) gl.uniformMatrix3fv(this.uniforms[childIndex][materialIndex].normalMatrix, false, normalMatrix);
-                if (uniformKeys.includes('modelViewProjectionMatrix')) gl.uniformMatrix4fv(this.uniforms[childIndex][materialIndex].modelViewProjectionMatrix, false, modelViewProjectionMatrix);
-
-                if (uniformKeys.includes('diffuseTexture') && textureKeys.includes('diffuseTexture')) {
-                    gl.activeTexture(gl.TEXTURE0);
-                    gl.bindTexture(gl.TEXTURE_2D, this.textures[childIndex][materialIndex].diffuseTexture);
-                    gl.uniform1i(this.uniforms[childIndex][materialIndex].diffuseTexture, 0);
-                }
-
-                if (uniformKeys.includes('cameraPosition')) gl.uniform3fv(this.uniforms[childIndex][materialIndex].cameraPosition, this.camera.position);
-
-                gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.indicesBuffers[childIndex][materialIndex]);
-                gl.drawElements(gl.TRIANGLES, material.getIndicesLength(), gl.UNSIGNED_INT, 0);
+            if (uniformKeys.includes('diffuseTexture') && textureKeys.includes('diffuseTexture')) {
+                gl.activeTexture(gl.TEXTURE0);
+                gl.bindTexture(gl.TEXTURE_2D, meshBuffer.textures.diffuseTexture);
+                gl.uniform1i(meshBuffer.uniforms.diffuseTexture, 0);
             }
+
+            if (uniformKeys.includes('cameraPosition')) gl.uniform3fv(meshBuffer.uniforms.cameraPosition, this.camera.position);
+
+            gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, meshBuffer.elementIndexBuffer);
+            gl.drawElements(gl.TRIANGLES, meshBuffer.indicesLength, gl.UNSIGNED_INT, 0);
         }
     }
 };

@@ -7,6 +7,7 @@ import Mesh from './mesh';
 import Node from './node';
 import OrthographicCamera from './orthographic-camera';
 import PerspectiveCamera from './perspective-camera';
+import Scene from './scene';
 import WebGLRenderer from './webgl-renderer';
 
 export const MASSIV = {
@@ -19,5 +20,6 @@ export const MASSIV = {
     Node,
     OrthographicCamera,
     PerspectiveCamera,
+    Scene,
     WebGLRenderer,
 };

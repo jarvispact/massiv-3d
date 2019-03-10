@@ -53,11 +53,12 @@
                 camera.lookAt(0, 0, 0);
                 camera.computeModelMatrix();
 
-                const scene = new MASSIV.Node();
+                const scene = new MASSIV.Scene();
                 meshes.forEach(mesh => scene.addChild(mesh));
 
                 const renderer = new MASSIV.WebGLRenderer(domNode, scene, camera);
                 renderer.init();
+                renderer.render();
 
                 window.addEventListener('resize', (e) => {                    
                     const nw = domNode.clientWidth;
