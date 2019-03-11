@@ -23,12 +23,22 @@
         <script type="text/javascript">
             (async () => {
                 const domNode = document.getElementById('container');
-                const img = await MASSIV.ImageLoader.load('assets/cube-texture-2.jpg');
+                const [img, img2] = await Promise.all([
+                    MASSIV.ImageLoader.load('assets/cube-texture.png'),
+                    MASSIV.ImageLoader.load('assets/cube-texture-2.jpg'),
+                ]);
 
                 const { positions, normals, uvs, indices } = Cube;
-                const geometry = new MASSIV.Geometry({ positions, normals, uvs });
-                const material = new MASSIV.BlinnPhongMaterial({ indices, diffuseTexture: img });
-                const mesh = new MASSIV.Mesh({ geometry, materials: [material] });
+                const geometry1 = new MASSIV.Geometry({ positions, normals, uvs });
+                const material1 = new MASSIV.BlinnPhongMaterial({ indices, diffuseTexture: img });
+                const mesh1 = new MASSIV.Mesh({ geometry: geometry1, materials: [material1] });
+
+                const geometry2 = new MASSIV.Geometry({ positions, normals, uvs });
+                const material2 = new MASSIV.BlinnPhongMaterial({ indices, diffuseTexture: img2 });
+                const mesh2 = new MASSIV.Mesh({ geometry: geometry2, materials: [material2] });
+
+                mesh1.translate(-3, 0, 0);
+                mesh2.translate(3, 0, 0);
 
                 const w = domNode.clientWidth;
                 const h = domNode.clientHeight;
@@ -39,7 +49,8 @@
                 camera.computeModelMatrix();
 
                 const scene = new MASSIV.Scene();
-                scene.addChild(mesh);
+                scene.addChild(mesh1);
+                scene.addChild(mesh2);
 
                 const renderer = new MASSIV.WebGLRenderer(domNode, scene, camera);
                 renderer.init();
@@ -72,7 +83,9 @@
                         oneSecond = currentTime + 1000;
                     }
 
-                    mesh.rotate(rotation * delta, 0, rotation * delta);
+                    mesh1.rotate(rotation * delta, 0, rotation * delta);
+                    mesh2.rotate(rotation * delta, rotation * delta, 0);
+                    scene.rotate(0, rotation * delta, 0);
                     renderer.render();
 
                     requestAnimationFrame(tick);
