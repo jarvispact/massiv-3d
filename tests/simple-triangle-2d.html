@@ -1,0 +1,335 @@
+<!doctype html>
+<html lang="de">
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="initial-scale=1, maximum-scale=1, user-scalable=no">
+        <title>simple-triangle-2d</title>
+        <style type="text/css">
+            #container {
+                position: fixed;
+                top: 0px;
+                left: 0px;
+                width: 100%;
+                height: 100%;
+                overflow: hidden;
+            }
+        </style>
+    </head>
+
+    <body>
+        <div id="container"></div>
+        <script src="massiv-3d.js"></script>
+        <script type="text/javascript">
+            const getShaderVersion = () => '#version 300 es\n\n';
+
+            const getUniformsDeclaration = (uniforms) => {
+                const keys = Object.keys(uniforms).filter(key => uniforms[key]);
+                return keys.map(key => `uniform ${uniforms[key]} ${key};`).join('\n');
+            };
+
+            const MyMaterial = class extends MASSIV.Material {
+                constructor({ color, indices, diffuseMap, specularMap } = {}) {
+                    super({ indices });
+                    this.color = color;
+                    this.diffuseMap = diffuseMap;
+                    this.specularMap = specularMap;
+                }
+
+                getShaderSource({ shaderLocations, directionalLights, camera }) {
+                    const { color, diffuseMap, specularMap } = this;
+
+                    const uniforms = {
+                        vertexShader: {
+                            modelMatrix: 'mat4',
+                            viewMatrix: 'mat4',
+                            projectionMatrix: 'mat4',
+                            normalMatrix: 'mat3',
+                        },
+                        fragmentShader: {
+                            color: 'vec3',
+                            lightDirection: 'vec3',
+                            cameraPosition: 'vec3',
+                            diffuseMap: diffuseMap ? 'sampler2D' : undefined,
+                            specularMap: specularMap ? 'sampler2D' : undefined,
+                        },
+                    };
+
+                    const textures = {
+                        diffuseMap,
+                        specularMap,
+                    };
+
+                    const vSource = `
+                        precision highp float;
+                        precision highp int;
+
+                        layout(location = ${shaderLocations.position}) in vec3 position;
+                        layout(location = ${shaderLocations.normal}) in vec3 normal;
+                        layout(location = ${shaderLocations.uv}) in vec2 uv;
+
+                        ${getUniformsDeclaration(uniforms.vertexShader)}
+
+                        out vec3 vPosition;
+                        out vec3 vNormal;
+                        out vec2 vUv;
+
+                        void main() {
+                            gl_Position = projectionMatrix * viewMatrix * modelMatrix * vec4(position, 1.0);
+                            vPosition = (modelMatrix * vec4(position, 1.0)).xyz;
+                            vNormal = normalMatrix * normal;
+                            vUv = uv;
+                        }
+                    `;
+
+                    const fSource = `
+                        precision highp float;
+                        precision highp int;
+
+                        ${getUniformsDeclaration(uniforms.fragmentShader)}
+
+                        in vec3 vPosition;
+                        in vec3 vNormal;
+                        in vec2 vUv;
+
+                        out vec4 fragmentColor;
+
+                        float specularAmount = 0.5;
+                        float specularShininess = 80.0;
+                        vec3 specularColor = vec3(1.0, 1.0, 1.0);
+
+                        void main() {
+                            vec3 normalizedNormal = normalize(vNormal);
+                            vec3 normalizedLightDir = normalize(lightDirection);
+                            vec3 directionToCamera = normalize(cameraPosition - vPosition);
+                            vec3 halfwayVector = normalize(directionToCamera + normalizedLightDir);
+                            float lightDotProduct = dot(normalizedNormal, normalizedLightDir);
+                            float surfaceBrightness = max(0.0, lightDotProduct);
+
+                            float specularBrightness = (
+                                specularAmount *
+                                pow(
+                                    max(0.0, dot(normalizedNormal, halfwayVector)),
+                                    specularShininess
+                                )
+                            );
+
+                            vec3 diffuseTexel = texture(diffuseMap, vUv).xyz;
+                            vec3 specularTexel = texture(specularMap, vUv).xyz;
+
+                            fragmentColor = vec4(diffuseTexel * surfaceBrightness + specularTexel * specularBrightness, 1.0);
+                        }
+                    `;
+
+                    const vertexShaderSource = `${getShaderVersion()}${vSource}`;
+                    const fragmentShaderSource = `${getShaderVersion()}${fSource}`;
+
+                    return { vertexShaderSource, fragmentShaderSource, uniforms, textures };
+                }
+            }
+
+            const positions = [
+                // Front face
+                -1.0, -1.0,  1.0,
+                1.0, -1.0,  1.0,
+                1.0,  1.0,  1.0,
+                -1.0,  1.0,  1.0,
+                
+                // Back face
+                -1.0, -1.0, -1.0,
+                -1.0,  1.0, -1.0,
+                1.0,  1.0, -1.0,
+                1.0, -1.0, -1.0,
+                
+                // Top face
+                -1.0,  1.0, -1.0,
+                -1.0,  1.0,  1.0,
+                1.0,  1.0,  1.0,
+                1.0,  1.0, -1.0,
+                
+                // Bottom face
+                -1.0, -1.0, -1.0,
+                1.0, -1.0, -1.0,
+                1.0, -1.0,  1.0,
+                -1.0, -1.0,  1.0,
+                
+                // Right face
+                1.0, -1.0, -1.0,
+                1.0,  1.0, -1.0,
+                1.0,  1.0,  1.0,
+                1.0, -1.0,  1.0,
+                
+                // Left face
+                -1.0, -1.0, -1.0,
+                -1.0, -1.0,  1.0,
+                -1.0,  1.0,  1.0,
+                -1.0,  1.0, -1.0,
+            ];
+
+            const normals = [
+                // Front
+                0.0,  0.0,  1.0,
+                0.0,  0.0,  1.0,
+                0.0,  0.0,  1.0,
+                0.0,  0.0,  1.0,
+
+                // Back
+                0.0,  0.0, -1.0,
+                0.0,  0.0, -1.0,
+                0.0,  0.0, -1.0,
+                0.0,  0.0, -1.0,
+
+                // Top
+                0.0,  1.0,  0.0,
+                0.0,  1.0,  0.0,
+                0.0,  1.0,  0.0,
+                0.0,  1.0,  0.0,
+
+                // Bottom
+                0.0, -1.0,  0.0,
+                0.0, -1.0,  0.0,
+                0.0, -1.0,  0.0,
+                0.0, -1.0,  0.0,
+
+                // Right
+                1.0,  0.0,  0.0,
+                1.0,  0.0,  0.0,
+                1.0,  0.0,  0.0,
+                1.0,  0.0,  0.0,
+
+                // Left
+                -1.0,  0.0,  0.0,
+                -1.0,  0.0,  0.0,
+                -1.0,  0.0,  0.0,
+                -1.0,  0.0,  0.0,
+            ];
+
+            const uvs = [
+                // Front
+                0.0,  0.0,
+                1.0,  0.0,
+                1.0,  1.0,
+                0.0,  1.0,
+                // Back
+                0.0,  0.0,
+                1.0,  0.0,
+                1.0,  1.0,
+                0.0,  1.0,
+                // Top
+                0.0,  0.0,
+                1.0,  0.0,
+                1.0,  1.0,
+                0.0,  1.0,
+                // Bottom
+                0.0,  0.0,
+                1.0,  0.0,
+                1.0,  1.0,
+                0.0,  1.0,
+                // Right
+                0.0,  0.0,
+                1.0,  0.0,
+                1.0,  1.0,
+                0.0,  1.0,
+                // Left
+                0.0,  0.0,
+                1.0,  0.0,
+                1.0,  1.0,
+                0.0,  1.0,
+            ];
+
+            const indices = [
+                0,  1,  2,      0,  2,  3,    // front
+                4,  5,  6,      4,  6,  7,    // back
+                8,  9,  10,     8,  10, 11,   // top
+                12, 13, 14,     12, 14, 15,   // bottom
+                16, 17, 18,     16, 18, 19,   // right
+                20, 21, 22,     20, 22, 23,   // left
+            ];
+
+            const domNode = document.getElementById('container');
+
+            (async () => {
+                const [diffuseMap, specularMap] = await Promise.all([
+                    MASSIV.ImageLoader.load('./assets/brick_texture_diffuse_map.jpg'),
+                    MASSIV.ImageLoader.load('./assets/brick_texture_specular_map.jpg'),
+                ]);
+
+                const geometry = new MASSIV.Geometry({ positions, normals, uvs });
+                const material = new MyMaterial({ color: [1.0, 0.0, 0.0], diffuseMap, specularMap, indices });
+                const mesh = new MASSIV.Mesh({ geometry, materials: [material] });
+
+                const w = domNode.clientWidth;
+                const h = domNode.clientHeight;
+                    
+                const camera = new MASSIV.PerspectiveCamera(45 * Math.PI / 180, w / h, 0.1, 100);
+                camera.translate(0, 0, 10);
+                camera.lookAt(0, 0, 0);
+                camera.computeModelMatrix();
+
+                const light = new MASSIV.DirectionalLight({ direction: [0, 1, 3] });
+
+                const scene = new MASSIV.Scene();
+                scene.addChild(mesh, light, camera);
+                scene.setActiveCamera(camera);
+
+                const renderer = new MASSIV.WebGLRenderer({domNode, scene});
+
+                let then = 0;
+                let oneSecond = Date.now() + 1000;
+                let fps = 0;
+                let rotation = 30;
+
+                document.addEventListener('keyup', (e) => {
+                    if (e.keyCode === 87) {
+                        console.log('translate +z');
+                        light.direction[2] += 1;
+                    }
+                    if (e.keyCode === 83) {
+                        console.log('translate -z');
+                        light.direction[2] -= 1;
+                    }
+                    if (e.keyCode === 65) {
+                        console.log('translate -x');
+                        light.direction[0] -= 1;
+                    }
+                    if (e.keyCode === 68) {
+                        console.log('translate +x');
+                        light.direction[0] += 1;
+                    }
+                    if (e.keyCode === 38) {
+                        console.log('translate +y');
+                        light.direction[1] += 1;
+                    }
+                    if (e.keyCode === 40) {
+                        console.log('translate -y');
+                        light.direction[1] -= 1;
+                    }
+                    console.log('current light direction: ', light.direction);
+                    
+                });
+
+                const tick = (now) => {
+                    requestAnimationFrame(tick);
+
+                    now *= 0.001;
+                    const delta = now - then;
+                    then = now;
+
+                    fps++;
+
+                    const currentTime = Date.now();
+                    if (currentTime >= oneSecond) {
+                        console.log('called ', {fps});
+                        fps = 0;
+                        oneSecond = currentTime + 1000;
+                    }
+
+                    mesh.rotate(rotation * delta, rotation * delta, rotation * delta);
+                    renderer.render();
+                };
+
+                requestAnimationFrame(tick);
+            })();
+            
+        </script>
+    </body>
+</html>

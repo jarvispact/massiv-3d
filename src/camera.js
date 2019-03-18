@@ -1,9 +1,9 @@
 import MathUtils from './math-utils';
-import Node from './node';
+import Node3D from './node-3d';
 
 // Abstract Class
 
-export default class Camera extends Node {
+export default class Camera extends Node3D {
     constructor() {
         super();
         this.upVector = MathUtils.createVec3(0, 1, 0);

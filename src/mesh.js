@@ -1,9 +1,8 @@
-import Node from './node';
+import Node3D from './node-3d';
 
-export default class Mesh extends Node {
-    constructor({ name, geometry, materials } = {}) {
+export default class Mesh extends Node3D {
+    constructor({ geometry, materials } = {}) {
         super();
-        this.name = name;
         this.geometry = geometry;
         this.materials = materials;
     }

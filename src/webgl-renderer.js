@@ -1,13 +1,54 @@
 /* eslint-disable no-console, no-bitwise */
+
 import MathUtils from './math-utils';
 
+const arrayBufferLookupTable = {
+    position: (geometry, shaderLocations) => ({
+        location: shaderLocations.position,
+        bufferData: geometry.getPositionBuffer(),
+        bufferSize: geometry.getPositionBufferSize(),
+    }),
+    normal: (geometry, shaderLocations) => ({
+        location: shaderLocations.normal,
+        bufferData: geometry.getNormalBuffer(),
+        bufferSize: geometry.getNormalBufferSize(),
+    }),
+    uv: (geometry, shaderLocations) => ({
+        location: shaderLocations.uv,
+        bufferData: geometry.getUvBuffer(),
+        bufferSize: geometry.getUvBufferSize(),
+    }),
+    color: (geometry, shaderLocations) => ({
+        location: shaderLocations.color,
+        bufferData: geometry.getColorBuffer(),
+        bufferSize: geometry.getColorBufferSize(),
+    }),
+};
+
+const cache = { meshes: {} };
+
 const WebGLRenderer = class {
-    constructor(domNode, scene, camera) {
+    constructor({ domNode, scene, options = {} } = {}) {
         this.domNode = domNode;
         this.scene = scene;
-        this.camera = camera;
+
+        this.shaderLocations = options.shaderLocations || {
+            position: 0,
+            normal: 1,
+            uv: 2,
+            color: 3,
+        };
+
+        this.depthFunc = options.depthFunc || 'LEQUAL';
+        this.enableDepthTest = options.enableDepthTest || true;
+
         this.createAndAppendCanvas();
         this.gl = this.canvas.getContext('webgl2');
+
+        this.setClearColor();
+        this.setViewPort();
+        this.setDepthFunc(this.depthFunc);
+        if (this.enableDepthTest) this.gl.enable(this.gl.DEPTH_TEST);
     }
 
     createAndAppendCanvas() {
@@ -25,7 +66,19 @@ const WebGLRenderer = class {
     resize() {
         this.canvas.width = this.canvas.clientWidth;
         this.canvas.height = this.canvas.clientHeight;
+        this.setViewPort();
+    }
+
+    setClearColor(r = 0, g = 0, b = 0, a = 1) {
+        this.gl.clearColor(r, g, b, a);
+    }
+
+    setViewPort() {
         this.gl.viewport(0, 0, this.canvas.width, this.canvas.height);
+    }
+
+    setDepthFunc(func) {
+        this.gl.depthFunc(this.gl[func]);
     }
 
     createShader(type, source) {
@@ -63,7 +116,6 @@ const WebGLRenderer = class {
         const srcFormat = gl.RGBA;
         const srcType = gl.UNSIGNED_BYTE;
 
-        gl.bindTexture(gl.TEXTURE_2D, texture);
         gl.texImage2D(gl.TEXTURE_2D, level, internalFormat, srcFormat, srcType, image);
         gl.generateMipmap(gl.TEXTURE_2D);
 
@@ -71,37 +123,13 @@ const WebGLRenderer = class {
     }
 
     createArrayBuffer(type, geometry) {
-        const { gl } = this;
-
-        const lookupTable = {
-            [WebGLRenderer.BUFFER_TYPE_POSITION]: g => ({
-                loc: WebGLRenderer.SHADER_POSITION_LOCATION,
-                bufferData: g.getPositionsBuffer(),
-                bufferSize: g.getPositionsBufferSize(),
-            }),
-            [WebGLRenderer.BUFFER_TYPE_NORMAL]: g => ({
-                loc: WebGLRenderer.SHADER_NORMAL_LOCATION,
-                bufferData: g.getNormalsBuffer(),
-                bufferSize: g.getNormalsBufferSize(),
-            }),
-            [WebGLRenderer.BUFFER_TYPE_UV]: g => ({
-                loc: WebGLRenderer.SHADER_UV_LOCATION,
-                bufferData: g.getUvsBuffer(),
-                bufferSize: g.getUvsBufferSize(),
-            }),
-            [WebGLRenderer.BUFFER_TYPE_VERTEXCOLOR]: g => ({
-                loc: WebGLRenderer.SHADER_VERTEXCOLOR_LOCATION,
-                bufferData: g.getVertexColorsBuffer(),
-                bufferSize: g.getVertexColorsBufferSize(),
-            }),
-        };
-
-        const { loc, bufferData, bufferSize } = lookupTable[type](geometry);
+        const { gl, shaderLocations } = this;
+        const { location, bufferData, bufferSize } = arrayBufferLookupTable[type](geometry, shaderLocations);
         const buffer = gl.createBuffer();
         gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
         gl.bufferData(gl.ARRAY_BUFFER, bufferData, gl.STATIC_DRAW);
-        gl.enableVertexAttribArray(loc);
-        gl.vertexAttribPointer(loc, bufferSize, gl.FLOAT, false, 0, 0);
+        gl.enableVertexAttribArray(location);
+        gl.vertexAttribPointer(location, bufferSize, gl.FLOAT, false, 0, 0);
     }
 
     createVertexArray(geometry) {
@@ -111,16 +139,16 @@ const WebGLRenderer = class {
         gl.bindVertexArray(vao);
 
         const hasPositions = geometry.positions.length > 0;
-        if (hasPositions) this.createArrayBuffer(WebGLRenderer.BUFFER_TYPE_POSITION, geometry);
+        if (hasPositions) this.createArrayBuffer('position', geometry);
 
         const hasNormals = geometry.normals.length > 0;
-        if (hasNormals) this.createArrayBuffer(WebGLRenderer.BUFFER_TYPE_NORMAL, geometry);
+        if (hasNormals) this.createArrayBuffer('normal', geometry);
 
         const hasUvs = geometry.uvs.length > 0;
-        if (hasUvs) this.createArrayBuffer(WebGLRenderer.BUFFER_TYPE_UV, geometry);
+        if (hasUvs) this.createArrayBuffer('uv', geometry);
 
-        const hasVertexColors = geometry.vertexColors.length > 0;
-        if (hasVertexColors) this.createArrayBuffer(WebGLRenderer.BUFFER_TYPE_VERTEXCOLOR, geometry);
+        const hasColors = geometry.colors.length > 0;
+        if (hasColors) this.createArrayBuffer('color', geometry);
 
         return vao;
     }
@@ -129,51 +157,52 @@ const WebGLRenderer = class {
         const { gl } = this;
         const buffer = gl.createBuffer();
         gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, buffer);
-        gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, material.getIndicesBuffer(), gl.STATIC_DRAW);
+        gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, material.getIndexBuffer(), gl.STATIC_DRAW);
         return buffer;
     }
 
-    init() {
-        const { gl } = this;
+    cacheMesh(mesh, directionalLights, camera) {
+        console.log('cache mesh called', mesh.id);
+        const { gl, shaderLocations } = this;
+        const { id, modelMatrix, geometry, materials } = mesh;
 
-        gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
-        gl.clearColor(0, 0, 0, 1);
-        gl.enable(gl.DEPTH_TEST);
-        gl.depthFunc(gl.LEQUAL);
+        cache.meshes[id] = {
+            vao: this.createVertexArray(geometry),
+            modelMatrix,
+            materials: [],
+        };
 
-        const { meshes } = this.scene.getChildren({ recursive: true });
-        this.meshBuffers = [];
+        for (let materialIdx = 0; materialIdx < materials.length; materialIdx++) {
+            const material = materials[materialIdx];
 
-        for (let meshIndex = 0; meshIndex < meshes.length; meshIndex++) {
-            const mesh = meshes[meshIndex];
-            const { geometry, materials } = mesh;
-            const material = materials[0];
+            const elementIndexBuffer = this.createElementArrayBuffer(material);
+            const indicesLength = material.getIndexBufferLength();
 
-            this.meshBuffers[meshIndex] = {
-                modelMatrix: mesh.modelMatrix,
-                indicesLength: material.getIndicesLength(),
-                material,
-            };
-
-            this.meshBuffers[meshIndex].vao = this.createVertexArray(geometry);
-            this.meshBuffers[meshIndex].elementIndexBuffer = this.createElementArrayBuffer(material);
-
-            const { vertexShaderSource, fragmentShaderSource, uniforms, textures } = material.getShaderSource();
+            const { vertexShaderSource, fragmentShaderSource, uniforms: materialUniforms, textures: materialTextures } = material.getShaderSource({ shaderLocations, directionalLights, camera });
             const vertexShader = this.createShader(gl.VERTEX_SHADER, vertexShaderSource);
             const fragmentShader = this.createShader(gl.FRAGMENT_SHADER, fragmentShaderSource);
-            this.meshBuffers[meshIndex].shader = this.createProgram(vertexShader, fragmentShader);
+            const shader = this.createProgram(vertexShader, fragmentShader);
 
-            const flatUniforms = { ...uniforms.vertexShader, ...uniforms.fragmentShader };
+            const flatUniforms = { ...materialUniforms.vertexShader, ...materialUniforms.fragmentShader };
 
-            this.meshBuffers[meshIndex].uniforms = Object.keys(flatUniforms).filter(key => flatUniforms[key]).reduce((accum, key) => {
-                accum[key] = gl.getUniformLocation(this.meshBuffers[meshIndex].shader, key);
+            const uniforms = Object.keys(flatUniforms).filter(key => flatUniforms[key]).reduce((accum, key) => {
+                accum[key] = gl.getUniformLocation(shader, key);
                 return accum;
             }, {});
 
-            this.meshBuffers[meshIndex].textures = Object.keys(textures).reduce((accum, key) => {
-                accum[key] = this.createTexture(textures[key]);
+            const textures = Object.keys(materialTextures).filter(key => materialTextures[key]).reduce((accum, key) => {
+                accum[key] = this.createTexture(materialTextures[key]);
                 return accum;
             }, {});
+
+            cache.meshes[id].materials.push({
+                elementIndexBuffer,
+                indicesLength,
+                shader,
+                material,
+                uniforms,
+                textures,
+            });
         }
     }
 
@@ -182,52 +211,59 @@ const WebGLRenderer = class {
 
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
+        // TODO only compute modelMatrix for meshes
         this.scene.computeModelMatrix();
+        const { activeCamera, meshes, directionalLights } = this.scene.getChildren({ recursive: true });
 
-        for (let meshIndex = 0; meshIndex < this.meshBuffers.length; meshIndex++) {
-            const meshBuffer = this.meshBuffers[meshIndex];
-            gl.bindVertexArray(meshBuffer.vao);
-            gl.useProgram(meshBuffer.shader);
+        for (let meshIdx = 0; meshIdx < meshes.length; meshIdx++) {
+            const mesh = meshes[meshIdx];
+            if (!cache.meshes[mesh.id]) this.cacheMesh(mesh, directionalLights, activeCamera);
+        }
 
-            const uniformKeys = Object.keys(meshBuffer.uniforms);
-            const textureKeys = Object.keys(meshBuffer.textures);
+        const meshCache = Object.values(cache.meshes);
 
-            const mv = MathUtils.multiplyMat4(MathUtils.createMat4(), this.camera.viewMatrix, meshBuffer.modelMatrix);
-            const modelViewProjectionMatrix = MathUtils.multiplyMat4(MathUtils.createMat4(), this.camera.projectionMatrix, mv);
+        for (let meshIdx = 0; meshIdx < meshCache.length; meshIdx++) {
+            const cachedMesh = meshCache[meshIdx];
+            gl.bindVertexArray(cachedMesh.vao);
+
+            const mv = MathUtils.multiplyMat4(MathUtils.createMat4(), activeCamera.viewMatrix, cachedMesh.modelMatrix);
+            // const modelViewProjectionMatrix = MathUtils.multiplyMat4(MathUtils.createMat4(), activeCamera.projectionMatrix, mv);
             const normalMatrix = MathUtils.normalMatFromMat4(MathUtils.createMat3(), mv);
 
-            if (uniformKeys.includes('modelMatrix')) gl.uniformMatrix4fv(meshBuffer.uniforms.modelMatrix, false, meshBuffer.modelMatrix);
-            if (uniformKeys.includes('viewMatrix')) gl.uniformMatrix4fv(meshBuffer.uniforms.viewMatrix, false, this.camera.viewMatrix);
-            if (uniformKeys.includes('projectionMatrix')) gl.uniformMatrix4fv(meshBuffer.uniforms.projectionMatrix, false, this.camera.projectionMatrix);
-            if (uniformKeys.includes('normalMatrix')) gl.uniformMatrix3fv(meshBuffer.uniforms.normalMatrix, false, normalMatrix);
-            if (uniformKeys.includes('modelViewProjectionMatrix')) gl.uniformMatrix4fv(meshBuffer.uniforms.modelViewProjectionMatrix, false, modelViewProjectionMatrix);
+            for (let materialIdx = 0; materialIdx < cachedMesh.materials.length; materialIdx++) {
+                const material = cachedMesh.materials[materialIdx];
+                gl.useProgram(material.shader);
 
-            if (uniformKeys.includes('diffuseTexture') && textureKeys.includes('diffuseTexture')) {
-                gl.activeTexture(gl.TEXTURE0);
-                gl.bindTexture(gl.TEXTURE_2D, meshBuffer.textures.diffuseTexture);
-                gl.uniform1i(meshBuffer.uniforms.diffuseTexture, 0);
+                // TODO cache uniforms
+                // and make uniform and texture handling more generic
+                const uniformKeys = Object.keys(material.uniforms);
+                const textureKeys = Object.keys(material.textures);
+
+                if (uniformKeys.includes('color')) gl.uniform3fv(material.uniforms.color, material.material.color);
+                if (uniformKeys.includes('modelMatrix')) gl.uniformMatrix4fv(material.uniforms.modelMatrix, false, cachedMesh.modelMatrix);
+                if (uniformKeys.includes('viewMatrix')) gl.uniformMatrix4fv(material.uniforms.viewMatrix, false, activeCamera.viewMatrix);
+                if (uniformKeys.includes('projectionMatrix')) gl.uniformMatrix4fv(material.uniforms.projectionMatrix, false, activeCamera.projectionMatrix);
+                if (uniformKeys.includes('normalMatrix')) gl.uniformMatrix3fv(material.uniforms.normalMatrix, false, normalMatrix);
+                if (uniformKeys.includes('cameraPosition')) gl.uniform3fv(material.uniforms.cameraPosition, activeCamera.position);
+                if (uniformKeys.includes('lightDirection')) gl.uniform3fv(material.uniforms.lightDirection, directionalLights[0].direction);
+
+                if (uniformKeys.includes('diffuseMap') && textureKeys.includes('diffuseMap')) {
+                    gl.activeTexture(gl.TEXTURE0);
+                    gl.bindTexture(gl.TEXTURE_2D, material.textures.diffuseMap);
+                    gl.uniform1i(material.uniforms.diffuseMap, 0);
+                }
+
+                if (uniformKeys.includes('specularMap') && textureKeys.includes('specularMap')) {
+                    gl.activeTexture(gl.TEXTURE1);
+                    gl.bindTexture(gl.TEXTURE_2D, material.textures.specularMap);
+                    gl.uniform1i(material.uniforms.specularMap, 1);
+                }
+
+                gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, material.elementIndexBuffer);
+                gl.drawElements(gl.TRIANGLES, material.indicesLength, gl.UNSIGNED_INT, 0);
             }
-
-            if (uniformKeys.includes('cameraPosition')) gl.uniform3fv(meshBuffer.uniforms.cameraPosition, this.camera.position);
-
-            gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, meshBuffer.elementIndexBuffer);
-            gl.drawElements(gl.TRIANGLES, meshBuffer.indicesLength, gl.UNSIGNED_INT, 0);
         }
     }
 };
-
-WebGLRenderer.SHADER_POSITION_LOCATION = 0;
-WebGLRenderer.SHADER_NORMAL_LOCATION = 1;
-WebGLRenderer.SHADER_UV_LOCATION = 2;
-WebGLRenderer.SHADER_VERTEXCOLOR_LOCATION = 3;
-WebGLRenderer.BUFFER_TYPE_POSITION = 'position';
-WebGLRenderer.BUFFER_TYPE_NORMAL = 'normal';
-WebGLRenderer.BUFFER_TYPE_UV = 'uv';
-WebGLRenderer.BUFFER_TYPE_VERTEXCOLOR = 'vertexColor';
-WebGLRenderer.SHADER_PRECISION_HIGH = 'highp';
-WebGLRenderer.SHADER_PRECISION_MEDIUM = 'mediump';
-WebGLRenderer.SHADER_PRECISION_LOW = 'lowp';
-WebGLRenderer.SHADER_FLOAT_PRECISION = WebGLRenderer.SHADER_PRECISION_MEDIUM;
-WebGLRenderer.SHADER_INT_PRECISION = WebGLRenderer.SHADER_PRECISION_MEDIUM;
 
 export default WebGLRenderer;

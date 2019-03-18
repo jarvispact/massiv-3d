@@ -1,44 +1,44 @@
 export default class Geometry {
-    constructor({ positions, normals, uvs, vertexColors } = {}) {
+    constructor({ positions, normals, uvs, colors } = {}) {
         this.positions = positions || [];
         this.normals = normals || [];
         this.uvs = uvs || [];
-        this.vertexColors = vertexColors || [];
+        this.colors = colors || [];
         this.positionsSize = 3;
         this.normalsSize = 3;
         this.uvsSize = 2;
-        this.vertexColorsSize = 4;
+        this.colorsSize = 3;
     }
 
-    getPositionsBuffer() {
+    getPositionBuffer() {
         return new Float32Array(this.positions);
     }
 
-    getPositionsBufferSize() {
+    getPositionBufferSize() {
         return this.positionsSize;
     }
 
-    getNormalsBuffer() {
+    getNormalBuffer() {
         return new Float32Array(this.normals);
     }
 
-    getNormalsBufferSize() {
+    getNormalBufferSize() {
         return this.normalsSize;
     }
 
-    getUvsBuffer() {
+    getUvBuffer() {
         return new Float32Array(this.uvs);
     }
 
-    getUvsBufferSize() {
+    getUvBufferSize() {
         return this.uvsSize;
     }
 
-    getVertexColorsBuffer() {
-        return new Float32Array(this.vertexColors);
+    getColorBuffer() {
+        return new Float32Array(this.colors);
     }
 
-    getVertexColorsBufferSize() {
-        return this.vertexColorsSize;
+    getColorBufferSize() {
+        return this.colorsSize;
     }
 }

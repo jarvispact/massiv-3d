@@ -1,14 +1,13 @@
 export default class Material {
-    constructor({ name, indices } = {}) {
-        this.name = name;
+    constructor({ indices } = {}) {
         this.indices = indices || [];
     }
 
-    getIndicesBuffer() {
+    getIndexBuffer() {
         return new Uint32Array(this.indices);
     }
 
-    getIndicesLength() {
+    getIndexBufferLength() {
         return this.indices.length;
     }
 }

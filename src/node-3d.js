@@ -1,9 +1,13 @@
 /* eslint-disable no-lonely-if */
 
+import hyperid from 'hyperid';
 import MathUtils from './math-utils';
 
-export default class Node {
+const getID = hyperid();
+
+export default class Node3D {
     constructor() {
+        this.id = getID();
         this.parent = null;
         this.children = [];
         this.position = MathUtils.createVec3();
@@ -13,9 +17,15 @@ export default class Node {
         this.modelMatrix = MathUtils.createMat4();
     }
 
-    addChild(child) {
-        child.parent = this;
-        this.children.push(child);
+    addChild(...children) {
+        children.forEach((child) => {
+            child.parent = this;
+            this.children.push(child);
+        });
+    }
+
+    add(...children) {
+        this.addChild(...children);
     }
 
     getChildren({ recursive } = {}) {
@@ -75,5 +85,7 @@ export default class Node {
                 this.children[i].computeModelMatrix();
             }
         }
+
+        this.transformDirty = false;
     }
 }

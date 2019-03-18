@@ -1,26 +1,45 @@
-import Node from './node';
+import Node3D from './node-3d';
+import DirectionalLight from './directional-light';
+import OrthographicCamera from './orthographic-camera';
+import PerspectiveCamera from './perspective-camera';
 import Mesh from './mesh';
 
-export default class Scene extends Node {
+export default class Scene extends Node3D {
+    constructor() {
+        super();
+        this.activeCamera = null;
+    }
+
     getChildren({ recursive } = {}) {
-        let children = [];
+        const { activeCamera } = this;
+        let flatChildren = this.children;
 
-        for (let i = 0; i < this.children.length; i++) {
-            const currentChild = this.children[i];
-            children.push(currentChild);
+        flatChildren.forEach((child) => {
+            flatChildren = flatChildren.concat(child.getChildren({ recursive }));
+        });
 
-            if (recursive) {
-                const childChildren = currentChild.getChildren({ recursive });
-                children = children.concat(childChildren);
-            }
-        }
-
+        const directionalLights = [];
+        const orthographicCameras = [];
+        const perspectiveCameras = [];
         const meshes = [];
 
-        for (let i = 0; i < children.length; i++) {
-            if (children[i] instanceof Mesh) meshes.push(children[i]);
-        }
+        flatChildren.forEach((child) => {
+            if (child instanceof DirectionalLight) directionalLights.push(child);
+            if (child instanceof OrthographicCamera) orthographicCameras.push(child);
+            if (child instanceof PerspectiveCamera) perspectiveCameras.push(child);
+            if (child instanceof Mesh) meshes.push(child);
+        });
 
-        return { meshes };
+        return {
+            directionalLights,
+            orthographicCameras,
+            perspectiveCameras,
+            activeCamera,
+            meshes,
+        };
+    }
+
+    setActiveCamera(camera) {
+        this.activeCamera = camera;
     }
 }
