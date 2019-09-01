@@ -2,15 +2,15 @@
   "name": "massiv-3d",
   "version": "0.0.1",
   "description": "a simple high performance webgl library",
-  "main": "dist/massiv-3d.js",
+  "main": "dist/massiv-3d.cjs.js",
+  "module": "dist/massiv-3d.esm.js",
+  "browser": "dist/massiv-3d.umd.js",
   "scripts": {
-    "test": "nyc mocha --require @babel/register ./specs/**/*.specs.js",
-    "clean": "rm -f ./dist/*",
-    "build": "webpack --config webpack.config.build.js --mode development",
-    "build:min": "webpack -p --config webpack.config.build.min.js --mode production",
-    "build:all": "webpack --config webpack.config.build.js --mode development && webpack -p --config webpack.config.build.min.js --mode production",
-    "git-add-dist": "git add dist/*",
-    "dev": "webpack-dev-server --content-base ./tests --config webpack.config.dev.js --mode development"
+    "clean": "rm -rf ./dist/*",
+    "build": "rollup -c",
+    "git-add-dist": "git add ./dist/*",
+    "dev": "rollup -c -w",
+    "examples": "http-server ./examples -a 0.0.0.0 -p 8080 -c-1"
   },
   "repository": {
     "type": "git",
@@ -28,36 +28,19 @@
     "url": "https://github.com/jarvispact/massiv-3d/issues"
   },
   "homepage": "https://github.com/jarvispact/massiv-3d#readme",
-  "dependencies": {
-    "gl-matrix": "^3.0.0",
-    "hyperid": "^2.0.2"
-  },
-  "devDependencies": {
-    "@babel/core": "^7.2.2",
-    "@babel/preset-env": "^7.3.1",
-    "@babel/register": "^7.0.0",
-    "babel-loader": "^8.0.5",
-    "chai": "^4.2.0",
-    "eslint": "^5.3.0",
-    "eslint-config-airbnb-base": "^13.1.0",
-    "eslint-plugin-import": "^2.16.0",
-    "mocha": "^5.2.0",
-    "nyc": "^13.2.0",
-    "pre-commit": "^1.2.2",
-    "webpack": "^4.29.3",
-    "webpack-cli": "^3.2.3",
-    "webpack-dev-server": "^3.1.14"
-  },
-  "nyc": {
-    "exclude": [
-      "specs/**/*",
-      "spec-helpers.js",
-      "src/math-utils.js"
-    ]
-  },
   "pre-commit": [
     "clean",
-    "build:all",
+    "build",
     "git-add-dist"
-  ]
+  ],
+  "devDependencies": {
+    "eslint": "^6.1.0",
+    "eslint-config-airbnb-base": "^14.0.0",
+    "eslint-plugin-import": "^2.18.2",
+    "express": "^4.17.1",
+    "http-server": "^0.11.1",
+    "pre-commit": "^1.2.2",
+    "rollup": "^1.20.3",
+    "rollup-plugin-node-resolve": "^5.2.0"
+  }
 }
