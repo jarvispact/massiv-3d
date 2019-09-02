@@ -29,13 +29,23 @@ class Transform3D extends Node {
         this.transformDirty = true;
     }
 
-    computeModelMatrix() {
-        if (this.transformDirty) {
-            this.modelMatrix.setFromQuaternionTranslationScale(this.quaternion, this.position, this.scaling);
-            this.transformDirty = false;
+    computeModelMatrix(combinedTransformationMatrix) {
+        const pos = this.position;
+        const scl = this.scaling;
+        const rot = this.quaternion;
+
+        if (combinedTransformationMatrix) {
+            const transformationMatrix = new Mat4().setFromQuaternionTranslationScale(rot, pos, scl);
+            this.modelMatrix = combinedTransformationMatrix.clone().multiply(transformationMatrix);
+        } else if (this.transformDirty) {
+            this.modelMatrix.setFromQuaternionTranslationScale(rot, pos, scl);
         }
 
-        return this.modelMatrix;
+        for (let i = 0; i < this.children.length; i++) {
+            this.children[i].computeModelMatrix(this.modelMatrix);
+        }
+
+        this.transformDirty = false;
     }
 }
 

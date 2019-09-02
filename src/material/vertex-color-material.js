@@ -1,19 +1,32 @@
 import Material from './material';
 
+const getUniformsDeclaration = (uniforms) => {
+    const keys = Object.keys(uniforms).filter(key => uniforms[key]);
+    return keys.map(key => `uniform ${uniforms[key]} ${key};`).join('\n');
+};
+
 class VertexColorMaterial extends Material {
     constructor() {
         super();
     }
 
-    getVertexShaderSourceCode({ shaderLayoutLocations }) {
-        const vertexShaderSourceCode = `
+    getShaderData({ shaderLayoutLocations }) {
+        const uniforms = {
+            vertexShader: {
+                mvp: 'mat4',
+            },
+            fragmentShader: {
+            },
+        };
+
+        const vertexShaderSource = `
             precision highp float;
             precision highp int;
 
             layout(location = ${shaderLayoutLocations.vertex}) in vec3 position;
             layout(location = ${shaderLayoutLocations.vertexColor}) in vec4 vertexColor;
 
-            uniform mat4 mvp;
+            ${getUniformsDeclaration(uniforms.vertexShader)}
 
             out vec4 vColor;
 
@@ -23,11 +36,7 @@ class VertexColorMaterial extends Material {
             }
         `;
 
-        return `${this.getShaderVersion()}${vertexShaderSourceCode}`;
-    }
-
-    getFragmentShaderSourceCode() {
-        const fragmentShaderSourceCode = `
+        const fragmentShaderSource = `
             precision highp float;
             precision highp int;
 
@@ -37,9 +46,22 @@ class VertexColorMaterial extends Material {
             void main() {
                 fragmentColor = vColor;
             }
-        `;
+        `;        
 
-        return `${this.getShaderVersion()}${fragmentShaderSourceCode}`;
+        const vertexShaderSourceCode = `${this.getShaderVersion()}${vertexShaderSource}`;
+        const fragmentShaderSourceCode = `${this.getShaderVersion()}${fragmentShaderSource}`;
+
+        return {
+            vertexShaderSourceCode,
+            fragmentShaderSourceCode,
+            uniforms,
+        };
+    }
+
+    clone() {
+        const clone = new VertexColorMaterial();
+        clone.setIndices([...this.indices]);
+        return clone;
     }
 }
 

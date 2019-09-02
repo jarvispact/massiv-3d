@@ -1,8 +1,8 @@
-import Node from './node';
+import Transform3D from './transform-3d';
 import Camera from '../camera/camera';
 import Mesh from './mesh';
 
-class Scene extends Node {
+class Scene extends Transform3D {
     constructor() {
         super();
         this.activeCamera = null;
@@ -34,8 +34,8 @@ class Scene extends Node {
         }
 
         return {
-            cameras,
             activeCamera: this.activeCamera || cameras[0],
+            cameras,
             meshes,
         }
     }

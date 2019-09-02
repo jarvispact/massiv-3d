@@ -98,6 +98,21 @@ class Geometry {
         this.vertexColorVectorSize = vertexColorVectorSize;
         return this;
     }
+
+    clone() {
+        const clone = new Geometry();
+        clone.setVertices([...this.vertices]);
+        clone.setNormals([...this.normals]);
+        clone.setUvs([...this.uvs]);
+        clone.setVertexColors([...this.vertexColors]);
+
+        clone.vertexVectorSize = this.vertexVectorSize;
+        clone.normalVectorSize = this.normalVectorSize;
+        clone.uvVectorSize = this.uvVectorSize;
+        clone.vertexColorVectorSize = this.vertexColorVectorSize;
+
+        return clone;
+    }
 }
 
 export default Geometry;

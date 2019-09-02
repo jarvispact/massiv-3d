@@ -54,8 +54,6 @@
                 scene.addChild(mesh);
                 scene.setActiveCamera(camera);
 
-                // renderer.render(scene);
-
                 window.addEventListener('resize', () => {
                     camera.updateProjectionMatrix(45, domNode.clientWidth / domNode.clientHeight, 0.1, 1000);
                     renderer.resize();
