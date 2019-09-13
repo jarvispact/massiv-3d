@@ -2,20 +2,22 @@
 
 Object.defineProperty(exports, '__esModule', { value: true });
 
+/* eslint-disable no-bitwise, no-nested-ternary, no-mixed-operators */
+
 // https://gist.github.com/jcxplorer/823878
 
-const uuid = () => {
+var uuid = () => {
     let uuid = '';
     let i = 0;
 
     for (i; i < 32; i++) {
         const random = Math.random() * 16 | 0;
 
-        if (i == 8 || i == 12 || i == 16 || i == 20) {
+        if (i === 8 || i === 12 || i === 16 || i === 20) {
             uuid += '-';
         }
 
-        uuid += (i == 12 ? 4 : (i == 16 ? (random & 3 | 8) : random)).toString(16);
+        uuid += (i === 12 ? 4 : (i === 16 ? (random & 3 | 8) : random)).toString(16);
     }
 
     return uuid;
@@ -45,6 +47,8 @@ class Node {
         return this.children;
     }
 }
+
+/* eslint-disable prefer-destructuring, one-var, one-var-declaration-per-line, max-len */
 
 const EPSILON = 0.000001;
 
@@ -160,54 +164,54 @@ class Mat4 {
         const a10 = this.m04, a11 = this.m05, a12 = this.m06, a13 = this.m07;
         const a20 = this.m08, a21 = this.m09, a22 = this.m10, a23 = this.m11;
         const a30 = this.m12, a31 = this.m13, a32 = this.m14, a33 = this.m15;
-      
+
         // Cache only the current line of the second matrix
-        let b0  = mat4.m00, b1 = mat4.m01, b2 = mat4.m02, b3 = mat4.m03;
-        this.m00 = b0*a00 + b1*a10 + b2*a20 + b3*a30;
-        this.m01 = b0*a01 + b1*a11 + b2*a21 + b3*a31;
-        this.m02 = b0*a02 + b1*a12 + b2*a22 + b3*a32;
-        this.m03 = b0*a03 + b1*a13 + b2*a23 + b3*a33;
-      
+        let b0 = mat4.m00, b1 = mat4.m01, b2 = mat4.m02, b3 = mat4.m03;
+        this.m00 = b0 * a00 + b1 * a10 + b2 * a20 + b3 * a30;
+        this.m01 = b0 * a01 + b1 * a11 + b2 * a21 + b3 * a31;
+        this.m02 = b0 * a02 + b1 * a12 + b2 * a22 + b3 * a32;
+        this.m03 = b0 * a03 + b1 * a13 + b2 * a23 + b3 * a33;
+
         b0 = mat4.m04; b1 = mat4.m05; b2 = mat4.m06; b3 = mat4.m07;
-        this.m04 = b0*a00 + b1*a10 + b2*a20 + b3*a30;
-        this.m05 = b0*a01 + b1*a11 + b2*a21 + b3*a31;
-        this.m06 = b0*a02 + b1*a12 + b2*a22 + b3*a32;
-        this.m07 = b0*a03 + b1*a13 + b2*a23 + b3*a33;
-      
+        this.m04 = b0 * a00 + b1 * a10 + b2 * a20 + b3 * a30;
+        this.m05 = b0 * a01 + b1 * a11 + b2 * a21 + b3 * a31;
+        this.m06 = b0 * a02 + b1 * a12 + b2 * a22 + b3 * a32;
+        this.m07 = b0 * a03 + b1 * a13 + b2 * a23 + b3 * a33;
+
         b0 = mat4.m08; b1 = mat4.m09; b2 = mat4.m10; b3 = mat4.m11;
-        this.m08 = b0*a00 + b1*a10 + b2*a20 + b3*a30;
-        this.m09 = b0*a01 + b1*a11 + b2*a21 + b3*a31;
-        this.m10 = b0*a02 + b1*a12 + b2*a22 + b3*a32;
-        this.m11 = b0*a03 + b1*a13 + b2*a23 + b3*a33;
-      
+        this.m08 = b0 * a00 + b1 * a10 + b2 * a20 + b3 * a30;
+        this.m09 = b0 * a01 + b1 * a11 + b2 * a21 + b3 * a31;
+        this.m10 = b0 * a02 + b1 * a12 + b2 * a22 + b3 * a32;
+        this.m11 = b0 * a03 + b1 * a13 + b2 * a23 + b3 * a33;
+
         b0 = mat4.m12; b1 = mat4.m13; b2 = mat4.m14; b3 = mat4.m15;
-        this.m12 = b0*a00 + b1*a10 + b2*a20 + b3*a30;
-        this.m13 = b0*a01 + b1*a11 + b2*a21 + b3*a31;
-        this.m14 = b0*a02 + b1*a12 + b2*a22 + b3*a32;
-        this.m15 = b0*a03 + b1*a13 + b2*a23 + b3*a33;
+        this.m12 = b0 * a00 + b1 * a10 + b2 * a20 + b3 * a30;
+        this.m13 = b0 * a01 + b1 * a11 + b2 * a21 + b3 * a31;
+        this.m14 = b0 * a02 + b1 * a12 + b2 * a22 + b3 * a32;
+        this.m15 = b0 * a03 + b1 * a13 + b2 * a23 + b3 * a33;
 
         return this;
     }
 
     setFromQuaternionTranslationScale(quat, pos, scl) {
-        let x = quat.x, y = quat.y, z = quat.z, w = quat.w;
-        let x2 = x + x;
-        let y2 = y + y;
-        let z2 = z + z;
-      
-        let xx = x * x2;
-        let xy = x * y2;
-        let xz = x * z2;
-        let yy = y * y2;
-        let yz = y * z2;
-        let zz = z * z2;
-        let wx = w * x2;
-        let wy = w * y2;
-        let wz = w * z2;
-        let sx = scl.x;
-        let sy = scl.y;
-        let sz = scl.z;
-      
+        const x = quat.x, y = quat.y, z = quat.z, w = quat.w;
+        const x2 = x + x;
+        const y2 = y + y;
+        const z2 = z + z;
+
+        const xx = x * x2;
+        const xy = x * y2;
+        const xz = x * z2;
+        const yy = y * y2;
+        const yz = y * z2;
+        const zz = z * z2;
+        const wx = w * x2;
+        const wy = w * y2;
+        const wz = w * z2;
+        const sx = scl.x;
+        const sy = scl.y;
+        const sz = scl.z;
+
         this.m00 = (1 - (yy + zz)) * sx;
         this.m01 = (xy + wz) * sx;
         this.m02 = (xz - wy) * sx;
@@ -240,23 +244,21 @@ class Mat4 {
         const centerx = lookAt.x;
         const centery = lookAt.y;
         const centerz = lookAt.z;
-      
-        if (Math.abs(eyex - centerx) < EPSILON &&
-            Math.abs(eyey - centery) < EPSILON &&
-            Math.abs(eyez - centerz) < EPSILON) {
+
+        if (Math.abs(eyex - centerx) < EPSILON && Math.abs(eyey - centery) < EPSILON && Math.abs(eyez - centerz) < EPSILON) {
             this.setIdentity();
             return this;
         }
-      
+
         z0 = eyex - centerx;
         z1 = eyey - centery;
         z2 = eyez - centerz;
-      
+
         len = 1 / Math.hypot(z0, z1, z2);
         z0 *= len;
         z1 *= len;
         z2 *= len;
-      
+
         x0 = upy * z2 - upz * z1;
         x1 = upz * z0 - upx * z2;
         x2 = upx * z1 - upy * z0;
@@ -271,11 +273,11 @@ class Mat4 {
             x1 *= len;
             x2 *= len;
         }
-      
+
         y0 = z1 * x2 - z2 * x1;
         y1 = z2 * x0 - z0 * x2;
         y2 = z0 * x1 - z1 * x0;
-      
+
         len = Math.hypot(y0, y1, y2);
         if (!len) {
             y0 = 0;
@@ -287,7 +289,7 @@ class Mat4 {
             y1 *= len;
             y2 *= len;
         }
-      
+
         this.m00 = x0;
         this.m01 = y0;
         this.m02 = z0;
@@ -363,7 +365,13 @@ class Mat4 {
 
         return this;
     }
+
+    static fromQuaternionTranslationScale(quat, pos, scl) {
+        return new Mat4().setFromQuaternionTranslationScale(quat, pos, scl);
+    }
 }
+
+/* eslint-disable prefer-destructuring */
 
 class Vec3 {
     constructor(x = 0, y = 0, z = 0) {
@@ -399,6 +407,8 @@ class Vec3 {
     }
 }
 
+/* eslint-disable prefer-destructuring, one-var, one-var-declaration-per-line, max-len, no-mixed-operators */
+
 class Quat {
     constructor(x = 0, y = 0, z = 0, w = 1) {
         this.x = x;
@@ -432,14 +442,14 @@ class Quat {
         x *= halfToRad;
         y *= halfToRad;
         z *= halfToRad;
-    
+
         const sx = Math.sin(x);
         const cx = Math.cos(x);
         const sy = Math.sin(y);
         const cy = Math.cos(y);
         const sz = Math.sin(z);
         const cz = Math.cos(z);
-    
+
         this.x = sx * cy * cz - cx * sy * sz;
         this.y = cx * sy * cz + sx * cy * sz;
         this.z = cx * cy * sz - sx * sy * cz;
@@ -451,13 +461,17 @@ class Quat {
     multiply(quat) {
         const ax = this.x, ay = this.y, az = this.z, aw = this.w;
         const bx = quat.x, by = quat.y, bz = quat.z, bw = quat.w;
-      
+
         this.x = ax * bw + aw * bx + ay * bz - az * by;
         this.y = ay * bw + aw * by + az * bx - ax * bz;
         this.z = az * bw + aw * bz + ax * by - ay * bx;
         this.w = aw * bw - ax * bx - ay * by - az * bz;
 
         return this;
+    }
+
+    static fromEuler(x = 0, y = 0, z = 0) {
+        return new Quat().setFromEuler(x, y, z);
     }
 }
 
@@ -482,7 +496,7 @@ class Transform3D extends Node {
     }
 
     rotate(x, y, z) {
-        const quat = new Quat().setFromEuler(x, y, z);        
+        const quat = Quat.fromEuler(x, y, z);
         this.quaternion.multiply(quat);
         this.transformDirty = true;
     }
@@ -493,7 +507,7 @@ class Transform3D extends Node {
         const rot = this.quaternion;
 
         if (combinedTransformationMatrix) {
-            const transformationMatrix = new Mat4().setFromQuaternionTranslationScale(rot, pos, scl);
+            const transformationMatrix = Mat4.fromQuaternionTranslationScale(rot, pos, scl);
             this.modelMatrix = combinedTransformationMatrix.clone().multiply(transformationMatrix);
         } else if (this.transformDirty) {
             this.modelMatrix.setFromQuaternionTranslationScale(rot, pos, scl);
@@ -725,9 +739,11 @@ class Scene extends Transform3D {
             activeCamera: this.activeCamera || cameras[0],
             cameras,
             meshes,
-        }
+        };
     }
 }
+
+/* eslint-disable prefer-destructuring, one-var, one-var-declaration-per-line */
 
 class Mat3 {
     constructor(m00 = 1, m01 = 0, m02 = 0, m03 = 0, m04 = 1, m05 = 0, m06 = 0, m07 = 0, m08 = 1) {
@@ -791,19 +807,19 @@ class Mat3 {
         const a00 = this.m00, a01 = this.m01, a02 = this.m02;
         const a10 = this.m03, a11 = this.m04, a12 = this.m05;
         const a20 = this.m06, a21 = this.m07, a22 = this.m08;
-      
+
         const b00 = mat3.m00, b01 = mat3.m01, b02 = mat3.m02;
         const b10 = mat3.m03, b11 = mat3.m04, b12 = mat3.m05;
         const b20 = mat3.m06, b21 = mat3.m07, b22 = mat3.m08;
-      
+
         this.m00 = b00 * a00 + b01 * a10 + b02 * a20;
         this.m01 = b00 * a01 + b01 * a11 + b02 * a21;
         this.m02 = b00 * a02 + b01 * a12 + b02 * a22;
-      
+
         this.m03 = b10 * a00 + b11 * a10 + b12 * a20;
         this.m04 = b10 * a01 + b11 * a11 + b12 * a21;
         this.m05 = b10 * a02 + b11 * a12 + b12 * a22;
-      
+
         this.m06 = b20 * a00 + b21 * a10 + b22 * a20;
         this.m07 = b20 * a01 + b21 * a11 + b22 * a21;
         this.m08 = b20 * a02 + b21 * a12 + b22 * a22;
@@ -811,6 +827,8 @@ class Mat3 {
         return this;
     }
 }
+
+/* eslint-disable prefer-destructuring */
 
 class Vec2 {
     constructor(x = 0, y = 0) {
@@ -899,10 +917,6 @@ const getUniformsDeclaration = (uniforms) => {
 };
 
 class VertexColorMaterial extends Material {
-    constructor() {
-        super();
-    }
-
     getShaderData({ shaderLayoutLocations }) {
         const uniforms = {
             vertexShader: {
@@ -939,7 +953,7 @@ class VertexColorMaterial extends Material {
             void main() {
                 fragmentColor = vColor;
             }
-        `;        
+        `;
 
         const vertexShaderSourceCode = `${this.getShaderVersion()}${vertexShaderSource}`;
         const fragmentShaderSourceCode = `${this.getShaderVersion()}${fragmentShaderSource}`;
@@ -957,6 +971,8 @@ class VertexColorMaterial extends Material {
         return clone;
     }
 }
+
+/* eslint-disable prefer-destructuring */
 
 class Vec4 {
     constructor(x = 0, y = 0, z = 0, w = 0) {
@@ -1016,6 +1032,8 @@ class Viewport {
         this.gl.clearColor(r, g, b, a);
     }
 }
+
+/* eslint-disable no-console */
 
 const arrayBufferLookupTable = {
     vertex: (geometry, shaderLoc) => ({
@@ -1108,7 +1126,7 @@ class WebGl2Renderer {
 
     createArrayBuffer(type, geometry) {
         const { gl } = this;
-        const { location, bufferData, bufferSize } = arrayBufferLookupTable[type](geometry, this.shaderLayoutLocations);        
+        const { location, bufferData, bufferSize } = arrayBufferLookupTable[type](geometry, this.shaderLayoutLocations);
         const buffer = gl.createBuffer();
         gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
         gl.bufferData(gl.ARRAY_BUFFER, bufferData, gl.STATIC_DRAW);
@@ -1186,7 +1204,7 @@ class WebGl2Renderer {
         const { gl } = this;
         gl.viewport(0, 0, this.canvas.width, this.canvas.height);
         gl.clearColor(0, 0, 0, 1);
-        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT); // eslint-disable-line no-bitwise
 
         scene.computeModelMatrix();
         const { activeCamera, meshes } = scene.getChildrenRecursive();
@@ -1204,9 +1222,7 @@ class WebGl2Renderer {
             if (uniformKeys.includes('mvp')) gl.uniformMatrix4fv(cachedMesh.uniforms.mvp, false, mvp.getAsFloat32Array());
             gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, cachedMesh.indices);
             gl.drawElements(gl.TRIANGLES, currentMesh.material.indices.length, gl.UNSIGNED_INT, 0);
-            
         }
-        
     }
 }
 

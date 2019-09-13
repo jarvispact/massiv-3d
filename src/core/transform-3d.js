@@ -24,7 +24,7 @@ class Transform3D extends Node {
     }
 
     rotate(x, y, z) {
-        const quat = new Quat().setFromEuler(x, y, z);        
+        const quat = Quat.fromEuler(x, y, z);
         this.quaternion.multiply(quat);
         this.transformDirty = true;
     }
@@ -35,7 +35,7 @@ class Transform3D extends Node {
         const rot = this.quaternion;
 
         if (combinedTransformationMatrix) {
-            const transformationMatrix = new Mat4().setFromQuaternionTranslationScale(rot, pos, scl);
+            const transformationMatrix = Mat4.fromQuaternionTranslationScale(rot, pos, scl);
             this.modelMatrix = combinedTransformationMatrix.clone().multiply(transformationMatrix);
         } else if (this.transformDirty) {
             this.modelMatrix.setFromQuaternionTranslationScale(rot, pos, scl);

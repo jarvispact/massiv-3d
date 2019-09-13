@@ -37,7 +37,7 @@ class Scene extends Transform3D {
             activeCamera: this.activeCamera || cameras[0],
             cameras,
             meshes,
-        }
+        };
     }
 }
 

@@ -1,3 +1,5 @@
+/* eslint-disable prefer-destructuring, one-var, one-var-declaration-per-line, max-len */
+
 const EPSILON = 0.000001;
 
 class Mat4 {
@@ -112,54 +114,54 @@ class Mat4 {
         const a10 = this.m04, a11 = this.m05, a12 = this.m06, a13 = this.m07;
         const a20 = this.m08, a21 = this.m09, a22 = this.m10, a23 = this.m11;
         const a30 = this.m12, a31 = this.m13, a32 = this.m14, a33 = this.m15;
-      
+
         // Cache only the current line of the second matrix
-        let b0  = mat4.m00, b1 = mat4.m01, b2 = mat4.m02, b3 = mat4.m03;
-        this.m00 = b0*a00 + b1*a10 + b2*a20 + b3*a30;
-        this.m01 = b0*a01 + b1*a11 + b2*a21 + b3*a31;
-        this.m02 = b0*a02 + b1*a12 + b2*a22 + b3*a32;
-        this.m03 = b0*a03 + b1*a13 + b2*a23 + b3*a33;
-      
+        let b0 = mat4.m00, b1 = mat4.m01, b2 = mat4.m02, b3 = mat4.m03;
+        this.m00 = b0 * a00 + b1 * a10 + b2 * a20 + b3 * a30;
+        this.m01 = b0 * a01 + b1 * a11 + b2 * a21 + b3 * a31;
+        this.m02 = b0 * a02 + b1 * a12 + b2 * a22 + b3 * a32;
+        this.m03 = b0 * a03 + b1 * a13 + b2 * a23 + b3 * a33;
+
         b0 = mat4.m04; b1 = mat4.m05; b2 = mat4.m06; b3 = mat4.m07;
-        this.m04 = b0*a00 + b1*a10 + b2*a20 + b3*a30;
-        this.m05 = b0*a01 + b1*a11 + b2*a21 + b3*a31;
-        this.m06 = b0*a02 + b1*a12 + b2*a22 + b3*a32;
-        this.m07 = b0*a03 + b1*a13 + b2*a23 + b3*a33;
-      
+        this.m04 = b0 * a00 + b1 * a10 + b2 * a20 + b3 * a30;
+        this.m05 = b0 * a01 + b1 * a11 + b2 * a21 + b3 * a31;
+        this.m06 = b0 * a02 + b1 * a12 + b2 * a22 + b3 * a32;
+        this.m07 = b0 * a03 + b1 * a13 + b2 * a23 + b3 * a33;
+
         b0 = mat4.m08; b1 = mat4.m09; b2 = mat4.m10; b3 = mat4.m11;
-        this.m08 = b0*a00 + b1*a10 + b2*a20 + b3*a30;
-        this.m09 = b0*a01 + b1*a11 + b2*a21 + b3*a31;
-        this.m10 = b0*a02 + b1*a12 + b2*a22 + b3*a32;
-        this.m11 = b0*a03 + b1*a13 + b2*a23 + b3*a33;
-      
+        this.m08 = b0 * a00 + b1 * a10 + b2 * a20 + b3 * a30;
+        this.m09 = b0 * a01 + b1 * a11 + b2 * a21 + b3 * a31;
+        this.m10 = b0 * a02 + b1 * a12 + b2 * a22 + b3 * a32;
+        this.m11 = b0 * a03 + b1 * a13 + b2 * a23 + b3 * a33;
+
         b0 = mat4.m12; b1 = mat4.m13; b2 = mat4.m14; b3 = mat4.m15;
-        this.m12 = b0*a00 + b1*a10 + b2*a20 + b3*a30;
-        this.m13 = b0*a01 + b1*a11 + b2*a21 + b3*a31;
-        this.m14 = b0*a02 + b1*a12 + b2*a22 + b3*a32;
-        this.m15 = b0*a03 + b1*a13 + b2*a23 + b3*a33;
+        this.m12 = b0 * a00 + b1 * a10 + b2 * a20 + b3 * a30;
+        this.m13 = b0 * a01 + b1 * a11 + b2 * a21 + b3 * a31;
+        this.m14 = b0 * a02 + b1 * a12 + b2 * a22 + b3 * a32;
+        this.m15 = b0 * a03 + b1 * a13 + b2 * a23 + b3 * a33;
 
         return this;
     }
 
     setFromQuaternionTranslationScale(quat, pos, scl) {
-        let x = quat.x, y = quat.y, z = quat.z, w = quat.w;
-        let x2 = x + x;
-        let y2 = y + y;
-        let z2 = z + z;
-      
-        let xx = x * x2;
-        let xy = x * y2;
-        let xz = x * z2;
-        let yy = y * y2;
-        let yz = y * z2;
-        let zz = z * z2;
-        let wx = w * x2;
-        let wy = w * y2;
-        let wz = w * z2;
-        let sx = scl.x;
-        let sy = scl.y;
-        let sz = scl.z;
-      
+        const x = quat.x, y = quat.y, z = quat.z, w = quat.w;
+        const x2 = x + x;
+        const y2 = y + y;
+        const z2 = z + z;
+
+        const xx = x * x2;
+        const xy = x * y2;
+        const xz = x * z2;
+        const yy = y * y2;
+        const yz = y * z2;
+        const zz = z * z2;
+        const wx = w * x2;
+        const wy = w * y2;
+        const wz = w * z2;
+        const sx = scl.x;
+        const sy = scl.y;
+        const sz = scl.z;
+
         this.m00 = (1 - (yy + zz)) * sx;
         this.m01 = (xy + wz) * sx;
         this.m02 = (xz - wy) * sx;
@@ -192,23 +194,21 @@ class Mat4 {
         const centerx = lookAt.x;
         const centery = lookAt.y;
         const centerz = lookAt.z;
-      
-        if (Math.abs(eyex - centerx) < EPSILON &&
-            Math.abs(eyey - centery) < EPSILON &&
-            Math.abs(eyez - centerz) < EPSILON) {
+
+        if (Math.abs(eyex - centerx) < EPSILON && Math.abs(eyey - centery) < EPSILON && Math.abs(eyez - centerz) < EPSILON) {
             this.setIdentity();
             return this;
         }
-      
+
         z0 = eyex - centerx;
         z1 = eyey - centery;
         z2 = eyez - centerz;
-      
+
         len = 1 / Math.hypot(z0, z1, z2);
         z0 *= len;
         z1 *= len;
         z2 *= len;
-      
+
         x0 = upy * z2 - upz * z1;
         x1 = upz * z0 - upx * z2;
         x2 = upx * z1 - upy * z0;
@@ -223,11 +223,11 @@ class Mat4 {
             x1 *= len;
             x2 *= len;
         }
-      
+
         y0 = z1 * x2 - z2 * x1;
         y1 = z2 * x0 - z0 * x2;
         y2 = z0 * x1 - z1 * x0;
-      
+
         len = Math.hypot(y0, y1, y2);
         if (!len) {
             y0 = 0;
@@ -239,7 +239,7 @@ class Mat4 {
             y1 *= len;
             y2 *= len;
         }
-      
+
         this.m00 = x0;
         this.m01 = y0;
         this.m02 = z0;
@@ -314,6 +314,10 @@ class Mat4 {
         }
 
         return this;
+    }
+
+    static fromQuaternionTranslationScale(quat, pos, scl) {
+        return new Mat4().setFromQuaternionTranslationScale(quat, pos, scl);
     }
 }
 

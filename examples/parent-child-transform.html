@@ -93,8 +93,11 @@
                 let oneSecond = Date.now() + 1000;
                 let fps = 0;
 
+                let frameTimes = [];
+
                 const update = () => {
                     requestAnimationFrame(update);
+                    const before = Date.now();
                     fps++;
 
                     rootNode.rotate(0, 1, 0);
@@ -103,11 +106,15 @@
                     child1_child3_child1.rotate(2, 0, 0);
                     renderer.render(scene);
 
+                    const after = Date.now();
+                    frameTimes.push(after - before);
+
                     const currentTime = Date.now();
                     if (currentTime >= oneSecond) {
                         const w = domNode.clientWidth;
                         const h = domNode.clientHeight;
-                        fpsCounter.textContent = `FPS: ${fps} | Screen: ${w}/${h}`;
+                        const averageFrameTime = frameTimes.reduce((accum, val) => accum + val, 0) / frameTimes.length;
+                        fpsCounter.textContent = `FPS: ${fps} | AVG Frametime: ${averageFrameTime.toFixed(2)}ms | Screen: ${w}/${h}`;
                         fps = 0;
                         oneSecond = currentTime + 1000;
                     }

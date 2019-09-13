@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 
 const arrayBufferLookupTable = {
     vertex: (geometry, shaderLoc) => ({
@@ -90,7 +91,7 @@ class WebGl2Renderer {
 
     createArrayBuffer(type, geometry) {
         const { gl } = this;
-        const { location, bufferData, bufferSize } = arrayBufferLookupTable[type](geometry, this.shaderLayoutLocations);        
+        const { location, bufferData, bufferSize } = arrayBufferLookupTable[type](geometry, this.shaderLayoutLocations);
         const buffer = gl.createBuffer();
         gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
         gl.bufferData(gl.ARRAY_BUFFER, bufferData, gl.STATIC_DRAW);
@@ -168,7 +169,7 @@ class WebGl2Renderer {
         const { gl } = this;
         gl.viewport(0, 0, this.canvas.width, this.canvas.height);
         gl.clearColor(0, 0, 0, 1);
-        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT); // eslint-disable-line no-bitwise
 
         scene.computeModelMatrix();
         const { activeCamera, meshes } = scene.getChildrenRecursive();
@@ -186,10 +187,8 @@ class WebGl2Renderer {
             if (uniformKeys.includes('mvp')) gl.uniformMatrix4fv(cachedMesh.uniforms.mvp, false, mvp.getAsFloat32Array());
             gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, cachedMesh.indices);
             gl.drawElements(gl.TRIANGLES, currentMesh.material.indices.length, gl.UNSIGNED_INT, 0);
-            
         }
-        
     }
-};
+}
 
-export default WebGl2Renderer
+export default WebGl2Renderer;

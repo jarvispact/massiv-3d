@@ -6,10 +6,6 @@ const getUniformsDeclaration = (uniforms) => {
 };
 
 class VertexColorMaterial extends Material {
-    constructor() {
-        super();
-    }
-
     getShaderData({ shaderLayoutLocations }) {
         const uniforms = {
             vertexShader: {
@@ -46,7 +42,7 @@ class VertexColorMaterial extends Material {
             void main() {
                 fragmentColor = vColor;
             }
-        `;        
+        `;
 
         const vertexShaderSourceCode = `${this.getShaderVersion()}${vertexShaderSource}`;
         const fragmentShaderSourceCode = `${this.getShaderVersion()}${fragmentShaderSource}`;

@@ -1,3 +1,5 @@
+/* eslint-disable prefer-destructuring */
+
 class Vec4 {
     constructor(x = 0, y = 0, z = 0, w = 0) {
         this.x = x;
