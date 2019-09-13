@@ -10,8 +10,8 @@ export default [
             format: 'umd',
         },
         plugins: [
-			resolve(),
-		]
+            resolve(),
+        ],
     },
     {
         input: 'src/index.js',
@@ -26,7 +26,7 @@ export default [
             },
         ],
         plugins: [
-			resolve(),
-		]
+            resolve(),
+        ],
     },
 ];

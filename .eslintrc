@@ -14,6 +14,6 @@
     "no-plusplus": "off",
     "object-curly-newline": "off",
     "import/prefer-default-export": "off",
-    "import/no-extraneous-dependencies": ["error", {"devDependencies": ["**/*.specs.js"]}]
+    "import/no-extraneous-dependencies": ["error", {"devDependencies": ["**/*.specs.js", "rollup.config.js"]}]
   }
 }
