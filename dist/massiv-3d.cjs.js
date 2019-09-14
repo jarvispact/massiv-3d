@@ -24,8 +24,8 @@ var uuid = () => {
 };
 
 class Node {
-    constructor() {
-        this.id = uuid();
+    constructor({ id } = {}) {
+        this.id = id || uuid();
         this.parent = null;
         this.children = [];
     }
@@ -602,11 +602,11 @@ class PerspectiveCamera extends Camera {
 }
 
 class Geometry {
-    constructor() {
-        this.vertices = [];
-        this.normals = [];
-        this.uvs = [];
-        this.vertexColors = [];
+    constructor({ vertices, normals, uvs, vertexColors } = {}) {
+        this.vertices = vertices || [];
+        this.normals = normals || [];
+        this.uvs = uvs || [];
+        this.vertexColors = vertexColors || [];
 
         this.vertexVectorSize = 3;
         this.normalVectorSize = 3;
@@ -718,11 +718,190 @@ class Geometry {
     }
 }
 
-class Mesh extends Transform3D {
-    constructor(geometry, material) {
+class Material {
+    constructor() {
+        this.indices = [];
+        this.shaderVersion = '#version 300 es\n\n';
+    }
+
+    getIndices() {
+        return this.indices;
+    }
+
+    getIndicesAsUint32Array() {
+        return new Uint32Array(this.indices);
+    }
+
+    setIndices(indices) {
+        this.indices = indices;
+        return this;
+    }
+}
+
+const getUniformsDeclaration = (uniforms) => {
+    const keys = Object.keys(uniforms).filter(key => uniforms[key]);
+    return keys.map(key => `uniform ${uniforms[key]} ${key};`).join('\n');
+};
+
+class StandardMaterial extends Material {
+    constructor({ ambientIntensity, diffuseColor, specularColor, specularExponent, specularShininess } = {}) {
         super();
-        this.geometry = geometry;
-        this.material = material;
+        this.ambientIntensity = ambientIntensity || 0.1;
+        this.diffuseColor = diffuseColor || new Vec3(1, 0, 0, 1);
+        this.specularColor = specularColor || new Vec3(1, 1, 1, 1);
+        this.specularExponent = specularExponent || 0.5;
+        this.specularShininess = specularShininess || 256.0;
+    }
+
+    getAmbientIntensity() {
+        return this.ambientIntensity;
+    }
+
+    setAmbientIntensity(ambientIntensity) {
+        this.ambientIntensity = ambientIntensity;
+        return this;
+    }
+
+    getDiffuseColor() {
+        return this.diffuseColor;
+    }
+
+    setDiffuseColor(r, g, b) {
+        this.diffuseColor = new Vec3(r, g, b);
+        return this;
+    }
+
+    getSpecularColor() {
+        return this.specularColor;
+    }
+
+    setSpecularColor(r, g, b) {
+        this.specularColor = new Vec3(r, g, b);
+        return this;
+    }
+
+    getSpecularExponent() {
+        return this.specularExponent;
+    }
+
+    setSpecularExponent(specularExponent) {
+        this.specularExponent = specularExponent;
+        return this;
+    }
+
+    getSpecularShininess() {
+        return this.specularShininess;
+    }
+
+    setSpecularShininess(specularShininess) {
+        this.specularShininess = specularShininess;
+        return this;
+    }
+
+    getShaderData({ shaderLayoutLocations }) {
+        const { diffuseColor, specularColor, specularExponent, specularShininess } = this;
+
+        const uniforms = {
+            vertexShader: {
+                modelMatrix: 'mat4',
+                mvp: 'mat4',
+                normalMatrix: 'mat3',
+            },
+            fragmentShader: {
+                ambientIntensity: 'float',
+                lightDirection: 'vec3',
+                lightColor: 'vec3',
+                cameraPosition: 'vec3',
+                diffuseColor: diffuseColor ? 'vec3' : undefined,
+                specularColor: specularColor ? 'vec3' : undefined,
+                specularExponent: specularExponent ? 'float' : undefined,
+                specularShininess: specularShininess ? 'float' : undefined,
+            },
+        };
+
+        const vertexShaderSource = `
+            precision highp float;
+            precision highp int;
+
+            layout(location = ${shaderLayoutLocations.vertex}) in vec3 position;
+            layout(location = ${shaderLayoutLocations.normal}) in vec3 normal;
+            layout(location = ${shaderLayoutLocations.uv}) in vec2 uv;
+
+            ${getUniformsDeclaration(uniforms.vertexShader)}
+
+            out vec3 vPosition;
+            out vec3 vNormal;
+            out vec2 vUv;
+
+            void main() {
+                vNormal = normalMatrix * normal;
+                vPosition = vec3(modelMatrix * vec4(position, 1.0));
+                vUv = uv;
+                gl_Position = mvp * vec4(position, 1.0);
+            }
+        `;
+
+        const fragmentShaderSource = `
+            precision highp float;
+            precision highp int;
+
+            ${getUniformsDeclaration(uniforms.fragmentShader)}
+
+            in vec3 vPosition;
+            in vec3 vNormal;
+            in vec2 vUv;
+
+            out vec4 fragmentColor;
+
+            void main() {
+                // ambient
+                vec3 ambient = ambientIntensity * lightColor;
+
+                // diffuse
+                vec3 norm = normalize(vNormal);
+                // vec3 lightDir = normalize(lightPosition - vPosition);
+                vec3 lightDir = normalize(lightDirection);
+                float diff = max(dot(norm, lightDir), 0.0);
+                vec3 diffuse = diff * lightColor;
+
+                //specular
+                vec3 viewDir = normalize(cameraPosition - vPosition);
+                vec3 reflectDir = reflect(-lightDir, norm);
+                float spec = pow(max(dot(viewDir, reflectDir), 0.0), specularShininess);
+                vec3 specular = specularExponent * spec * lightColor;
+
+                vec3 result = (ambient + diffuse + specular) * diffuseColor;
+                fragmentColor = vec4(result, 1.0);
+            }
+        `;
+
+        const vertexShaderSourceCode = `${this.shaderVersion}${vertexShaderSource}`;
+        const fragmentShaderSourceCode = `${this.shaderVersion}${fragmentShaderSource}`;
+
+        return {
+            vertexShaderSourceCode,
+            fragmentShaderSourceCode,
+            uniforms,
+        };
+    }
+
+    clone() {
+        const clone = new StandardMaterial();
+        clone.setIndices([...this.indices]);
+        clone.ambientIntensity = this.ambientIntensity;
+        clone.diffuseColor = this.diffuseColor.clone();
+        clone.specularColor = this.specularColor.clone();
+        clone.specularExponent = this.specularExponent;
+        clone.specularShininess = this.specularShininess;
+        return clone;
+    }
+}
+
+class Mesh extends Transform3D {
+    constructor({ geometry, material } = {}) {
+        super();
+        this.geometry = geometry || new Geometry();
+        this.material = material || new StandardMaterial();
     }
 }
 
@@ -958,235 +1137,6 @@ class Vec2 {
         this.x *= x;
         this.y *= y;
         return this;
-    }
-}
-
-class Transform2D extends Node {
-    constructor() {
-        super();
-        this.position = new Vec2();
-        this.rotation = 0;
-        this.scaling = new Vec2();
-        this.modelMatrix = new Mat3();
-        this.transformDirty = false;
-    }
-
-    translate(x, y) {
-        this.position.add(x, y);
-        this.transformDirty = true;
-    }
-
-    scale(x, y) {
-        this.scaling.add(x, y);
-        this.transformDirty = true;
-    }
-
-    rotate(angle) {
-        this.rotation += angle;
-        this.transformDirty = true;
-    }
-}
-
-class Material {
-    constructor() {
-        this.indices = [];
-        this.shaderVersion = '#version 300 es\n\n';
-    }
-
-    getIndices() {
-        return this.indices;
-    }
-
-    getIndicesAsUint32Array() {
-        return new Uint32Array(this.indices);
-    }
-
-    setIndices(indices) {
-        this.indices = indices;
-        return this;
-    }
-
-    getShaderVersion() {
-        return this.shaderVersion;
-    }
-}
-
-const getUniformsDeclaration = (uniforms) => {
-    const keys = Object.keys(uniforms).filter(key => uniforms[key]);
-    return keys.map(key => `uniform ${uniforms[key]} ${key};`).join('\n');
-};
-
-class VertexColorMaterial extends Material {
-    getShaderData({ shaderLayoutLocations }) {
-        const uniforms = {
-            vertexShader: {
-                mvp: 'mat4',
-            },
-            fragmentShader: {
-            },
-        };
-
-        const vertexShaderSource = `
-            precision highp float;
-            precision highp int;
-
-            layout(location = ${shaderLayoutLocations.vertex}) in vec3 position;
-            layout(location = ${shaderLayoutLocations.vertexColor}) in vec4 vertexColor;
-
-            ${getUniformsDeclaration(uniforms.vertexShader)}
-
-            out vec4 vColor;
-
-            void main() {
-                vColor = vertexColor;
-                gl_Position = mvp * vec4(position, 1.0);
-            }
-        `;
-
-        const fragmentShaderSource = `
-            precision highp float;
-            precision highp int;
-
-            in vec4 vColor;
-            out vec4 fragmentColor;
-
-            void main() {
-                fragmentColor = vColor;
-            }
-        `;
-
-        const vertexShaderSourceCode = `${this.getShaderVersion()}${vertexShaderSource}`;
-        const fragmentShaderSourceCode = `${this.getShaderVersion()}${fragmentShaderSource}`;
-
-        return {
-            vertexShaderSourceCode,
-            fragmentShaderSourceCode,
-            uniforms,
-        };
-    }
-
-    clone() {
-        const clone = new VertexColorMaterial();
-        clone.setIndices([...this.indices]);
-        return clone;
-    }
-}
-
-const getUniformsDeclaration$1 = (uniforms) => {
-    const keys = Object.keys(uniforms).filter(key => uniforms[key]);
-    return keys.map(key => `uniform ${uniforms[key]} ${key};`).join('\n');
-};
-
-class PhongMaterial extends Material {
-    constructor() {
-        super();
-        this.ambientIntensity = 0.1;
-        this.diffuseColor = new Vec3(1, 0, 0, 1);
-        this.specularColor = new Vec3(1, 1, 1, 1);
-        this.specularExponent = 0.5;
-        this.specularShininess = 256.0;
-    }
-
-    getDiffuseColor() {
-        return this.diffuseColor;
-    }
-
-    setDiffuseColor(r, g, b) {
-        this.diffuseColor = new Vec3(r, g, b);
-        return this;
-    }
-
-    getShaderData({ shaderLayoutLocations }) {
-        const { diffuseColor, specularColor, specularExponent, specularShininess } = this;
-
-        const uniforms = {
-            vertexShader: {
-                modelMatrix: 'mat4',
-                mvp: 'mat4',
-                normalMatrix: 'mat3',
-            },
-            fragmentShader: {
-                ambientIntensity: 'float',
-                lightDirection: 'vec3',
-                lightColor: 'vec3',
-                cameraPosition: 'vec3',
-                diffuseColor: diffuseColor ? 'vec3' : undefined,
-                specularColor: specularColor ? 'vec3' : undefined,
-                specularExponent: specularExponent ? 'float' : undefined,
-                specularShininess: specularShininess ? 'float' : undefined,
-            },
-        };
-
-        const vertexShaderSource = `
-            precision highp float;
-            precision highp int;
-
-            layout(location = ${shaderLayoutLocations.vertex}) in vec3 position;
-            layout(location = ${shaderLayoutLocations.normal}) in vec3 normal;
-            layout(location = ${shaderLayoutLocations.uv}) in vec2 uv;
-
-            ${getUniformsDeclaration$1(uniforms.vertexShader)}
-
-            out vec3 vPosition;
-            out vec3 vNormal;
-            out vec2 vUv;
-
-            void main() {
-                vNormal = normalMatrix * normal;
-                vPosition = vec3(modelMatrix * vec4(position, 1.0));
-                vUv = uv;
-                gl_Position = mvp * vec4(position, 1.0);
-            }
-        `;
-
-        const fragmentShaderSource = `
-            precision highp float;
-            precision highp int;
-
-            ${getUniformsDeclaration$1(uniforms.fragmentShader)}
-
-            in vec3 vPosition;
-            in vec3 vNormal;
-            in vec2 vUv;
-
-            out vec4 fragmentColor;
-
-            void main() {
-                // ambient
-                vec3 ambient = ambientIntensity * lightColor;
-
-                // diffuse
-                vec3 norm = normalize(vNormal);
-                // vec3 lightDir = normalize(lightPosition - vPosition);
-                vec3 lightDir = normalize(lightDirection);
-                float diff = max(dot(norm, lightDir), 0.0);
-                vec3 diffuse = diff * lightColor;
-
-                //specular
-                vec3 viewDir = normalize(cameraPosition - vPosition);
-                vec3 reflectDir = reflect(-lightDir, norm);
-                float spec = pow(max(dot(viewDir, reflectDir), 0.0), specularShininess);
-                vec3 specular = specularExponent * spec * lightColor;
-
-                vec3 result = (ambient + diffuse + specular) * diffuseColor;
-                fragmentColor = vec4(result, 1.0);
-            }
-        `;
-
-        const vertexShaderSourceCode = `${this.getShaderVersion()}${vertexShaderSource}`;
-        const fragmentShaderSourceCode = `${this.getShaderVersion()}${fragmentShaderSource}`;
-
-        return {
-            vertexShaderSourceCode,
-            fragmentShaderSourceCode,
-            uniforms,
-        };
-    }
-
-    clone() {
-        const clone = new PhongMaterial();
-        clone.setIndices([...this.indices]);
-        return clone;
     }
 }
 
@@ -1477,14 +1427,12 @@ exports.Mesh = Mesh;
 exports.Node = Node;
 exports.OrthographicCamera = OrthographicCamera;
 exports.PerspectiveCamera = PerspectiveCamera;
-exports.PhongMaterial = PhongMaterial;
 exports.Quat = Quat;
 exports.Scene = Scene;
-exports.Transform2D = Transform2D;
+exports.StandardMaterial = StandardMaterial;
 exports.Transform3D = Transform3D;
 exports.Vec2 = Vec2;
 exports.Vec3 = Vec3;
 exports.Vec4 = Vec4;
-exports.VertexColorMaterial = VertexColorMaterial;
 exports.Viewport = Viewport;
 exports.WebGL2Renderer = WebGl2Renderer;

@@ -1,9 +1,9 @@
 class Geometry {
-    constructor() {
-        this.vertices = [];
-        this.normals = [];
-        this.uvs = [];
-        this.vertexColors = [];
+    constructor({ vertices, normals, uvs, vertexColors } = {}) {
+        this.vertices = vertices || [];
+        this.normals = normals || [];
+        this.uvs = uvs || [];
+        this.vertexColors = vertexColors || [];
 
         this.vertexVectorSize = 3;
         this.normalVectorSize = 3;

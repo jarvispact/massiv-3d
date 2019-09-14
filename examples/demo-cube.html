@@ -34,10 +34,10 @@
                 geometry.setNormals(cubeGeometry.normals);
                 geometry.setUvs(cubeGeometry.uvs);                
 
-                const material = new MASSIV.PhongMaterial();
+                const material = new MASSIV.StandardMaterial();
                 material.setIndices(cubeGeometry.indices);
 
-                const mesh = new MASSIV.Mesh(geometry, material);
+                const mesh = new MASSIV.Mesh({ geometry, material });
                 mesh.rotate(0, 40, 0);
 
                 const light = new MASSIV.DirectionalLight();

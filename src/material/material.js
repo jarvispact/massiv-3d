@@ -16,10 +16,6 @@ class Material {
         this.indices = indices;
         return this;
     }
-
-    getShaderVersion() {
-        return this.shaderVersion;
-    }
 }
 
 export default Material;

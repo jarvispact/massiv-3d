@@ -6,14 +6,23 @@ const getUniformsDeclaration = (uniforms) => {
     return keys.map(key => `uniform ${uniforms[key]} ${key};`).join('\n');
 };
 
-class PhongMaterial extends Material {
-    constructor() {
+class StandardMaterial extends Material {
+    constructor({ ambientIntensity, diffuseColor, specularColor, specularExponent, specularShininess } = {}) {
         super();
-        this.ambientIntensity = 0.1;
-        this.diffuseColor = new Vec3(1, 0, 0, 1);
-        this.specularColor = new Vec3(1, 1, 1, 1);
-        this.specularExponent = 0.5;
-        this.specularShininess = 256.0;
+        this.ambientIntensity = ambientIntensity || 0.1;
+        this.diffuseColor = diffuseColor || new Vec3(1, 0, 0, 1);
+        this.specularColor = specularColor || new Vec3(1, 1, 1, 1);
+        this.specularExponent = specularExponent || 0.5;
+        this.specularShininess = specularShininess || 256.0;
+    }
+
+    getAmbientIntensity() {
+        return this.ambientIntensity;
+    }
+
+    setAmbientIntensity(ambientIntensity) {
+        this.ambientIntensity = ambientIntensity;
+        return this;
     }
 
     getDiffuseColor() {
@@ -22,6 +31,33 @@ class PhongMaterial extends Material {
 
     setDiffuseColor(r, g, b) {
         this.diffuseColor = new Vec3(r, g, b);
+        return this;
+    }
+
+    getSpecularColor() {
+        return this.specularColor;
+    }
+
+    setSpecularColor(r, g, b) {
+        this.specularColor = new Vec3(r, g, b);
+        return this;
+    }
+
+    getSpecularExponent() {
+        return this.specularExponent;
+    }
+
+    setSpecularExponent(specularExponent) {
+        this.specularExponent = specularExponent;
+        return this;
+    }
+
+    getSpecularShininess() {
+        return this.specularShininess;
+    }
+
+    setSpecularShininess(specularShininess) {
+        this.specularShininess = specularShininess;
         return this;
     }
 
@@ -102,8 +138,8 @@ class PhongMaterial extends Material {
             }
         `;
 
-        const vertexShaderSourceCode = `${this.getShaderVersion()}${vertexShaderSource}`;
-        const fragmentShaderSourceCode = `${this.getShaderVersion()}${fragmentShaderSource}`;
+        const vertexShaderSourceCode = `${this.shaderVersion}${vertexShaderSource}`;
+        const fragmentShaderSourceCode = `${this.shaderVersion}${fragmentShaderSource}`;
 
         return {
             vertexShaderSourceCode,
@@ -113,10 +149,15 @@ class PhongMaterial extends Material {
     }
 
     clone() {
-        const clone = new PhongMaterial();
+        const clone = new StandardMaterial();
         clone.setIndices([...this.indices]);
+        clone.ambientIntensity = this.ambientIntensity;
+        clone.diffuseColor = this.diffuseColor.clone();
+        clone.specularColor = this.specularColor.clone();
+        clone.specularExponent = this.specularExponent;
+        clone.specularShininess = this.specularShininess;
         return clone;
     }
 }
 
-export default PhongMaterial;
+export default StandardMaterial;

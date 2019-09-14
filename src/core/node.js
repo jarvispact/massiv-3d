@@ -1,8 +1,8 @@
 import uuid from '../utils/uuid';
 
 class Node {
-    constructor() {
-        this.id = uuid();
+    constructor({ id } = {}) {
+        this.id = id || uuid();
         this.parent = null;
         this.children = [];
     }
