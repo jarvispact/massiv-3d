@@ -8,6 +8,13 @@ class Mesh extends Transform3D {
         this.geometry = geometry || new Geometry();
         this.material = material || new StandardMaterial();
     }
+
+    clone() {
+        const clone = new Mesh();
+        clone.geometry = this.geometry.clone();
+        clone.material = this.material.clone();
+        return clone;
+    }
 }
 
 export default Mesh;

@@ -1,7 +1,7 @@
 import Camera from './camera';
 
 class OrthographicCamera extends Camera {
-    constructor(left, right, bottom, top, near, far) {
+    constructor({ left, right, bottom, top, near, far } = {}) {
         super();
         this.left = left;
         this.right = right;
@@ -9,10 +9,10 @@ class OrthographicCamera extends Camera {
         this.top = top;
         this.near = near;
         this.far = far;
-        this.updateProjectionMatrix(left, right, bottom, top, near, far);
+        this.updateProjectionMatrix({ left, right, bottom, top, near, far } = {});
     }
 
-    updateProjectionMatrix(left, right, bottom, top, near, far) {
+    updateProjectionMatrix({ left, right, bottom, top, near, far } = {}) {
         this.left = left;
         this.right = right;
         this.bottom = bottom;

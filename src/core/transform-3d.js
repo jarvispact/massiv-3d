@@ -4,11 +4,11 @@ import Vec3 from '../math/vec3';
 import Quat from '../math/quat';
 
 class Transform3D extends Node {
-    constructor() {
+    constructor({ position, quaternion, scaling } = {}) {
         super();
-        this.position = new Vec3();
-        this.quaternion = new Quat();
-        this.scaling = new Vec3(1, 1, 1);
+        this.position = position || new Vec3();
+        this.quaternion = quaternion || new Quat();
+        this.scaling = scaling || new Vec3(1, 1, 1);
         this.modelMatrix = new Mat4();
         this.transformDirty = false;
     }

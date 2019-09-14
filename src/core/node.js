@@ -13,11 +13,20 @@ class Node {
 
     setParent(parent) {
         this.parent = parent;
+        return this;
     }
 
     addChild(child) {
         child.setParent(this);
         this.children.push(child);
+    }
+
+    addChildren(children) {
+        for (let i = 0; i < children.length; i++) {
+            children[i].setParent(this);
+        }
+
+        this.children.push(...children);
     }
 
     getChildren() {

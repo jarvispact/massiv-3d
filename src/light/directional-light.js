@@ -2,10 +2,10 @@ import Transform3D from '../core/transform-3d';
 import Vec3 from '../math/vec3';
 
 class DirectionalLight extends Transform3D {
-    constructor() {
+    constructor({ direction, color } = {}) {
         super();
-        this.direction = new Vec3(0, 0, 0);
-        this.color = new Vec3(1, 1, 1);
+        this.direction = direction || new Vec3(0, 0, 0);
+        this.color = color || new Vec3(1, 1, 1);
     }
 
     getDirection() {

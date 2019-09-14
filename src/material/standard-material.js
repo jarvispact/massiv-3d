@@ -7,8 +7,8 @@ const getUniformsDeclaration = (uniforms) => {
 };
 
 class StandardMaterial extends Material {
-    constructor({ ambientIntensity, diffuseColor, specularColor, specularExponent, specularShininess } = {}) {
-        super();
+    constructor({ indices, ambientIntensity, diffuseColor, specularColor, specularExponent, specularShininess } = {}) {
+        super({ indices });
         this.ambientIntensity = ambientIntensity || 0.1;
         this.diffuseColor = diffuseColor || new Vec3(1, 0, 0, 1);
         this.specularColor = specularColor || new Vec3(1, 1, 1, 1);

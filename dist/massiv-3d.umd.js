@@ -38,11 +38,20 @@
 
         setParent(parent) {
             this.parent = parent;
+            return this;
         }
 
         addChild(child) {
             child.setParent(this);
             this.children.push(child);
+        }
+
+        addChildren(children) {
+            for (let i = 0; i < children.length; i++) {
+                children[i].setParent(this);
+            }
+
+            this.children.push(...children);
         }
 
         getChildren() {
@@ -500,11 +509,11 @@
     }
 
     class Transform3D extends Node {
-        constructor() {
+        constructor({ position, quaternion, scaling } = {}) {
             super();
-            this.position = new Vec3();
-            this.quaternion = new Quat();
-            this.scaling = new Vec3(1, 1, 1);
+            this.position = position || new Vec3();
+            this.quaternion = quaternion || new Quat();
+            this.scaling = scaling || new Vec3(1, 1, 1);
             this.modelMatrix = new Mat4();
             this.transformDirty = false;
         }
@@ -562,7 +571,7 @@
     }
 
     class OrthographicCamera extends Camera {
-        constructor(left, right, bottom, top, near, far) {
+        constructor({ left, right, bottom, top, near, far } = {}) {
             super();
             this.left = left;
             this.right = right;
@@ -570,10 +579,10 @@
             this.top = top;
             this.near = near;
             this.far = far;
-            this.updateProjectionMatrix(left, right, bottom, top, near, far);
+            this.updateProjectionMatrix({ left, right, bottom, top, near, far } = {});
         }
 
-        updateProjectionMatrix(left, right, bottom, top, near, far) {
+        updateProjectionMatrix({ left, right, bottom, top, near, far } = {}) {
             this.left = left;
             this.right = right;
             this.bottom = bottom;
@@ -585,16 +594,16 @@
     }
 
     class PerspectiveCamera extends Camera {
-        constructor(fov, aspect, near, far) {
+        constructor({ fov, aspect, near, far } = {}) {
             super();
             this.fov = fov;
             this.aspect = aspect;
             this.near = near;
             this.far = far;
-            this.updateProjectionMatrix(fov, aspect, near, far);
+            this.updateProjectionMatrix({ fov, aspect, near, far });
         }
 
-        updateProjectionMatrix(fov, aspect, near, far) {
+        updateProjectionMatrix({ fov, aspect, near, far } = {}) {
             this.fov = fov;
             this.aspect = aspect;
             this.near = near;
@@ -721,8 +730,8 @@
     }
 
     class Material {
-        constructor() {
-            this.indices = [];
+        constructor({ indices } = {}) {
+            this.indices = indices || [];
             this.shaderVersion = '#version 300 es\n\n';
         }
 
@@ -746,8 +755,8 @@
     };
 
     class StandardMaterial extends Material {
-        constructor({ ambientIntensity, diffuseColor, specularColor, specularExponent, specularShininess } = {}) {
-            super();
+        constructor({ indices, ambientIntensity, diffuseColor, specularColor, specularExponent, specularShininess } = {}) {
+            super({ indices });
             this.ambientIntensity = ambientIntensity || 0.1;
             this.diffuseColor = diffuseColor || new Vec3(1, 0, 0, 1);
             this.specularColor = specularColor || new Vec3(1, 1, 1, 1);
@@ -905,13 +914,20 @@
             this.geometry = geometry || new Geometry();
             this.material = material || new StandardMaterial();
         }
+
+        clone() {
+            const clone = new Mesh();
+            clone.geometry = this.geometry.clone();
+            clone.material = this.material.clone();
+            return clone;
+        }
     }
 
     class DirectionalLight extends Transform3D {
-        constructor() {
+        constructor({ direction, color } = {}) {
             super();
-            this.direction = new Vec3(0, 0, 0);
-            this.color = new Vec3(1, 1, 1);
+            this.direction = direction || new Vec3(0, 0, 0);
+            this.color = color || new Vec3(1, 1, 1);
         }
 
         getDirection() {
