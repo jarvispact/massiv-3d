@@ -29,6 +29,12 @@ class Vec2 {
         this.y += y;
         return this;
     }
+
+    multiply(x, y) {
+        this.x *= x;
+        this.y *= y;
+        return this;
+    }
 }
 
 export default Vec2;

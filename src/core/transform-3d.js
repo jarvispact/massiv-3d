@@ -19,7 +19,7 @@ class Transform3D extends Node {
     }
 
     scale(x, y, z) {
-        this.scaling.add(x, y, z);
+        this.scaling.multiply(x, y, z);
         this.transformDirty = true;
     }
 

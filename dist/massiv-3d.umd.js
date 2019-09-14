@@ -407,6 +407,28 @@
             this.z += z;
             return this;
         }
+
+        multiply(x, y, z) {
+            this.x *= x;
+            this.y *= y;
+            this.z *= z;
+            return this;
+        }
+
+        transformByMat4(mat4) {
+            const x = this.x;
+            const y = this.y;
+            const z = this.z;
+
+            let w = mat4.m03 * x + mat4.m07 * y + mat4.m11 * z + mat4.m15;
+            w = w || 1.0;
+
+            this.x = (mat4.m00 * x + mat4.m04 * y + mat4.m08 * z + mat4.m12) / w;
+            this.y = (mat4.m01 * x + mat4.m05 * y + mat4.m09 * z + mat4.m13) / w;
+            this.z = (mat4.m02 * x + mat4.m06 * y + mat4.m10 * z + mat4.m14) / w;
+
+            return this;
+        }
     }
 
     /* eslint-disable prefer-destructuring, one-var, one-var-declaration-per-line, max-len, no-mixed-operators */
@@ -493,7 +515,7 @@
         }
 
         scale(x, y, z) {
-            this.scaling.add(x, y, z);
+            this.scaling.multiply(x, y, z);
             this.transformDirty = true;
         }
 
@@ -706,6 +728,32 @@
         }
     }
 
+    class DirectionalLight extends Transform3D {
+        constructor() {
+            super();
+            this.direction = new Vec3(0, 0, 0);
+            this.color = new Vec3(1, 1, 1);
+        }
+
+        getDirection() {
+            return this.direction;
+        }
+
+        setDirection(x, y, z) {
+            this.direction = new Vec3(x, y, z);
+            return this;
+        }
+
+        getColor() {
+            return this.color;
+        }
+
+        setColor(r, g, b) {
+            this.color = new Vec3(r, g, b);
+            return this;
+        }
+    }
+
     class Scene extends Transform3D {
         constructor() {
             super();
@@ -730,17 +778,20 @@
 
             const cameras = [];
             const meshes = [];
+            const directionalLights = [];
 
             for (let i = 0; i < flatChildrenList.length; i++) {
                 const child = flatChildrenList[i];
                 if (child instanceof Camera) cameras.push(child);
                 if (child instanceof Mesh) meshes.push(child);
+                if (child instanceof DirectionalLight) directionalLights.push(child);
             }
 
             return {
                 activeCamera: this.activeCamera || cameras[0],
                 cameras,
                 meshes,
+                directionalLights,
             };
         }
     }
@@ -828,6 +879,49 @@
 
             return this;
         }
+
+        setAsNormalMatrixFromMat4(mat4) {
+            const a00 = mat4.m00, a01 = mat4.m01, a02 = mat4.m02, a03 = mat4.m03;
+            const a10 = mat4.m04, a11 = mat4.m05, a12 = mat4.m06, a13 = mat4.m07;
+            const a20 = mat4.m08, a21 = mat4.m09, a22 = mat4.m10, a23 = mat4.m11;
+            const a30 = mat4.m12, a31 = mat4.m13, a32 = mat4.m14, a33 = mat4.m15;
+
+            const b00 = a00 * a11 - a01 * a10;
+            const b01 = a00 * a12 - a02 * a10;
+            const b02 = a00 * a13 - a03 * a10;
+            const b03 = a01 * a12 - a02 * a11;
+            const b04 = a01 * a13 - a03 * a11;
+            const b05 = a02 * a13 - a03 * a12;
+            const b06 = a20 * a31 - a21 * a30;
+            const b07 = a20 * a32 - a22 * a30;
+            const b08 = a20 * a33 - a23 * a30;
+            const b09 = a21 * a32 - a22 * a31;
+            const b10 = a21 * a33 - a23 * a31;
+            const b11 = a22 * a33 - a23 * a32;
+
+            // Calculate the determinant
+            let det = b00 * b11 - b01 * b10 + b02 * b09 + b03 * b08 - b04 * b07 + b05 * b06;
+            if (!det) return null;
+            det = 1.0 / det;
+
+            this.m00 = (a11 * b11 - a12 * b10 + a13 * b09) * det;
+            this.m01 = (a12 * b08 - a10 * b11 - a13 * b07) * det;
+            this.m02 = (a10 * b10 - a11 * b08 + a13 * b06) * det;
+
+            this.m03 = (a02 * b10 - a01 * b11 - a03 * b09) * det;
+            this.m04 = (a00 * b11 - a02 * b08 + a03 * b07) * det;
+            this.m05 = (a01 * b08 - a00 * b10 - a03 * b06) * det;
+
+            this.m06 = (a31 * b05 - a32 * b04 + a33 * b03) * det;
+            this.m07 = (a32 * b02 - a30 * b05 - a33 * b01) * det;
+            this.m08 = (a30 * b04 - a31 * b02 + a33 * b00) * det;
+
+            return this;
+        }
+
+        static normalMatrixFromMat4(mat4) {
+            return new Mat3().setAsNormalMatrixFromMat4(mat4);
+        }
     }
 
     /* eslint-disable prefer-destructuring */
@@ -859,6 +953,12 @@
         add(x, y) {
             this.x += x;
             this.y += y;
+            return this;
+        }
+
+        multiply(x, y) {
+            this.x *= x;
+            this.y *= y;
             return this;
         }
     }
@@ -974,10 +1074,128 @@
         }
     }
 
+    const getUniformsDeclaration$1 = (uniforms) => {
+        const keys = Object.keys(uniforms).filter(key => uniforms[key]);
+        return keys.map(key => `uniform ${uniforms[key]} ${key};`).join('\n');
+    };
+
+    class PhongMaterial extends Material {
+        constructor() {
+            super();
+            this.ambientIntensity = 0.1;
+            this.diffuseColor = new Vec3(1, 0, 0, 1);
+            this.specularColor = new Vec3(1, 1, 1, 1);
+            this.specularExponent = 0.5;
+            this.specularShininess = 256.0;
+        }
+
+        getDiffuseColor() {
+            return this.diffuseColor;
+        }
+
+        setDiffuseColor(r, g, b) {
+            this.diffuseColor = new Vec3(r, g, b);
+            return this;
+        }
+
+        getShaderData({ shaderLayoutLocations }) {
+            const { diffuseColor, specularColor, specularExponent, specularShininess } = this;
+
+            const uniforms = {
+                vertexShader: {
+                    modelMatrix: 'mat4',
+                    mvp: 'mat4',
+                    normalMatrix: 'mat3',
+                },
+                fragmentShader: {
+                    ambientIntensity: 'float',
+                    lightDirection: 'vec3',
+                    lightColor: 'vec3',
+                    cameraPosition: 'vec3',
+                    diffuseColor: diffuseColor ? 'vec3' : undefined,
+                    specularColor: specularColor ? 'vec3' : undefined,
+                    specularExponent: specularExponent ? 'float' : undefined,
+                    specularShininess: specularShininess ? 'float' : undefined,
+                },
+            };
+
+            const vertexShaderSource = `
+            precision highp float;
+            precision highp int;
+
+            layout(location = ${shaderLayoutLocations.vertex}) in vec3 position;
+            layout(location = ${shaderLayoutLocations.normal}) in vec3 normal;
+            layout(location = ${shaderLayoutLocations.uv}) in vec2 uv;
+
+            ${getUniformsDeclaration$1(uniforms.vertexShader)}
+
+            out vec3 vPosition;
+            out vec3 vNormal;
+            out vec2 vUv;
+
+            void main() {
+                vNormal = normalMatrix * normal;
+                vPosition = vec3(modelMatrix * vec4(position, 1.0));
+                vUv = uv;
+                gl_Position = mvp * vec4(position, 1.0);
+            }
+        `;
+
+            const fragmentShaderSource = `
+            precision highp float;
+            precision highp int;
+
+            ${getUniformsDeclaration$1(uniforms.fragmentShader)}
+
+            in vec3 vPosition;
+            in vec3 vNormal;
+            in vec2 vUv;
+
+            out vec4 fragmentColor;
+
+            void main() {
+                // ambient
+                vec3 ambient = ambientIntensity * lightColor;
+
+                // diffuse
+                vec3 norm = normalize(vNormal);
+                // vec3 lightDir = normalize(lightPosition - vPosition);
+                vec3 lightDir = normalize(lightDirection);
+                float diff = max(dot(norm, lightDir), 0.0);
+                vec3 diffuse = diff * lightColor;
+
+                //specular
+                vec3 viewDir = normalize(cameraPosition - vPosition);
+                vec3 reflectDir = reflect(-lightDir, norm);
+                float spec = pow(max(dot(viewDir, reflectDir), 0.0), specularShininess);
+                vec3 specular = specularExponent * spec * lightColor;
+
+                vec3 result = (ambient + diffuse + specular) * diffuseColor;
+                fragmentColor = vec4(result, 1.0);
+            }
+        `;
+
+            const vertexShaderSourceCode = `${this.getShaderVersion()}${vertexShaderSource}`;
+            const fragmentShaderSourceCode = `${this.getShaderVersion()}${fragmentShaderSource}`;
+
+            return {
+                vertexShaderSourceCode,
+                fragmentShaderSourceCode,
+                uniforms,
+            };
+        }
+
+        clone() {
+            const clone = new PhongMaterial();
+            clone.setIndices([...this.indices]);
+            return clone;
+        }
+    }
+
     /* eslint-disable prefer-destructuring */
 
     class Vec4 {
-        constructor(x = 0, y = 0, z = 0, w = 0) {
+        constructor(x = 0, y = 0, z = 0, w = 1) {
             this.x = x;
             this.y = y;
             this.z = z;
@@ -1009,6 +1227,14 @@
             this.y += y;
             this.z += z;
             this.w += w;
+            return this;
+        }
+
+        multiply(x, y, z, w) {
+            this.x *= x;
+            this.y *= y;
+            this.z *= z;
+            this.w *= w;
             return this;
         }
     }
@@ -1073,6 +1299,9 @@
             this.canvas.width = this.domNode.clientWidth;
             this.canvas.height = this.domNode.clientHeight;
             this.gl = this.canvas.getContext('webgl2');
+
+            this.gl.enable(this.gl.DEPTH_TEST);
+            this.gl.depthFunc(this.gl.LEQUAL);
 
             this.shaderLayoutLocations = {
                 vertex: 0,
@@ -1209,7 +1438,8 @@
             gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT); // eslint-disable-line no-bitwise
 
             scene.computeModelMatrix();
-            const { activeCamera, meshes } = scene.getChildrenRecursive();
+            const { activeCamera, meshes, directionalLights } = scene.getChildrenRecursive();
+            // const lightWorldPosition = directionalLights[0].position.clone().transformByMat4(directionalLights[0].modelMatrix);
 
             for (let i = 0; i < meshes.length; i++) {
                 const currentMesh = meshes[i];
@@ -1217,17 +1447,31 @@
 
                 const mv = activeCamera.viewMatrix.clone().multiply(currentMesh.modelMatrix);
                 const mvp = activeCamera.projectionMatrix.clone().multiply(mv);
+                const normalMatrix = Mat3.normalMatrixFromMat4(mv);
                 const uniformKeys = Object.keys(cachedMesh.uniforms);
 
                 gl.bindVertexArray(cachedMesh.vao);
                 gl.useProgram(cachedMesh.shader);
+
+                if (uniformKeys.includes('modelMatrix')) gl.uniformMatrix4fv(cachedMesh.uniforms.modelMatrix, false, currentMesh.modelMatrix.getAsFloat32Array());
                 if (uniformKeys.includes('mvp')) gl.uniformMatrix4fv(cachedMesh.uniforms.mvp, false, mvp.getAsFloat32Array());
+                if (uniformKeys.includes('normalMatrix')) gl.uniformMatrix3fv(cachedMesh.uniforms.normalMatrix, false, normalMatrix.getAsFloat32Array());
+                if (uniformKeys.includes('cameraPosition')) gl.uniform3fv(cachedMesh.uniforms.cameraPosition, activeCamera.position.getAsFloat32Array());
+                if (uniformKeys.includes('lightDirection')) gl.uniform3fv(cachedMesh.uniforms.lightDirection, directionalLights[0].direction.getAsFloat32Array());
+                if (uniformKeys.includes('lightColor')) gl.uniform3fv(cachedMesh.uniforms.lightColor, directionalLights[0].color.getAsFloat32Array());
+                if (uniformKeys.includes('diffuseColor')) gl.uniform3fv(cachedMesh.uniforms.diffuseColor, currentMesh.material.diffuseColor.getAsFloat32Array());
+                if (uniformKeys.includes('specularColor')) gl.uniform3fv(cachedMesh.uniforms.specularColor, currentMesh.material.specularColor.getAsFloat32Array());
+                if (uniformKeys.includes('specularExponent')) gl.uniform1f(cachedMesh.uniforms.specularExponent, currentMesh.material.specularExponent);
+                if (uniformKeys.includes('specularShininess')) gl.uniform1f(cachedMesh.uniforms.specularShininess, currentMesh.material.specularShininess);
+                if (uniformKeys.includes('ambientIntensity')) gl.uniform1f(cachedMesh.uniforms.ambientIntensity, currentMesh.material.ambientIntensity);
+
                 gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, cachedMesh.indices);
                 gl.drawElements(gl.TRIANGLES, currentMesh.material.indices.length, gl.UNSIGNED_INT, 0);
             }
         }
     }
 
+    exports.DirectionalLight = DirectionalLight;
     exports.Geometry = Geometry;
     exports.Mat3 = Mat3;
     exports.Mat4 = Mat4;
@@ -1235,6 +1479,7 @@
     exports.Node = Node;
     exports.OrthographicCamera = OrthographicCamera;
     exports.PerspectiveCamera = PerspectiveCamera;
+    exports.PhongMaterial = PhongMaterial;
     exports.Quat = Quat;
     exports.Scene = Scene;
     exports.Transform2D = Transform2D;

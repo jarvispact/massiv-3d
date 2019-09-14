@@ -1,5 +1,7 @@
 /* eslint-disable no-console */
 
+import Mat3 from '../math/mat3';
+
 const arrayBufferLookupTable = {
     vertex: (geometry, shaderLoc) => ({
         location: shaderLoc.vertex,
@@ -36,6 +38,9 @@ class WebGl2Renderer {
         this.canvas.width = this.domNode.clientWidth;
         this.canvas.height = this.domNode.clientHeight;
         this.gl = this.canvas.getContext('webgl2');
+
+        this.gl.enable(this.gl.DEPTH_TEST);
+        this.gl.depthFunc(this.gl.LEQUAL);
 
         this.shaderLayoutLocations = {
             vertex: 0,
@@ -172,7 +177,8 @@ class WebGl2Renderer {
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT); // eslint-disable-line no-bitwise
 
         scene.computeModelMatrix();
-        const { activeCamera, meshes } = scene.getChildrenRecursive();
+        const { activeCamera, meshes, directionalLights } = scene.getChildrenRecursive();
+        // const lightWorldPosition = directionalLights[0].position.clone().transformByMat4(directionalLights[0].modelMatrix);
 
         for (let i = 0; i < meshes.length; i++) {
             const currentMesh = meshes[i];
@@ -180,11 +186,24 @@ class WebGl2Renderer {
 
             const mv = activeCamera.viewMatrix.clone().multiply(currentMesh.modelMatrix);
             const mvp = activeCamera.projectionMatrix.clone().multiply(mv);
+            const normalMatrix = Mat3.normalMatrixFromMat4(mv);
             const uniformKeys = Object.keys(cachedMesh.uniforms);
 
             gl.bindVertexArray(cachedMesh.vao);
             gl.useProgram(cachedMesh.shader);
+
+            if (uniformKeys.includes('modelMatrix')) gl.uniformMatrix4fv(cachedMesh.uniforms.modelMatrix, false, currentMesh.modelMatrix.getAsFloat32Array());
             if (uniformKeys.includes('mvp')) gl.uniformMatrix4fv(cachedMesh.uniforms.mvp, false, mvp.getAsFloat32Array());
+            if (uniformKeys.includes('normalMatrix')) gl.uniformMatrix3fv(cachedMesh.uniforms.normalMatrix, false, normalMatrix.getAsFloat32Array());
+            if (uniformKeys.includes('cameraPosition')) gl.uniform3fv(cachedMesh.uniforms.cameraPosition, activeCamera.position.getAsFloat32Array());
+            if (uniformKeys.includes('lightDirection')) gl.uniform3fv(cachedMesh.uniforms.lightDirection, directionalLights[0].direction.getAsFloat32Array());
+            if (uniformKeys.includes('lightColor')) gl.uniform3fv(cachedMesh.uniforms.lightColor, directionalLights[0].color.getAsFloat32Array());
+            if (uniformKeys.includes('diffuseColor')) gl.uniform3fv(cachedMesh.uniforms.diffuseColor, currentMesh.material.diffuseColor.getAsFloat32Array());
+            if (uniformKeys.includes('specularColor')) gl.uniform3fv(cachedMesh.uniforms.specularColor, currentMesh.material.specularColor.getAsFloat32Array());
+            if (uniformKeys.includes('specularExponent')) gl.uniform1f(cachedMesh.uniforms.specularExponent, currentMesh.material.specularExponent);
+            if (uniformKeys.includes('specularShininess')) gl.uniform1f(cachedMesh.uniforms.specularShininess, currentMesh.material.specularShininess);
+            if (uniformKeys.includes('ambientIntensity')) gl.uniform1f(cachedMesh.uniforms.ambientIntensity, currentMesh.material.ambientIntensity);
+
             gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, cachedMesh.indices);
             gl.drawElements(gl.TRIANGLES, currentMesh.material.indices.length, gl.UNSIGNED_INT, 0);
         }

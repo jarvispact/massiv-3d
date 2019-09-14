@@ -81,6 +81,49 @@ class Mat3 {
 
         return this;
     }
+
+    setAsNormalMatrixFromMat4(mat4) {
+        const a00 = mat4.m00, a01 = mat4.m01, a02 = mat4.m02, a03 = mat4.m03;
+        const a10 = mat4.m04, a11 = mat4.m05, a12 = mat4.m06, a13 = mat4.m07;
+        const a20 = mat4.m08, a21 = mat4.m09, a22 = mat4.m10, a23 = mat4.m11;
+        const a30 = mat4.m12, a31 = mat4.m13, a32 = mat4.m14, a33 = mat4.m15;
+
+        const b00 = a00 * a11 - a01 * a10;
+        const b01 = a00 * a12 - a02 * a10;
+        const b02 = a00 * a13 - a03 * a10;
+        const b03 = a01 * a12 - a02 * a11;
+        const b04 = a01 * a13 - a03 * a11;
+        const b05 = a02 * a13 - a03 * a12;
+        const b06 = a20 * a31 - a21 * a30;
+        const b07 = a20 * a32 - a22 * a30;
+        const b08 = a20 * a33 - a23 * a30;
+        const b09 = a21 * a32 - a22 * a31;
+        const b10 = a21 * a33 - a23 * a31;
+        const b11 = a22 * a33 - a23 * a32;
+
+        // Calculate the determinant
+        let det = b00 * b11 - b01 * b10 + b02 * b09 + b03 * b08 - b04 * b07 + b05 * b06;
+        if (!det) return null;
+        det = 1.0 / det;
+
+        this.m00 = (a11 * b11 - a12 * b10 + a13 * b09) * det;
+        this.m01 = (a12 * b08 - a10 * b11 - a13 * b07) * det;
+        this.m02 = (a10 * b10 - a11 * b08 + a13 * b06) * det;
+
+        this.m03 = (a02 * b10 - a01 * b11 - a03 * b09) * det;
+        this.m04 = (a00 * b11 - a02 * b08 + a03 * b07) * det;
+        this.m05 = (a01 * b08 - a00 * b10 - a03 * b06) * det;
+
+        this.m06 = (a31 * b05 - a32 * b04 + a33 * b03) * det;
+        this.m07 = (a32 * b02 - a30 * b05 - a33 * b01) * det;
+        this.m08 = (a30 * b04 - a31 * b02 + a33 * b00) * det;
+
+        return this;
+    }
+
+    static normalMatrixFromMat4(mat4) {
+        return new Mat3().setAsNormalMatrixFromMat4(mat4);
+    }
 }
 
 export default Mat3;

@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="de">
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="initial-scale=1, maximum-scale=1, user-scalable=no">
+        <title>demo-cube</title>
+        <style type="text/css">
+            #container {
+                position: fixed;
+                top: 0px;
+                left: 0px;
+                width: 100%;
+                height: 100%;
+                overflow: hidden;
+            }
+        </style>
+    </head>
+
+    <body>
+        <div id="container"></div>
+        <script src="massiv-3d.umd.js"></script>
+        <script src="./cube-geometry.js"></script>
+        <script type="text/javascript">
+            (async () => {
+                const domNode = document.getElementById('container');
+                const renderer = new MASSIV.WebGL2Renderer(domNode);
+
+                const camera = new MASSIV.PerspectiveCamera(45, domNode.clientWidth / domNode.clientHeight, 0.1, 1000);
+                camera.translate(0, 6, 10);
+                camera.lookAt(0, 0, 0);
+
+                const geometry = new MASSIV.Geometry();
+                geometry.setVertices(cubeGeometry.vertices);
+                geometry.setNormals(cubeGeometry.normals);
+                geometry.setUvs(cubeGeometry.uvs);                
+
+                const material = new MASSIV.PhongMaterial();
+                material.setIndices(cubeGeometry.indices);
+
+                const mesh = new MASSIV.Mesh(geometry, material);
+                mesh.rotate(0, 40, 0);
+
+                const light = new MASSIV.DirectionalLight();
+                light.setDirection(5, 5, 0);
+
+                const scene = new MASSIV.Scene();
+                scene.addChild(camera);
+                scene.addChild(mesh);
+                scene.addChild(light);
+                scene.setActiveCamera(camera);
+
+                window.addEventListener('resize', () => {
+                    camera.updateProjectionMatrix(45, domNode.clientWidth / domNode.clientHeight, 0.1, 1000);
+                    renderer.resize();
+                    renderer.render(scene);
+                });
+
+                const update = () => {
+                    requestAnimationFrame(update);
+                    mesh.rotate(1, 1, 0);
+                    renderer.render(scene);
+                };
+
+                requestAnimationFrame(update);
+            })();
+        </script>
+    </body>
+</html>
