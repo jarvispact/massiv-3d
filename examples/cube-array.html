@@ -36,7 +36,7 @@
 
                 const aspect = domNode.clientWidth / domNode.clientHeight;
                 const camera = new MASSIV.PerspectiveCamera({ fov: 45, aspect, near: 0.1, far: 1000 });
-                camera.translate(0, 20, 50);
+                camera.translate(0, 30, 60);
                 camera.lookAt(0, 0, 0);
 
                 const { vertices, normals, uvs, indices } = cubeGeometry;
@@ -49,20 +49,17 @@
                 const cubeSize = 15;
                 const cubeArray = [];
 
-                for (let x = -15; x < cubeSize; x += 4) {
-                    for (let y = -15; y < cubeSize; y += 4) {
-                        for (let z = -15; z < cubeSize; z += 4) {
+                for (let x = -15; x <= cubeSize; x += 3) {
+                    for (let y = -15; y <= cubeSize; y += 3) {
+                        for (let z = -15; z <= cubeSize; z += 3) {
                             const clone = mesh.clone();
-                            cubeArray.push(clone);
                             clone.translate(x, y, z);
+                            cubeArray.push(clone);
                         }
                     }
                 }
 
-                console.log(cubeArray);
-                
-
-                const light = new MASSIV.DirectionalLight({ direction: new MASSIV.Vec3(20, 20, 20) });
+                const light = new MASSIV.DirectionalLight({ direction: new MASSIV.Vec3(30, 30, 30) });
 
                 const scene = new MASSIV.Scene();
                 scene.addChildren([camera, light, ...cubeArray]);
