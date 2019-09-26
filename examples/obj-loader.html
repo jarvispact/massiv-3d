@@ -3,7 +3,7 @@
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="initial-scale=1, maximum-scale=1, user-scalable=no">
-        <title>demo-cube</title>
+        <title>obj-loader</title>
         <style type="text/css">
             #container {
                 position: fixed;
@@ -27,7 +27,6 @@
         <div id="container"></div>
         <p id="fps"></p>
         <script src="./assets/massiv-3d.umd.js"></script>
-        <script src="./assets/cube-geometry.js"></script>
         <script type="text/javascript">
             (async () => {
                 const fpsDisplay = document.getElementById('fps');
@@ -36,28 +35,18 @@
 
                 const aspect = domNode.clientWidth / domNode.clientHeight;
                 const camera = new MASSIV.PerspectiveCamera({ fov: 45, aspect, near: 0.1, far: 1000 });
-                camera.translate(0, 5, 10);
+                camera.translate(0, 4, 10);
                 camera.lookAt(0, 0, 0);
 
-                const { vertices, normals, uvs, indices } = cubeGeometry;
-
-                const mesh = new MASSIV.Mesh({
-                    geometry: new MASSIV.Geometry({ vertices, normals, uvs }),
-                    material: new MASSIV.StandardMaterial({ indices }),
-                });
-                mesh.translate(-2, 0, 0);
-
-                const mesh2 = new MASSIV.Mesh({
-                    geometry: new MASSIV.Geometry({ vertices, normals, uvs }),
-                    material: new MASSIV.StandardMaterial({ indices }),
-                });
-                mesh2.translate(2, 0, 0);
+                const test = await MASSIV.ObjLoader.load('./assets/obj-models/cube.obj');
+                console.log({test});
+                
 
                 const light = new MASSIV.DirectionalLight({ direction: new MASSIV.Vec3(0, 5, 0) });
                 // const light2 = new MASSIV.DirectionalLight({ direction: new MASSIV.Vec3(-5, 5, 0) });
 
                 const scene = new MASSIV.Scene();
-                scene.addChildren([camera, light, mesh, mesh2]);
+                scene.addChildren([camera, light, mesh]);
                 scene.setActiveCamera(camera);
 
                 window.addEventListener('resize', () => {
@@ -67,29 +56,17 @@
                     renderer.render(scene);
                 });
 
-                // renderer.render(scene);
-
-                let then = 0, oneSecond = Date.now() + 1000, fps = 0, rotation = 30, redColor = 0, colorChangeSpeed = 0.001;
-                let lightDirectionZ = 0;
-                let lightDirectionZSpeed = 0.01;
+                let then = 0, oneSecond = Date.now() + 1000, fps = 0, rotation = 30;
 
                 const update = (now) => {
-                    const delta = Math.min(1, (now - then) / 1000);
+                    requestAnimationFrame(update);
+
+                    now *= 0.001;
+                    const delta = now - then;
                     then = now;
                     fps++;
 
                     mesh.rotate(rotation * delta, rotation * delta, 0);
-                    mesh2.rotate(rotation * delta, 0, rotation * delta);
-
-                    if (redColor < 0 || redColor > 1) colorChangeSpeed *= -1;
-                    redColor += colorChangeSpeed;
-                    mesh.material.diffuseColor = new MASSIV.Vec3(redColor, 0, 0);
-                    mesh2.material.diffuseColor = new MASSIV.Vec3(redColor, 0, 0);
-
-                    if (lightDirectionZ < -5 || lightDirectionZ > 5) lightDirectionZSpeed *= -1;
-                    lightDirectionZ += lightDirectionZSpeed;
-                    light.direction = new MASSIV.Vec3(0, 5, lightDirectionZ);
-
                     renderer.render(scene);
 
                     const currentTime = Date.now();
@@ -99,8 +76,6 @@
                         fps = 0;
                         oneSecond = currentTime + 1000;
                     }
-
-                    requestAnimationFrame(update);
                 };
 
                 requestAnimationFrame(update);

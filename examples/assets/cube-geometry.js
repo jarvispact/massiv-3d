@@ -1,3 +1,5 @@
+// 72
+// 24 vec3
 const vertices = [
     // Front face
     -1.0, -1.0, 1.0,
@@ -36,6 +38,8 @@ const vertices = [
     -1.0, 1.0, -1.0,
 ];
 
+// 72
+// 24 vec3
 const normals = [
     // Front
     0.0, 0.0, 1.0,
@@ -74,6 +78,8 @@ const normals = [
     -1.0, 0.0, 0.0,
 ];
 
+// 48
+// 24 vec2
 const uvs = [
     // Front
     0.0, 0.0,
@@ -107,6 +113,7 @@ const uvs = [
     0.0, 1.0,
 ];
 
+// 36
 const indices = [
     0, 1, 2, 0, 2, 3, // front
     4, 5, 6, 4, 6, 7, // back

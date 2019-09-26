@@ -1,7 +1,6 @@
 class Material {
     constructor({ indices } = {}) {
         this.indices = indices || [];
-        this.shaderVersion = '#version 300 es\n\n';
     }
 
     getIndices() {

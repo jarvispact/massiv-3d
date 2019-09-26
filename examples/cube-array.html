@@ -59,7 +59,10 @@
                     }
                 }
 
-                const light = new MASSIV.DirectionalLight({ direction: new MASSIV.Vec3(30, 30, 30) });
+                console.log(cubeArray.length);
+                
+
+                const light = new MASSIV.DirectionalLight({ direction: new MASSIV.Vec3(30, 30, 0) });
 
                 const scene = new MASSIV.Scene();
                 scene.addChildren([camera, light, ...cubeArray]);

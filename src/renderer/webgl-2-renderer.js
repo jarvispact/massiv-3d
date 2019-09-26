@@ -1,6 +1,7 @@
-/* eslint-disable no-console */
+/* eslint-disable no-console, no-bitwise */
 
 import Mat3 from '../math/mat3';
+import ShaderBuilder from './shader-builder';
 
 const arrayBufferLookupTable = {
     vertex: (geometry, shaderLoc) => ({
@@ -23,6 +24,12 @@ const arrayBufferLookupTable = {
         bufferData: geometry.getVertexColorsAsFloat32Array(),
         bufferSize: geometry.getVertexColorVectorSize(),
     }),
+};
+
+const getViewNameForUniformName = (uniformName) => {
+    if (uniformName.includes('[')) return uniformName;
+    if (uniformName.includes('.')) return uniformName.split('.')[1];
+    return uniformName;
 };
 
 class WebGl2Renderer {
@@ -132,6 +139,41 @@ class WebGl2Renderer {
         return buffer;
     }
 
+    createUBO(shader, blockBinding, uniformBlockName, uniformNames, uniformValues) {
+        const { gl } = this;
+
+        const blockIndex = gl.getUniformBlockIndex(shader, uniformBlockName);
+        const blockSize = gl.getActiveUniformBlockParameter(shader, blockIndex, gl.UNIFORM_BLOCK_DATA_SIZE);
+        const arrayBuffer = new ArrayBuffer(blockSize);
+
+        const uniformIndices = gl.getUniformIndices(shader, uniformNames);
+        const uniformOffsets = gl.getActiveUniforms(shader, uniformIndices, gl.UNIFORM_OFFSET);
+
+        // TODO: add support for different data types
+        const views = uniformNames
+            .map(getViewNameForUniformName)
+            .reduce((accum, name, idx) => {
+                accum[name] = name === 'numDirectionalLights' ? new Int32Array(arrayBuffer, uniformOffsets[idx]) : new Float32Array(arrayBuffer, uniformOffsets[idx]);
+                accum[name].set(uniformValues[idx]);
+                return accum;
+            }, {});
+
+        console.log({ uniformNames, arrayBuffer, uniformIndices, uniformOffsets, views });
+
+        const webglBuffer = gl.createBuffer();
+        gl.bindBuffer(gl.UNIFORM_BUFFER, webglBuffer);
+        gl.bufferData(gl.UNIFORM_BUFFER, arrayBuffer, gl.DYNAMIC_DRAW);
+        gl.uniformBlockBinding(shader, blockIndex, blockBinding);
+        gl.bindBufferBase(gl.UNIFORM_BUFFER, blockBinding, webglBuffer);
+
+        return {
+            webglBuffer,
+            arrayBuffer,
+            blockBinding,
+            views,
+        };
+    }
+
     resize() {
         const { gl, canvas, domNode } = this;
         const w = domNode.clientWidth;
@@ -141,29 +183,81 @@ class WebGl2Renderer {
         gl.viewport(0, 0, canvas.width, canvas.height);
     }
 
-    cacheMesh(mesh) {
-        const { gl } = this;
+    cacheMesh(mesh, { activeCamera, directionalLights }) {
+        const { gl, shaderLayoutLocations } = this;
 
-        const materialArgs = {
-            shaderLayoutLocations: this.shaderLayoutLocations,
-        };
-
-        const shaderData = mesh.material.getShaderData(materialArgs);
-        const vertexShader = this.createShader(gl.VERTEX_SHADER, shaderData.vertexShaderSourceCode);
-        const fragmentShader = this.createShader(gl.FRAGMENT_SHADER, shaderData.fragmentShaderSourceCode);
+        const { vertexShaderSourceCode, fragmentShaderSourceCode } = ShaderBuilder.buildShaderForStandardMaterial(shaderLayoutLocations);
+        const vertexShader = this.createShader(gl.VERTEX_SHADER, vertexShaderSourceCode);
+        const fragmentShader = this.createShader(gl.FRAGMENT_SHADER, fragmentShaderSourceCode);
         const shader = this.createProgram(vertexShader, fragmentShader);
 
-        const flatUniforms = { ...shaderData.uniforms.vertexShader, ...shaderData.uniforms.fragmentShader };
-        const uniforms = Object.keys(flatUniforms).filter(key => flatUniforms[key]).reduce((accum, key) => {
-            accum[key] = gl.getUniformLocation(shader, key);
-            return accum;
-        }, {});
+        const mv = activeCamera.viewMatrix.clone().multiply(mesh.modelMatrix);
+        const mvp = activeCamera.projectionMatrix.clone().multiply(mv);
+        const normalMatrix = Mat3.normalMatrixFromMat4(mv);
+
+        const MatricesUniformUBO = this.createUBO(shader, 3, 'MatricesUniform', [
+            'matrices.modelMatrix',
+            'matrices.mvp',
+            'matrices.normalMatrix',
+        ],
+        [
+            mesh.modelMatrix.getAsArray(),
+            mvp.getAsArray(),
+            normalMatrix.getAsMat4Array(),
+        ]);
+
+        // ===============================
+
+        const MaterialUniformUBO = this.createUBO(shader, 2, 'MaterialUniform', [
+            'material.diffuseColor',
+            'material.specularColor',
+            'material.ambientIntensity',
+            'material.specularExponent',
+            'material.specularShininess',
+        ],
+        [
+            mesh.material.diffuseColor.getAsArray(),
+            mesh.material.specularColor.getAsArray(),
+            [mesh.material.ambientIntensity],
+            [mesh.material.specularExponent],
+            [mesh.material.specularShininess],
+        ]);
+
+        // ==================================
+
+        const dirLightNames = directionalLights.flatMap((_, idx) => [
+            `directionalLights[${idx}].direction`,
+            `directionalLights[${idx}].ambientColor`,
+            `directionalLights[${idx}].diffuseColor`,
+            `directionalLights[${idx}].specularColor`,
+        ]);
+
+        const dirLightValues = directionalLights.flatMap((dirLight) => [
+            dirLight.direction.getAsArray(),
+            dirLight.ambientColor.getAsArray(),
+            dirLight.diffuseColor.getAsArray(),
+            dirLight.specularColor.getAsArray(),
+        ]);
+
+        const SceneUniformUBO = this.createUBO(shader, 1, 'SceneUniform', [
+            ...dirLightNames,
+            'numDirectionalLights',
+            'cameraPosition',
+        ], [
+            ...dirLightValues,
+            [directionalLights.length],
+            activeCamera.position.getAsArray(),
+        ]);
 
         const cachedMesh = {
             vao: this.createVertexArray(mesh.geometry),
             indices: this.createElementArrayBuffer(mesh.material),
             shader,
-            uniforms,
+            ubos: {
+                MatricesUniformUBO,
+                SceneUniformUBO,
+                MaterialUniformUBO,
+            },
         };
 
         this.meshCache[mesh.id] = cachedMesh;
@@ -174,35 +268,48 @@ class WebGl2Renderer {
         const { gl } = this;
         gl.viewport(0, 0, this.canvas.width, this.canvas.height);
         gl.clearColor(0, 0, 0, 1);
-        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT); // eslint-disable-line no-bitwise
+        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
         scene.computeModelMatrix();
         const { activeCamera, meshes, directionalLights } = scene.getChildrenRecursive();
-        // const lightWorldPosition = directionalLights[0].position.clone().transformByMat4(directionalLights[0].modelMatrix);
 
         for (let i = 0; i < meshes.length; i++) {
             const currentMesh = meshes[i];
-            const cachedMesh = this.meshCache[currentMesh.id] || this.cacheMesh(currentMesh);
-
-            const mv = activeCamera.viewMatrix.clone().multiply(currentMesh.modelMatrix);
-            const mvp = activeCamera.projectionMatrix.clone().multiply(mv);
-            const normalMatrix = Mat3.normalMatrixFromMat4(mv);
-            const uniformKeys = Object.keys(cachedMesh.uniforms);
+            const cachedMesh = this.meshCache[currentMesh.id] || this.cacheMesh(currentMesh, { activeCamera, directionalLights });
 
             gl.bindVertexArray(cachedMesh.vao);
             gl.useProgram(cachedMesh.shader);
 
-            if (uniformKeys.includes('modelMatrix')) gl.uniformMatrix4fv(cachedMesh.uniforms.modelMatrix, false, currentMesh.modelMatrix.getAsFloat32Array());
-            if (uniformKeys.includes('mvp')) gl.uniformMatrix4fv(cachedMesh.uniforms.mvp, false, mvp.getAsFloat32Array());
-            if (uniformKeys.includes('normalMatrix')) gl.uniformMatrix3fv(cachedMesh.uniforms.normalMatrix, false, normalMatrix.getAsFloat32Array());
-            if (uniformKeys.includes('cameraPosition')) gl.uniform3fv(cachedMesh.uniforms.cameraPosition, activeCamera.position.getAsFloat32Array());
-            if (uniformKeys.includes('lightDirection')) gl.uniform3fv(cachedMesh.uniforms.lightDirection, directionalLights[0].direction.getAsFloat32Array());
-            if (uniformKeys.includes('lightColor')) gl.uniform3fv(cachedMesh.uniforms.lightColor, directionalLights[0].color.getAsFloat32Array());
-            if (uniformKeys.includes('diffuseColor')) gl.uniform3fv(cachedMesh.uniforms.diffuseColor, currentMesh.material.diffuseColor.getAsFloat32Array());
-            if (uniformKeys.includes('specularColor')) gl.uniform3fv(cachedMesh.uniforms.specularColor, currentMesh.material.specularColor.getAsFloat32Array());
-            if (uniformKeys.includes('specularExponent')) gl.uniform1f(cachedMesh.uniforms.specularExponent, currentMesh.material.specularExponent);
-            if (uniformKeys.includes('specularShininess')) gl.uniform1f(cachedMesh.uniforms.specularShininess, currentMesh.material.specularShininess);
-            if (uniformKeys.includes('ambientIntensity')) gl.uniform1f(cachedMesh.uniforms.ambientIntensity, currentMesh.material.ambientIntensity);
+            const { MatricesUniformUBO, MaterialUniformUBO, SceneUniformUBO } = cachedMesh.ubos;
+
+            const mv = activeCamera.viewMatrix.clone().multiply(currentMesh.modelMatrix);
+            const mvp = activeCamera.projectionMatrix.clone().multiply(mv);
+            const normalMatrix = Mat3.normalMatrixFromMat4(mv);
+            MatricesUniformUBO.views.modelMatrix.set(currentMesh.modelMatrix.getAsArray());
+            MatricesUniformUBO.views.mvp.set(mvp.getAsArray());
+            MatricesUniformUBO.views.normalMatrix.set(normalMatrix.getAsMat4Array());
+
+            gl.bindBuffer(gl.UNIFORM_BUFFER, MatricesUniformUBO.webglBuffer);
+            gl.bufferSubData(gl.UNIFORM_BUFFER, 0, MatricesUniformUBO.arrayBuffer);
+            gl.bindBufferBase(gl.UNIFORM_BUFFER, MatricesUniformUBO.blockBinding, MatricesUniformUBO.webglBuffer);
+
+            // =============================
+
+            MaterialUniformUBO.views.diffuseColor.set(currentMesh.material.diffuseColor.getAsArray());
+
+            gl.bindBuffer(gl.UNIFORM_BUFFER, MaterialUniformUBO.webglBuffer);
+            gl.bufferSubData(gl.UNIFORM_BUFFER, 0, MaterialUniformUBO.arrayBuffer);
+            gl.bindBufferBase(gl.UNIFORM_BUFFER, MaterialUniformUBO.blockBinding, MaterialUniformUBO.webglBuffer);
+
+            // =============================
+
+            SceneUniformUBO.views['directionalLights[0].direction'].set(directionalLights[0].direction.getAsArray());
+
+            gl.bindBuffer(gl.UNIFORM_BUFFER, SceneUniformUBO.webglBuffer);
+            gl.bufferSubData(gl.UNIFORM_BUFFER, 0, SceneUniformUBO.arrayBuffer);
+            gl.bindBufferBase(gl.UNIFORM_BUFFER, SceneUniformUBO.blockBinding, SceneUniformUBO.webglBuffer);
+
+            // =============================
 
             gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, cachedMesh.indices);
             gl.drawElements(gl.TRIANGLES, currentMesh.material.indices.length, gl.UNSIGNED_INT, 0);

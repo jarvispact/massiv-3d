@@ -2,10 +2,12 @@ import Transform3D from '../core/transform-3d';
 import Vec3 from '../math/vec3';
 
 class DirectionalLight extends Transform3D {
-    constructor({ direction, color } = {}) {
+    constructor({ direction, ambientColor, diffuseColor, specularColor } = {}) {
         super();
         this.direction = direction || new Vec3(0, 0, 0);
-        this.color = color || new Vec3(1, 1, 1);
+        this.ambientColor = ambientColor || new Vec3(1, 1, 1);
+        this.diffuseColor = diffuseColor || new Vec3(1, 1, 1);
+        this.specularColor = specularColor || new Vec3(1, 1, 1);
     }
 
     getDirection() {
@@ -17,12 +19,30 @@ class DirectionalLight extends Transform3D {
         return this;
     }
 
-    getColor() {
-        return this.color;
+    getAmbientColor() {
+        return this.ambientColor;
     }
 
-    setColor(r, g, b) {
-        this.color = new Vec3(r, g, b);
+    setAmbientColor(r, g, b) {
+        this.ambientColor = new Vec3(r, g, b);
+        return this;
+    }
+
+    getDiffuseColor() {
+        return this.diffuseColor;
+    }
+
+    setDiffuseColor(r, g, b) {
+        this.diffuseColor = new Vec3(r, g, b);
+        return this;
+    }
+
+    getSpecularColor() {
+        return this.specularColor;
+    }
+
+    setSpecularColor(r, g, b) {
+        this.specularColor = new Vec3(r, g, b);
         return this;
     }
 }

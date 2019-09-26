@@ -27,6 +27,25 @@ class Mat3 {
         ];
     }
 
+    // Uniform Buffers needs mat3 as mat4
+    // for whatever fucking reason
+    getAsMat4Array() {
+        return [
+            this.m00,
+            this.m01,
+            this.m02,
+            0,
+            this.m03,
+            this.m04,
+            this.m05,
+            0,
+            this.m06,
+            this.m07,
+            this.m08,
+            0,
+        ];
+    }
+
     getAsFloat32Array() {
         return Float32Array.from(this.getAsArray());
     }
