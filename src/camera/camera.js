@@ -10,7 +10,6 @@ class Camera extends Transform3D {
         this.upVector = new Vec3(0, 1, 0);
         this.viewMatrix = new Mat4();
         this.projectionMatrix = new Mat4();
-        this.transform = new Transform3D();
     }
 
     lookAt(x, y, z) {
