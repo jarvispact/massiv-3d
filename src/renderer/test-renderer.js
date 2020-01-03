@@ -205,14 +205,14 @@ class TestRenderer {
         this.gl.viewport(0, 0, this.canvas.width, this.canvas.height);
     }
 
-    cacheRenderable(mesh, { activeCamera, directionalLights }) {
+    cacheRenderable(renderable, { activeCamera, directionalLights }) {
         const shaderCode = ShaderBuilder.buildShaderForStandardMaterial(this.shaderLayoutLocations);
         const vertexShader = this.createShader(this.gl.VERTEX_SHADER, shaderCode.vertexShaderSourceCode);
         const fragmentShader = this.createShader(this.gl.FRAGMENT_SHADER, shaderCode.fragmentShaderSourceCode);
         const shader = this.createProgram(vertexShader, fragmentShader);
 
         activeCamera.camera.lookAt(activeCamera.transform.position, new Vec3(0, 0, 0));
-        const mv = activeCamera.camera.viewMatrix.clone().multiply(mesh.transform.modelMatrix);
+        const mv = activeCamera.camera.viewMatrix.clone().multiply(renderable.transform.modelMatrix);
         const mvp = activeCamera.camera.projectionMatrix.clone().multiply(mv);
         const normalMatrix = Mat3.normalMatrixFromMat4(mv);
 
@@ -222,7 +222,7 @@ class TestRenderer {
             'matrices.normalMatrix',
         ],
         [
-            mesh.transform.modelMatrix.getAsArray(),
+            renderable.transform.modelMatrix.getAsArray(),
             mvp.getAsArray(),
             normalMatrix.getAsMat4Array(),
         ]);
@@ -237,11 +237,11 @@ class TestRenderer {
             'material.specularShininess',
         ],
         [
-            mesh.material.diffuseColor.getAsArray(),
-            mesh.material.specularColor.getAsArray(),
-            [mesh.material.ambientIntensity],
-            [mesh.material.specularExponent],
-            [mesh.material.specularShininess],
+            renderable.material.diffuseColor.getAsArray(),
+            renderable.material.specularColor.getAsArray(),
+            [renderable.material.ambientIntensity],
+            [renderable.material.specularExponent],
+            [renderable.material.specularShininess],
         ]);
 
         // ==================================
@@ -271,8 +271,8 @@ class TestRenderer {
         ]);
 
         const cachedRenderable = {
-            vao: this.createVertexArray(mesh.geometry),
-            indices: this.createElementArrayBuffer(mesh.material),
+            vao: this.createVertexArray(renderable.geometry),
+            indices: this.createElementArrayBuffer(renderable.material),
             shader,
             ubos: {
                 MatricesUniformUBO,
@@ -281,7 +281,7 @@ class TestRenderer {
             },
         };
 
-        this.renderableCache[mesh.id] = cachedRenderable;
+        this.renderableCache[renderable.id] = cachedRenderable;
         return cachedRenderable;
     }
 
