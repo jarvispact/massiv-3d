@@ -2,8 +2,8 @@ import Material from './material';
 import Vec3 from '../math/vec3';
 
 class StandardMaterial extends Material {
-    constructor({ indices, ambientIntensity, diffuseColor, specularColor, specularExponent, specularShininess } = {}) {
-        super({ indices });
+    constructor(indices, diffuseColor, specularColor, ambientIntensity, specularExponent, specularShininess) {
+        super(indices);
         this.ambientIntensity = ambientIntensity || 0.1;
         this.diffuseColor = diffuseColor || new Vec3(1, 0, 0);
         this.specularColor = specularColor || new Vec3(1, 1, 1);

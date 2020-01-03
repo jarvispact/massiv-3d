@@ -1,8 +1,8 @@
-import Transform3D from '../core/transform-3d';
+import Component from '../core/component';
 import Vec3 from '../math/vec3';
 
-class DirectionalLight extends Transform3D {
-    constructor({ direction, ambientColor, diffuseColor, specularColor } = {}) {
+class DirectionalLight extends Component {
+    constructor(direction, ambientColor, diffuseColor, specularColor) {
         super();
         this.direction = direction || new Vec3(0, 0, 0);
         this.ambientColor = ambientColor || new Vec3(1, 1, 1);

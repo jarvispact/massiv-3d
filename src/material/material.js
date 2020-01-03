@@ -1,5 +1,10 @@
-class Material {
-    constructor({ indices } = {}) {
+import Component from '../core/component';
+
+// Abstract Class
+
+class Material extends Component {
+    constructor(indices) {
+        super();
         this.indices = indices || [];
     }
 

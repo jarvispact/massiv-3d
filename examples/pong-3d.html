@@ -3,7 +3,7 @@
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="initial-scale=1, maximum-scale=1, user-scalable=no">
-        <title>demo-cube</title>
+        <title>pong-3d</title>
         <style type="text/css">
             #container {
                 position: fixed;
@@ -33,14 +33,26 @@
             ]);
 
             const camera = world.createEntity([
-                new MASSIV.Transform3D(new MASSIV.Vec3(0, 5, 10)),
+                new MASSIV.Transform3D(new MASSIV.Vec3(0, 15, 20)),
                 new MASSIV.PerspectiveCamera(45, domNode.clientWidth / domNode.clientHeight, 0.1, 1000),
             ]);
 
-            const cube = world.createEntity([
+            const ball = world.createEntity([
                 new MASSIV.Transform3D(),
                 new MASSIV.Geometry(vertices, normals, uvs),
                 new MASSIV.StandardMaterial(indices, new MASSIV.Vec3(1, 0, 0)),
+            ]);
+
+            const player1 = world.createEntity([
+                new MASSIV.Transform3D(new MASSIV.Vec3(-10, 0, 0)),
+                new MASSIV.Geometry(vertices, normals, uvs),
+                new MASSIV.StandardMaterial(indices, new MASSIV.Vec3(0, 1, 0)),
+            ]);
+
+            const player2 = world.createEntity([
+                new MASSIV.Transform3D(new MASSIV.Vec3(10, 0, 0)),
+                new MASSIV.Geometry(vertices, normals, uvs),
+                new MASSIV.StandardMaterial(indices, new MASSIV.Vec3(0, 0, 1)),
             ]);
 
             const computeModelMatrixSystem = (world) => {
@@ -50,13 +62,18 @@
                 }
             };
 
-            const rotationSystem = (world, delta) => {
-                const cubeTransform = world.components.find(c => c.entityId === cube.id && c instanceof MASSIV.Transform3D);
-                cubeTransform.rotate(30 * delta, 30 * delta, 0);
+            let ballSpeed = 5;
+
+            const ballMovementSystem = (w, delta) => {
+                const player1Transform = w.components.find(c => c.entityId === player1.id);
+                const player2Transform = w.components.find(c => c.entityId === player2.id);
+                const ballTransform = w.components.find(c => c.entityId === ball.id);
+                ballTransform.translate(ballSpeed * delta, 0, 0);
+                if (ballTransform.position.x <= player1Transform.position.x || ballTransform.position.x >= player2Transform.position.x) ballSpeed *= -1;
             };
 
             world.addSystem(computeModelMatrixSystem);
-            world.addSystem(rotationSystem);
+            world.addSystem(ballMovementSystem);
 
             const update = (delta) => {
                 for (let i = 0; i < world.systems.length; i++) { world.systems[i](world, delta); }

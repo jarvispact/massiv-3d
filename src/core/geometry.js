@@ -1,5 +1,8 @@
-class Geometry {
-    constructor({ vertices, normals, uvs, vertexColors } = {}) {
+import Component from './component';
+
+class Geometry extends Component {
+    constructor(vertices, normals, uvs, vertexColors) {
+        super();
         this.vertices = vertices || [];
         this.normals = normals || [];
         this.uvs = uvs || [];

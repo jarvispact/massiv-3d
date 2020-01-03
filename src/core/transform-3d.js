@@ -1,16 +1,16 @@
-import Node from './node';
 import Mat4 from '../math/mat4';
 import Vec3 from '../math/vec3';
 import Quat from '../math/quat';
+import Component from './component';
 
-class Transform3D extends Node {
-    constructor({ position, quaternion, scaling } = {}) {
+class Transform3D extends Component {
+    constructor(position, quaternion, scaling) {
         super();
         this.position = position || new Vec3();
         this.quaternion = quaternion || new Quat();
         this.scaling = scaling || new Vec3(1, 1, 1);
         this.modelMatrix = new Mat4();
-        this.transformDirty = false;
+        this.transformDirty = position || quaternion || scaling;
     }
 
     translate(x, y, z) {
@@ -29,20 +29,9 @@ class Transform3D extends Node {
         this.transformDirty = true;
     }
 
-    computeModelMatrix(combinedTransformationMatrix) {
-        const pos = this.position;
-        const scl = this.scaling;
-        const rot = this.quaternion;
-
-        if (combinedTransformationMatrix) {
-            const transformationMatrix = Mat4.fromQuaternionTranslationScale(rot, pos, scl);
-            this.modelMatrix = combinedTransformationMatrix.clone().multiply(transformationMatrix);
-        } else if (this.transformDirty) {
-            this.modelMatrix.setFromQuaternionTranslationScale(rot, pos, scl);
-        }
-
-        for (let i = 0; i < this.children.length; i++) {
-            this.children[i].computeModelMatrix(this.modelMatrix);
+    computeModelMatrix() {
+        if (this.transformDirty) {
+            this.modelMatrix.setFromQuaternionTranslationScale(this.quaternion, this.position, this.scaling);
         }
 
         this.transformDirty = false;

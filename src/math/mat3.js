@@ -29,6 +29,7 @@ class Mat3 {
 
     // Uniform Buffers needs mat3 as mat4
     // for whatever fucking reason
+    // it took 3 days to figure this out
     getAsMat4Array() {
         return [
             this.m00,

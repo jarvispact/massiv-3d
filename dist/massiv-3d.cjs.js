@@ -2,58 +2,61 @@
 
 Object.defineProperty(exports, '__esModule', { value: true });
 
-/* eslint-disable no-bitwise, no-nested-ternary, no-mixed-operators */
+/* eslint-disable prefer-destructuring */
 
-// https://gist.github.com/jcxplorer/823878
-
-var uuid = () => {
-    let uuid = '';
-    let i = 0;
-
-    for (i; i < 32; i++) {
-        const random = Math.random() * 16 | 0;
-
-        if (i === 8 || i === 12 || i === 16 || i === 20) {
-            uuid += '-';
-        }
-
-        uuid += (i === 12 ? 4 : (i === 16 ? (random & 3 | 8) : random)).toString(16);
+class Vec3 {
+    constructor(x = 0, y = 0, z = 0) {
+        this.x = x;
+        this.y = y;
+        this.z = z;
     }
 
-    return uuid;
-};
-
-class Node {
-    constructor({ id } = {}) {
-        this.id = id || uuid();
-        this.parent = null;
-        this.children = [];
+    getAsArray() {
+        return [this.x, this.y, this.z];
     }
 
-    getParent() {
-        return this.parent;
+    getAsFloat32Array() {
+        return Float32Array.from(this.getAsArray());
     }
 
-    setParent(parent) {
-        this.parent = parent;
+    setFromArray(vec3) {
+        this.x = vec3[0];
+        this.y = vec3[1];
+        this.z = vec3[2];
         return this;
     }
 
-    addChild(child) {
-        child.setParent(this);
-        this.children.push(child);
+    clone() {
+        return new Vec3(this.x, this.y, this.z);
     }
 
-    addChildren(children) {
-        for (let i = 0; i < children.length; i++) {
-            children[i].setParent(this);
-        }
-
-        this.children.push(...children);
+    add(x, y, z) {
+        this.x += x;
+        this.y += y;
+        this.z += z;
+        return this;
     }
 
-    getChildren() {
-        return this.children;
+    multiply(x, y, z) {
+        this.x *= x;
+        this.y *= y;
+        this.z *= z;
+        return this;
+    }
+
+    transformByMat4(mat4) {
+        const x = this.x;
+        const y = this.y;
+        const z = this.z;
+
+        let w = mat4.m03 * x + mat4.m07 * y + mat4.m11 * z + mat4.m15;
+        w = w || 1.0;
+
+        this.x = (mat4.m00 * x + mat4.m04 * y + mat4.m08 * z + mat4.m12) / w;
+        this.y = (mat4.m01 * x + mat4.m05 * y + mat4.m09 * z + mat4.m13) / w;
+        this.z = (mat4.m02 * x + mat4.m06 * y + mat4.m10 * z + mat4.m14) / w;
+
+        return this;
     }
 }
 
@@ -380,181 +383,45 @@ class Mat4 {
     }
 }
 
-/* eslint-disable prefer-destructuring */
+/* eslint-disable no-bitwise, no-nested-ternary, no-mixed-operators */
 
-class Vec3 {
-    constructor(x = 0, y = 0, z = 0) {
-        this.x = x;
-        this.y = y;
-        this.z = z;
-    }
+// https://gist.github.com/jcxplorer/823878
 
-    getAsArray() {
-        return [this.x, this.y, this.z];
-    }
+var uuid = () => {
+    let uuid = '';
+    let i = 0;
 
-    getAsFloat32Array() {
-        return Float32Array.from(this.getAsArray());
-    }
+    for (i; i < 32; i++) {
+        const random = Math.random() * 16 | 0;
 
-    setFromArray(vec3) {
-        this.x = vec3[0];
-        this.y = vec3[1];
-        this.z = vec3[2];
-        return this;
-    }
-
-    clone() {
-        return new Vec3(this.x, this.y, this.z);
-    }
-
-    add(x, y, z) {
-        this.x += x;
-        this.y += y;
-        this.z += z;
-        return this;
-    }
-
-    multiply(x, y, z) {
-        this.x *= x;
-        this.y *= y;
-        this.z *= z;
-        return this;
-    }
-
-    transformByMat4(mat4) {
-        const x = this.x;
-        const y = this.y;
-        const z = this.z;
-
-        let w = mat4.m03 * x + mat4.m07 * y + mat4.m11 * z + mat4.m15;
-        w = w || 1.0;
-
-        this.x = (mat4.m00 * x + mat4.m04 * y + mat4.m08 * z + mat4.m12) / w;
-        this.y = (mat4.m01 * x + mat4.m05 * y + mat4.m09 * z + mat4.m13) / w;
-        this.z = (mat4.m02 * x + mat4.m06 * y + mat4.m10 * z + mat4.m14) / w;
-
-        return this;
-    }
-}
-
-/* eslint-disable prefer-destructuring, one-var, one-var-declaration-per-line, max-len, no-mixed-operators */
-
-class Quat {
-    constructor(x = 0, y = 0, z = 0, w = 1) {
-        this.x = x;
-        this.y = y;
-        this.z = z;
-        this.w = w;
-    }
-
-    getAsArray() {
-        return [this.x, this.y, this.z, this.w];
-    }
-
-    getAsFloat32Array() {
-        return Float32Array.from(this.getAsArray());
-    }
-
-    setFromArray(quat) {
-        this.x = quat[0];
-        this.y = quat[1];
-        this.z = quat[2];
-        this.w = quat[3];
-        return this;
-    }
-
-    clone() {
-        return new Quat(this.x, this.y, this.z, this.w);
-    }
-
-    setFromEuler(x = 0, y = 0, z = 0) {
-        const halfToRad = 0.5 * Math.PI / 180.0;
-        x *= halfToRad;
-        y *= halfToRad;
-        z *= halfToRad;
-
-        const sx = Math.sin(x);
-        const cx = Math.cos(x);
-        const sy = Math.sin(y);
-        const cy = Math.cos(y);
-        const sz = Math.sin(z);
-        const cz = Math.cos(z);
-
-        this.x = sx * cy * cz - cx * sy * sz;
-        this.y = cx * sy * cz + sx * cy * sz;
-        this.z = cx * cy * sz - sx * sy * cz;
-        this.w = cx * cy * cz + sx * sy * sz;
-
-        return this;
-    }
-
-    multiply(quat) {
-        const ax = this.x, ay = this.y, az = this.z, aw = this.w;
-        const bx = quat.x, by = quat.y, bz = quat.z, bw = quat.w;
-
-        this.x = ax * bw + aw * bx + ay * bz - az * by;
-        this.y = ay * bw + aw * by + az * bx - ax * bz;
-        this.z = az * bw + aw * bz + ax * by - ay * bx;
-        this.w = aw * bw - ax * bx - ay * by - az * bz;
-
-        return this;
-    }
-
-    static fromEuler(x = 0, y = 0, z = 0) {
-        return new Quat().setFromEuler(x, y, z);
-    }
-}
-
-class Transform3D extends Node {
-    constructor({ position, quaternion, scaling } = {}) {
-        super();
-        this.position = position || new Vec3();
-        this.quaternion = quaternion || new Quat();
-        this.scaling = scaling || new Vec3(1, 1, 1);
-        this.modelMatrix = new Mat4();
-        this.transformDirty = false;
-    }
-
-    translate(x, y, z) {
-        this.position.add(x, y, z);
-        this.transformDirty = true;
-    }
-
-    scale(x, y, z) {
-        this.scaling.multiply(x, y, z);
-        this.transformDirty = true;
-    }
-
-    rotate(x, y, z) {
-        const quat = Quat.fromEuler(x, y, z);
-        this.quaternion.multiply(quat);
-        this.transformDirty = true;
-    }
-
-    computeModelMatrix(combinedTransformationMatrix) {
-        const pos = this.position;
-        const scl = this.scaling;
-        const rot = this.quaternion;
-
-        if (combinedTransformationMatrix) {
-            const transformationMatrix = Mat4.fromQuaternionTranslationScale(rot, pos, scl);
-            this.modelMatrix = combinedTransformationMatrix.clone().multiply(transformationMatrix);
-        } else if (this.transformDirty) {
-            this.modelMatrix.setFromQuaternionTranslationScale(rot, pos, scl);
+        if (i === 8 || i === 12 || i === 16 || i === 20) {
+            uuid += '-';
         }
 
-        for (let i = 0; i < this.children.length; i++) {
-            this.children[i].computeModelMatrix(this.modelMatrix);
-        }
+        uuid += (i === 12 ? 4 : (i === 16 ? (random & 3 | 8) : random)).toString(16);
+    }
 
-        this.transformDirty = false;
+    return uuid;
+};
+
+class Component {
+    constructor(entityId) {
+        this.id = uuid();
+        this.entityId = entityId || null;
+    }
+
+    getEntityId() {
+        return this.entityId;
+    }
+
+    setEntityId(newEntityId) {
+        this.entityId = newEntityId;
     }
 }
 
 // Abstract Class
 
-class Camera extends Transform3D {
+class Camera extends Component {
     constructor() {
         super();
         this.upVector = new Vec3(0, 1, 0);
@@ -562,13 +429,13 @@ class Camera extends Transform3D {
         this.projectionMatrix = new Mat4();
     }
 
-    lookAt(x, y, z) {
-        this.viewMatrix.lookAt(this.position, new Vec3(x, y, z), this.upVector);
+    lookAt(position, center) {
+        this.viewMatrix.lookAt(position, center, this.upVector);
     }
 }
 
 class OrthographicCamera extends Camera {
-    constructor({ left, right, bottom, top, near, far } = {}) {
+    constructor(left, right, bottom, top, near, far) {
         super();
         this.left = left;
         this.right = right;
@@ -576,10 +443,10 @@ class OrthographicCamera extends Camera {
         this.top = top;
         this.near = near;
         this.far = far;
-        this.updateProjectionMatrix({ left, right, bottom, top, near, far } = {});
+        this.updateProjectionMatrix(left, right, bottom, top, near, far);
     }
 
-    updateProjectionMatrix({ left, right, bottom, top, near, far } = {}) {
+    updateProjectionMatrix(left, right, bottom, top, near, far) {
         this.left = left;
         this.right = right;
         this.bottom = bottom;
@@ -591,16 +458,16 @@ class OrthographicCamera extends Camera {
 }
 
 class PerspectiveCamera extends Camera {
-    constructor({ fov, aspect, near, far } = {}) {
+    constructor(fov, aspect, near, far) {
         super();
         this.fov = fov;
         this.aspect = aspect;
         this.near = near;
         this.far = far;
-        this.updateProjectionMatrix({ fov, aspect, near, far });
+        this.updateProjectionMatrix(fov, aspect, near, far);
     }
 
-    updateProjectionMatrix({ fov, aspect, near, far } = {}) {
+    updateProjectionMatrix(fov, aspect, near, far) {
         this.fov = fov;
         this.aspect = aspect;
         this.near = near;
@@ -609,8 +476,15 @@ class PerspectiveCamera extends Camera {
     }
 }
 
-class Geometry {
-    constructor({ vertices, normals, uvs, vertexColors } = {}) {
+class Entity {
+    constructor() {
+        this.id = uuid();
+    }
+}
+
+class Geometry extends Component {
+    constructor(vertices, normals, uvs, vertexColors) {
+        super();
         this.vertices = vertices || [];
         this.normals = normals || [];
         this.uvs = uvs || [];
@@ -726,8 +600,114 @@ class Geometry {
     }
 }
 
-class Material {
-    constructor({ indices } = {}) {
+/* eslint-disable prefer-destructuring, one-var, one-var-declaration-per-line, max-len, no-mixed-operators */
+
+class Quat {
+    constructor(x = 0, y = 0, z = 0, w = 1) {
+        this.x = x;
+        this.y = y;
+        this.z = z;
+        this.w = w;
+    }
+
+    getAsArray() {
+        return [this.x, this.y, this.z, this.w];
+    }
+
+    getAsFloat32Array() {
+        return Float32Array.from(this.getAsArray());
+    }
+
+    setFromArray(quat) {
+        this.x = quat[0];
+        this.y = quat[1];
+        this.z = quat[2];
+        this.w = quat[3];
+        return this;
+    }
+
+    clone() {
+        return new Quat(this.x, this.y, this.z, this.w);
+    }
+
+    setFromEuler(x = 0, y = 0, z = 0) {
+        const halfToRad = 0.5 * Math.PI / 180.0;
+        x *= halfToRad;
+        y *= halfToRad;
+        z *= halfToRad;
+
+        const sx = Math.sin(x);
+        const cx = Math.cos(x);
+        const sy = Math.sin(y);
+        const cy = Math.cos(y);
+        const sz = Math.sin(z);
+        const cz = Math.cos(z);
+
+        this.x = sx * cy * cz - cx * sy * sz;
+        this.y = cx * sy * cz + sx * cy * sz;
+        this.z = cx * cy * sz - sx * sy * cz;
+        this.w = cx * cy * cz + sx * sy * sz;
+
+        return this;
+    }
+
+    multiply(quat) {
+        const ax = this.x, ay = this.y, az = this.z, aw = this.w;
+        const bx = quat.x, by = quat.y, bz = quat.z, bw = quat.w;
+
+        this.x = ax * bw + aw * bx + ay * bz - az * by;
+        this.y = ay * bw + aw * by + az * bx - ax * bz;
+        this.z = az * bw + aw * bz + ax * by - ay * bx;
+        this.w = aw * bw - ax * bx - ay * by - az * bz;
+
+        return this;
+    }
+
+    static fromEuler(x = 0, y = 0, z = 0) {
+        return new Quat().setFromEuler(x, y, z);
+    }
+}
+
+class Transform3D extends Component {
+    constructor(position, quaternion, scaling) {
+        super();
+        this.position = position || new Vec3();
+        this.quaternion = quaternion || new Quat();
+        this.scaling = scaling || new Vec3(1, 1, 1);
+        this.modelMatrix = new Mat4();
+        this.transformDirty = position || quaternion || scaling;
+    }
+
+    translate(x, y, z) {
+        this.position.add(x, y, z);
+        this.transformDirty = true;
+    }
+
+    scale(x, y, z) {
+        this.scaling.multiply(x, y, z);
+        this.transformDirty = true;
+    }
+
+    rotate(x, y, z) {
+        const quat = Quat.fromEuler(x, y, z);
+        this.quaternion.multiply(quat);
+        this.transformDirty = true;
+    }
+
+    computeModelMatrix() {
+        if (this.transformDirty) {
+            this.modelMatrix.setFromQuaternionTranslationScale(this.quaternion, this.position, this.scaling);
+        }
+
+        this.transformDirty = false;
+    }
+}
+
+// Abstract Class
+
+class Material extends Component {
+    constructor(indices) {
+        super();
         this.indices = indices || [];
     }
 
@@ -746,8 +726,8 @@ class Material {
 }
 
 class StandardMaterial extends Material {
-    constructor({ indices, ambientIntensity, diffuseColor, specularColor, specularExponent, specularShininess } = {}) {
-        super({ indices });
+    constructor(indices, diffuseColor, specularColor, ambientIntensity, specularExponent, specularShininess) {
+        super(indices);
         this.ambientIntensity = ambientIntensity || 0.1;
         this.diffuseColor = diffuseColor || new Vec3(1, 0, 0);
         this.specularColor = specularColor || new Vec3(1, 1, 1);
@@ -827,8 +807,42 @@ class Mesh extends Transform3D {
     }
 }
 
-class DirectionalLight extends Transform3D {
-    constructor({ direction, ambientColor, diffuseColor, specularColor } = {}) {
+class Node {
+    constructor({ id } = {}) {
+        this.id = id || uuid();
+        this.parent = null;
+        this.children = [];
+    }
+
+    getParent() {
+        return this.parent;
+    }
+
+    setParent(parent) {
+        this.parent = parent;
+        return this;
+    }
+
+    addChild(child) {
+        child.setParent(this);
+        this.children.push(child);
+    }
+
+    addChildren(children) {
+        for (let i = 0; i < children.length; i++) {
+            children[i].setParent(this);
+        }
+
+        this.children.push(...children);
+    }
+
+    getChildren() {
+        return this.children;
+    }
+}
+
+class DirectionalLight extends Component {
+    constructor(direction, ambientColor, diffuseColor, specularColor) {
         super();
         this.direction = direction || new Vec3(0, 0, 0);
         this.ambientColor = ambientColor || new Vec3(1, 1, 1);
@@ -915,6 +929,49 @@ class Scene extends Transform3D {
     }
 }
 
+class World {
+    constructor() {
+        this.entities = [];
+        this.components = [];
+        this.systems = [];
+        this.subscribers = [];
+    }
+
+    on(event, fn) {
+        this.subscribers.push({ event, fn });
+    }
+
+    emit(event, ...args) {
+        for (let i = 0; i < this.subscribers.length; i++) {
+            const subscriber = this.subscribers[i];
+            if (subscriber.event === event) subscriber.fn(...args);
+        }
+    }
+
+    createEntity(components) {
+        const entity = new Entity();
+        this.entities.push(entity);
+
+        for (let i = 0; i < components.length; i++) {
+            const component = components[i];
+
+            if (component instanceof Component) {
+                component.setEntityId(entity.id);
+                this.components.push(component);
+            } else {
+                // eslint-disable-next-line no-console
+                console.error('createEntity constructor only accepts instances of class: "Component"', { component, entity });
+            }
+        }
+
+        return entity;
+    }
+
+    addSystem(system) {
+        this.systems.push(system);
+    }
+}
+
 /* eslint-disable prefer-destructuring, one-var, one-var-declaration-per-line */
 
 class Mat3 {
@@ -946,6 +1003,7 @@ class Mat3 {
 
     // Uniform Buffers needs mat3 as mat4
     // for whatever fucking reason
+    // it took 3 days to figure this out
     getAsMat4Array() {
         return [
             this.m00,
@@ -1145,28 +1203,6 @@ class Vec4 {
         this.z *= z;
         this.w *= w;
         return this;
-    }
-}
-
-class Viewport {
-    constructor(gl, x = 0, y = 0, width = 0, height = 0) {
-        if (!gl) throw new Error('missing argument: "gl" in Viewport constructor');
-        this.gl = gl;
-        this.resize(x, y, width, height);
-        this.setClearColor();
-    }
-
-    resize(x, y, width, height) {
-        this.x = x;
-        this.y = y;
-        this.width = width;
-        this.height = height;
-        this.gl.viewport(this.x, this.y, this.width, this.height);
-    }
-
-    setClearColor(r = 0, g = 0, b = 0, a = 1) {
-        this.clearColor = { r, g, b, a };
-        this.gl.clearColor(r, g, b, a);
     }
 }
 
@@ -1595,7 +1631,341 @@ class WebGl2Renderer {
     }
 }
 
+/* eslint-disable no-console, no-bitwise */
+
+const arrayBufferLookupTable$1 = {
+    vertex: (geometry, shaderLoc) => ({
+        location: shaderLoc.vertex,
+        bufferData: geometry.getVerticesAsFloat32Array(),
+        bufferSize: geometry.getVertexVectorSize(),
+    }),
+    normal: (geometry, shaderLoc) => ({
+        location: shaderLoc.normal,
+        bufferData: geometry.getNormalsAsFloat32Array(),
+        bufferSize: geometry.getNormalVectorSize(),
+    }),
+    uv: (geometry, shaderLoc) => ({
+        location: shaderLoc.uv,
+        bufferData: geometry.getUvsAsFloat32Array(),
+        bufferSize: geometry.getUvVectorSize(),
+    }),
+    vertexColor: (geometry, shaderLoc) => ({
+        location: shaderLoc.vertexColor,
+        bufferData: geometry.getVertexColorsAsFloat32Array(),
+        bufferSize: geometry.getVertexColorVectorSize(),
+    }),
+};
+
+const getViewNameForUniformName$1 = (uniformName) => {
+    if (uniformName.includes('[')) return uniformName;
+    if (uniformName.includes('.')) return uniformName.split('.')[1];
+    return uniformName;
+};
+
+class TestRenderer {
+    constructor(domNode) {
+        this.domNode = domNode;
+        this.canvas = document.createElement('canvas');
+        this.domNode.appendChild(this.canvas);
+        this.canvas.style.position = 'relative';
+        this.canvas.style.top = '0px';
+        this.canvas.style.left = '0px';
+        this.canvas.style.width = '100%';
+        this.canvas.style.height = '100%';
+        this.canvas.width = this.domNode.clientWidth;
+        this.canvas.height = this.domNode.clientHeight;
+        this.gl = this.canvas.getContext('webgl2');
+
+        this.gl.enable(this.gl.DEPTH_TEST);
+        this.gl.depthFunc(this.gl.LEQUAL);
+
+        this.shaderLayoutLocations = {
+            vertex: 0,
+            normal: 1,
+            uv: 2,
+            vertexColor: 3,
+        };
+
+        this.sceneCache = {};
+        this.meshCache = {};
+    }
+
+    createShader(type, source) {
+        const { gl } = this;
+        const shader = gl.createShader(type);
+        gl.shaderSource(shader, source);
+        gl.compileShader(shader);
+        const success = gl.getShaderParameter(shader, gl.COMPILE_STATUS);
+        if (success) return shader;
+        console.error(gl.getShaderInfoLog(shader));
+        gl.deleteShader(shader);
+        return undefined;
+    }
+
+    createProgram(vertexShader, fragmentShader) {
+        const { gl } = this;
+        const program = gl.createProgram();
+        gl.attachShader(program, vertexShader);
+        gl.attachShader(program, fragmentShader);
+        gl.linkProgram(program);
+        const success = gl.getProgramParameter(program, gl.LINK_STATUS);
+        if (success) return program;
+        console.error(gl.getProgramInfoLog(program));
+        gl.deleteProgram(program);
+        return undefined;
+    }
+
+    createTexture(image) {
+        const { gl } = this;
+        const texture = gl.createTexture();
+        gl.bindTexture(gl.TEXTURE_2D, texture);
+
+        const level = 0;
+        const internalFormat = gl.RGBA;
+        const srcFormat = gl.RGBA;
+        const srcType = gl.UNSIGNED_BYTE;
+
+        gl.texImage2D(gl.TEXTURE_2D, level, internalFormat, srcFormat, srcType, image);
+        gl.generateMipmap(gl.TEXTURE_2D);
+
+        return texture;
+    }
+
+    createArrayBuffer(type, geometry) {
+        const { gl } = this;
+        const { location, bufferData, bufferSize } = arrayBufferLookupTable$1[type](geometry, this.shaderLayoutLocations);
+        const buffer = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+        gl.bufferData(gl.ARRAY_BUFFER, bufferData, gl.STATIC_DRAW);
+        gl.enableVertexAttribArray(location);
+        gl.vertexAttribPointer(location, bufferSize, gl.FLOAT, false, 0, 0);
+    }
+
+    createVertexArray(geometry) {
+        const { gl } = this;
+        const vao = gl.createVertexArray();
+        gl.bindVertexArray(vao);
+
+        const hasPositions = geometry.getVertices().length > 0;
+        if (hasPositions) this.createArrayBuffer('vertex', geometry);
+
+        const hasNormals = geometry.getNormals().length > 0;
+        if (hasNormals) this.createArrayBuffer('normal', geometry);
+
+        const hasUvs = geometry.getUvs().length > 0;
+        if (hasUvs) this.createArrayBuffer('uv', geometry);
+
+        const hasColors = geometry.getVertexColors().length > 0;
+        if (hasColors) this.createArrayBuffer('vertexColor', geometry);
+
+        return vao;
+    }
+
+    createElementArrayBuffer(material) {
+        const { gl } = this;
+        const buffer = this.gl.createBuffer();
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, buffer);
+        gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, material.getIndicesAsUint32Array(), gl.STATIC_DRAW);
+        return buffer;
+    }
+
+    createUBO(shader, blockBinding, uniformBlockName, uniformNames, uniformValues) {
+        const { gl } = this;
+
+        const blockIndex = gl.getUniformBlockIndex(shader, uniformBlockName);
+        const blockSize = gl.getActiveUniformBlockParameter(shader, blockIndex, gl.UNIFORM_BLOCK_DATA_SIZE);
+        const arrayBuffer = new ArrayBuffer(blockSize);
+
+        const uniformIndices = gl.getUniformIndices(shader, uniformNames);
+        const uniformOffsets = gl.getActiveUniforms(shader, uniformIndices, gl.UNIFORM_OFFSET);
+
+        // TODO: add support for different data types
+        const views = uniformNames
+            .map(getViewNameForUniformName$1)
+            .reduce((accum, name, idx) => {
+                accum[name] = name === 'numDirectionalLights' ? new Int32Array(arrayBuffer, uniformOffsets[idx]) : new Float32Array(arrayBuffer, uniformOffsets[idx]);
+                accum[name].set(uniformValues[idx]);
+                return accum;
+            }, {});
+
+        // console.log({ uniformNames, arrayBuffer, uniformIndices, uniformOffsets, views });
+
+        const webglBuffer = gl.createBuffer();
+        gl.bindBuffer(gl.UNIFORM_BUFFER, webglBuffer);
+        gl.bufferData(gl.UNIFORM_BUFFER, arrayBuffer, gl.DYNAMIC_DRAW);
+        gl.uniformBlockBinding(shader, blockIndex, blockBinding);
+        gl.bindBufferBase(gl.UNIFORM_BUFFER, blockBinding, webglBuffer);
+
+        return {
+            webglBuffer,
+            arrayBuffer,
+            blockBinding,
+            views,
+        };
+    }
+
+    resize() {
+        const { gl, canvas, domNode } = this;
+        const w = domNode.clientWidth;
+        const h = domNode.clientHeight;
+        canvas.width = w;
+        canvas.height = h;
+        gl.viewport(0, 0, canvas.width, canvas.height);
+    }
+
+    cacheMesh(mesh, { activeCamera, directionalLights }) {
+        const { gl, shaderLayoutLocations } = this;
+
+        const { vertexShaderSourceCode, fragmentShaderSourceCode } = ShaderBuilder.buildShaderForStandardMaterial(shaderLayoutLocations);
+        const vertexShader = this.createShader(gl.VERTEX_SHADER, vertexShaderSourceCode);
+        const fragmentShader = this.createShader(gl.FRAGMENT_SHADER, fragmentShaderSourceCode);
+        const shader = this.createProgram(vertexShader, fragmentShader);
+
+        activeCamera.camera.lookAt(activeCamera.transform.position, new Vec3(0, 0, 0));
+        const mv = activeCamera.camera.viewMatrix.clone().multiply(mesh.transform.modelMatrix);
+        const mvp = activeCamera.camera.projectionMatrix.clone().multiply(mv);
+        const normalMatrix = Mat3.normalMatrixFromMat4(mv);
+
+        const MatricesUniformUBO = this.createUBO(shader, 3, 'MatricesUniform', [
+            'matrices.modelMatrix',
+            'matrices.mvp',
+            'matrices.normalMatrix',
+        ],
+        [
+            mesh.transform.modelMatrix.getAsArray(),
+            mvp.getAsArray(),
+            normalMatrix.getAsMat4Array(),
+        ]);
+
+        // ===============================
+
+        const MaterialUniformUBO = this.createUBO(shader, 2, 'MaterialUniform', [
+            'material.diffuseColor',
+            'material.specularColor',
+            'material.ambientIntensity',
+            'material.specularExponent',
+            'material.specularShininess',
+        ],
+        [
+            mesh.material.diffuseColor.getAsArray(),
+            mesh.material.specularColor.getAsArray(),
+            [mesh.material.ambientIntensity],
+            [mesh.material.specularExponent],
+            [mesh.material.specularShininess],
+        ]);
+
+        // ==================================
+
+        const dirLightNames = directionalLights.flatMap((_, idx) => [
+            `directionalLights[${idx}].direction`,
+            `directionalLights[${idx}].ambientColor`,
+            `directionalLights[${idx}].diffuseColor`,
+            `directionalLights[${idx}].specularColor`,
+        ]);
+
+        const dirLightValues = directionalLights.flatMap((dirLight) => [
+            dirLight.direction.getAsArray(),
+            dirLight.ambientColor.getAsArray(),
+            dirLight.diffuseColor.getAsArray(),
+            dirLight.specularColor.getAsArray(),
+        ]);
+
+        const SceneUniformUBO = this.createUBO(shader, 1, 'SceneUniform', [
+            ...dirLightNames,
+            'numDirectionalLights',
+            'cameraPosition',
+        ], [
+            ...dirLightValues,
+            [directionalLights.length],
+            activeCamera.transform.position.getAsArray(),
+        ]);
+
+        const cachedMesh = {
+            vao: this.createVertexArray(mesh.geometry),
+            indices: this.createElementArrayBuffer(mesh.material),
+            shader,
+            ubos: {
+                MatricesUniformUBO,
+                SceneUniformUBO,
+                MaterialUniformUBO,
+            },
+        };
+
+        this.meshCache[mesh.id] = cachedMesh;
+        return cachedMesh;
+    }
+
+    render(world) {
+        const { gl } = this;
+        gl.viewport(0, 0, this.canvas.width, this.canvas.height);
+        gl.clearColor(0, 0, 0, 1);
+        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+        const meshes = world.entities.map(entity => {
+            const transform = world.components.find(component => component instanceof Transform3D && component.entityId === entity.id);
+            const geometry = world.components.find(component => component instanceof Geometry && component.entityId === entity.id);
+            const material = world.components.find(component => component instanceof Material && component.entityId === entity.id);
+            return transform && geometry && material ? { transform, geometry, material } : undefined;
+        }).filter(Boolean);
+
+        const activeCamera = world.entities.map(entity => {
+            const transform = world.components.find(component => component instanceof Transform3D && component.entityId === entity.id);
+            const camera = world.components.find(component => component instanceof Camera && component.entityId === entity.id);
+            return transform && camera ? { transform, camera } : undefined;
+        }).filter(Boolean)[0];
+
+        const directionalLights = world.entities.map(entity => {
+            const light = world.components.find(component => component instanceof DirectionalLight && component.entityId === entity.id);
+            return light;
+        }).filter(Boolean);
+
+        for (let i = 0; i < meshes.length; i++) {
+            const currentMesh = meshes[i];
+            const cachedMesh = this.meshCache[currentMesh.id] || this.cacheMesh(currentMesh, { activeCamera, directionalLights });
+
+            gl.bindVertexArray(cachedMesh.vao);
+            gl.useProgram(cachedMesh.shader);
+
+            const { MatricesUniformUBO, MaterialUniformUBO, SceneUniformUBO } = cachedMesh.ubos;
+
+            const mv = activeCamera.camera.viewMatrix.clone().multiply(currentMesh.transform.modelMatrix);
+            const mvp = activeCamera.camera.projectionMatrix.clone().multiply(mv);
+            const normalMatrix = Mat3.normalMatrixFromMat4(mv);
+            MatricesUniformUBO.views.modelMatrix.set(currentMesh.transform.modelMatrix.getAsArray());
+            MatricesUniformUBO.views.mvp.set(mvp.getAsArray());
+            MatricesUniformUBO.views.normalMatrix.set(normalMatrix.getAsMat4Array());
+
+            gl.bindBuffer(gl.UNIFORM_BUFFER, MatricesUniformUBO.webglBuffer);
+            gl.bufferSubData(gl.UNIFORM_BUFFER, 0, MatricesUniformUBO.arrayBuffer);
+            gl.bindBufferBase(gl.UNIFORM_BUFFER, MatricesUniformUBO.blockBinding, MatricesUniformUBO.webglBuffer);
+
+            // =============================
+
+            MaterialUniformUBO.views.diffuseColor.set(currentMesh.material.diffuseColor.getAsArray());
+
+            gl.bindBuffer(gl.UNIFORM_BUFFER, MaterialUniformUBO.webglBuffer);
+            gl.bufferSubData(gl.UNIFORM_BUFFER, 0, MaterialUniformUBO.arrayBuffer);
+            gl.bindBufferBase(gl.UNIFORM_BUFFER, MaterialUniformUBO.blockBinding, MaterialUniformUBO.webglBuffer);
+
+            // =============================
+
+            SceneUniformUBO.views['directionalLights[0].direction'].set(directionalLights[0].direction.getAsArray());
+
+            gl.bindBuffer(gl.UNIFORM_BUFFER, SceneUniformUBO.webglBuffer);
+            gl.bufferSubData(gl.UNIFORM_BUFFER, 0, SceneUniformUBO.arrayBuffer);
+            gl.bindBufferBase(gl.UNIFORM_BUFFER, SceneUniformUBO.blockBinding, SceneUniformUBO.webglBuffer);
+
+            // =============================
+
+            gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, cachedMesh.indices);
+            gl.drawElements(gl.TRIANGLES, currentMesh.material.indices.length, gl.UNSIGNED_INT, 0);
+        }
+    }
+}
+
+exports.Component = Component;
 exports.DirectionalLight = DirectionalLight;
+exports.Entity = Entity;
 exports.Geometry = Geometry;
 exports.Mat3 = Mat3;
 exports.Mat4 = Mat4;
@@ -1606,9 +1976,10 @@ exports.PerspectiveCamera = PerspectiveCamera;
 exports.Quat = Quat;
 exports.Scene = Scene;
 exports.StandardMaterial = StandardMaterial;
+exports.TestRenderer = TestRenderer;
 exports.Transform3D = Transform3D;
 exports.Vec2 = Vec2;
 exports.Vec3 = Vec3;
 exports.Vec4 = Vec4;
-exports.Viewport = Viewport;
 exports.WebGL2Renderer = WebGl2Renderer;
+exports.World = World;
