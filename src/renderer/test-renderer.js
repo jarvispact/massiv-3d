@@ -46,6 +46,25 @@ const setCanvasStyle = (canvas) => {
     canvas.style.height = '100%';
 };
 
+const getRenderables = (components) => {
+    const material = components.filter(c => c instanceof AbstractMaterial);
+    return material.map(m => ({
+        material: m,
+        geometry: components.find(c => c instanceof Geometry && c.getEntityId() === m.getEntityId()),
+        transform: components.find(c => c instanceof Transform3D && c.getEntityId() === m.getEntityId()),
+    }));
+};
+
+const getActiveCamera = (components) => {
+    const camera = components.find(c => c instanceof AbstractCamera);
+    return {
+        camera,
+        transform: components.find(c => c instanceof Transform3D && c.getEntityId() === camera.getEntityId()),
+    };
+};
+
+const getDirectionalLights = (components) => components.filter(c => c instanceof DirectonalLight);
+
 class TestRenderer {
     constructor(domNode) {
         this.domNode = domNode;
@@ -66,8 +85,7 @@ class TestRenderer {
             vertexColor: 3,
         };
 
-        this.sceneCache = {};
-        this.meshCache = {};
+        this.renderableCache = {};
     }
 
     createShader(type, source) {
@@ -187,7 +205,7 @@ class TestRenderer {
         this.gl.viewport(0, 0, this.canvas.width, this.canvas.height);
     }
 
-    cacheMesh(mesh, { activeCamera, directionalLights }) {
+    cacheRenderable(mesh, { activeCamera, directionalLights }) {
         const shaderCode = ShaderBuilder.buildShaderForStandardMaterial(this.shaderLayoutLocations);
         const vertexShader = this.createShader(this.gl.VERTEX_SHADER, shaderCode.vertexShaderSourceCode);
         const fragmentShader = this.createShader(this.gl.FRAGMENT_SHADER, shaderCode.fragmentShaderSourceCode);
@@ -252,7 +270,7 @@ class TestRenderer {
             activeCamera.transform.position.getAsArray(),
         ]);
 
-        const cachedMesh = {
+        const cachedRenderable = {
             vao: this.createVertexArray(mesh.geometry),
             indices: this.createElementArrayBuffer(mesh.material),
             shader,
@@ -263,8 +281,8 @@ class TestRenderer {
             },
         };
 
-        this.meshCache[mesh.id] = cachedMesh;
-        return cachedMesh;
+        this.renderableCache[mesh.id] = cachedRenderable;
+        return cachedRenderable;
     }
 
     render(world) {
@@ -272,37 +290,23 @@ class TestRenderer {
         this.gl.clearColor(0, 0, 0, 1);
         this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT);
 
-        const meshes = world.entities.map(entity => {
-            const transform = world.components.find(component => component instanceof Transform3D && component.entityId === entity.id);
-            const geometry = world.components.find(component => component instanceof Geometry && component.entityId === entity.id);
-            const material = world.components.find(component => component instanceof AbstractMaterial && component.entityId === entity.id);
-            return transform && geometry && material ? { transform, geometry, material } : undefined;
-        }).filter(Boolean);
+        const renderables = getRenderables(world.components);
+        const activeCamera = getActiveCamera(world.components);
+        const directionalLights = getDirectionalLights(world.components);
 
-        const activeCamera = world.entities.map(entity => {
-            const transform = world.components.find(component => component instanceof Transform3D && component.entityId === entity.id);
-            const camera = world.components.find(component => component instanceof AbstractCamera && component.entityId === entity.id);
-            return transform && camera ? { transform, camera } : undefined;
-        }).filter(Boolean)[0];
-
-        const directionalLights = world.entities.map(entity => {
-            const light = world.components.find(component => component instanceof DirectonalLight && component.entityId === entity.id);
-            return light;
-        }).filter(Boolean);
-
-        for (let i = 0; i < meshes.length; i++) {
-            const currentMesh = meshes[i];
-            const cachedMesh = this.meshCache[currentMesh.id] || this.cacheMesh(currentMesh, { activeCamera, directionalLights });
+        for (let i = 0; i < renderables.length; i++) {
+            const renderable = renderables[i];
+            const cachedMesh = this.renderableCache[renderable.id] || this.cacheRenderable(renderable, { activeCamera, directionalLights });
 
             this.gl.bindVertexArray(cachedMesh.vao);
             this.gl.useProgram(cachedMesh.shader);
 
             const ubos = cachedMesh.ubos;
 
-            const mv = activeCamera.camera.viewMatrix.clone().multiply(currentMesh.transform.modelMatrix);
+            const mv = activeCamera.camera.viewMatrix.clone().multiply(renderable.transform.modelMatrix);
             const mvp = activeCamera.camera.projectionMatrix.clone().multiply(mv);
             const normalMatrix = Mat3.normalMatrixFromMat4(mv);
-            ubos.MatricesUniformUBO.views.modelMatrix.set(currentMesh.transform.modelMatrix.getAsArray());
+            ubos.MatricesUniformUBO.views.modelMatrix.set(renderable.transform.modelMatrix.getAsArray());
             ubos.MatricesUniformUBO.views.mvp.set(mvp.getAsArray());
             ubos.MatricesUniformUBO.views.normalMatrix.set(normalMatrix.getAsMat4Array());
 
@@ -312,7 +316,7 @@ class TestRenderer {
 
             // =============================
 
-            ubos.MaterialUniformUBO.views.diffuseColor.set(currentMesh.material.diffuseColor.getAsArray());
+            ubos.MaterialUniformUBO.views.diffuseColor.set(renderable.material.diffuseColor.getAsArray());
 
             this.gl.bindBuffer(this.gl.UNIFORM_BUFFER, ubos.MaterialUniformUBO.webglBuffer);
             this.gl.bufferSubData(this.gl.UNIFORM_BUFFER, 0, ubos.MaterialUniformUBO.arrayBuffer);
@@ -329,7 +333,7 @@ class TestRenderer {
             // =============================
 
             this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, cachedMesh.indices);
-            this.gl.drawElements(this.gl.TRIANGLES, currentMesh.material.indices.length, this.gl.UNSIGNED_INT, 0);
+            this.gl.drawElements(this.gl.TRIANGLES, renderable.material.indices.length, this.gl.UNSIGNED_INT, 0);
         }
     }
 }
