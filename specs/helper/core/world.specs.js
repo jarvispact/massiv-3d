@@ -1,6 +1,6 @@
 import { expect } from 'chai';
 import World from '../../../src/core/world';
-import Transform3D from '../../../src/core/transform-3d';
+import Transform3D from '../../../src/components/transform-3d';
 import benchmark from '../benchmark';
 
 describe('world.js benchmarks', () => {
