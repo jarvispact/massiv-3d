@@ -1,7 +1,7 @@
-import Material from './material';
+import AbstractMaterial from './abstract-material';
 import Vec3 from '../math/vec3';
 
-class StandardMaterial extends Material {
+class StandardMaterial extends AbstractMaterial {
     constructor(indices, diffuseColor, specularColor, ambientIntensity, specularExponent, specularShininess) {
         super(indices);
         this.ambientIntensity = ambientIntensity || 0.1;

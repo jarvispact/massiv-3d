@@ -1,5 +1,5 @@
 import Entity from './entity';
-import Component from './component';
+import Component from '../components/component';
 
 class World {
     constructor() {

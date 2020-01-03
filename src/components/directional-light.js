@@ -1,4 +1,4 @@
-import Component from '../core/component';
+import Component from './component';
 import Vec3 from '../math/vec3';
 
 class DirectionalLight extends Component {

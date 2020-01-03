@@ -2,11 +2,11 @@
 
 import Mat3 from '../math/mat3';
 import ShaderBuilder from './shader-builder';
-import Geometry from '../core/geometry';
-import Material from '../material/material';
-import Transform3D from '../core/transform-3d';
-import Camera from '../camera/camera';
-import DirectonalLight from '../light/directional-light';
+import Geometry from '../components/geometry';
+import AbstractMaterial from '../components/abstract-material';
+import Transform3D from '../components/transform-3d';
+import AbstractCamera from '../components/abstract-camera';
+import DirectonalLight from '../components/directional-light';
 import Vec3 from '../math/vec3';
 
 const arrayBufferLookupTable = {
@@ -280,13 +280,13 @@ class TestRenderer {
         const meshes = world.entities.map(entity => {
             const transform = world.components.find(component => component instanceof Transform3D && component.entityId === entity.id);
             const geometry = world.components.find(component => component instanceof Geometry && component.entityId === entity.id);
-            const material = world.components.find(component => component instanceof Material && component.entityId === entity.id);
+            const material = world.components.find(component => component instanceof AbstractMaterial && component.entityId === entity.id);
             return transform && geometry && material ? { transform, geometry, material } : undefined;
         }).filter(Boolean);
 
         const activeCamera = world.entities.map(entity => {
             const transform = world.components.find(component => component instanceof Transform3D && component.entityId === entity.id);
-            const camera = world.components.find(component => component instanceof Camera && component.entityId === entity.id);
+            const camera = world.components.find(component => component instanceof AbstractCamera && component.entityId === entity.id);
             return transform && camera ? { transform, camera } : undefined;
         }).filter(Boolean)[0];
 

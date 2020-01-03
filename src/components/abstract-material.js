@@ -1,8 +1,6 @@
-import Component from '../core/component';
+import Component from './component';
 
-// Abstract Class
-
-class Material extends Component {
+class AbstractMaterial extends Component {
     constructor(indices) {
         super();
         this.indices = indices || [];
@@ -22,4 +20,4 @@ class Material extends Component {
     }
 }
 
-export default Material;
+export default AbstractMaterial;

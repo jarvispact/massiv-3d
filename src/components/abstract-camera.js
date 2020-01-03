@@ -1,10 +1,8 @@
 import Vec3 from '../math/vec3';
 import Mat4 from '../math/mat4';
-import Component from '../core/component';
+import Component from './component';
 
-// Abstract Class
-
-class Camera extends Component {
+class AbstractCamera extends Component {
     constructor() {
         super();
         this.upVector = new Vec3(0, 1, 0);
@@ -17,4 +15,4 @@ class Camera extends Component {
     }
 }
 
-export default Camera;
+export default AbstractCamera;

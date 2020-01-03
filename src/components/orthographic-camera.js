@@ -1,6 +1,6 @@
-import Camera from './camera';
+import AbstractCamera from './abstract-camera';
 
-class OrthographicCamera extends Camera {
+class OrthographicCamera extends AbstractCamera {
     constructor(left, right, bottom, top, near, far) {
         super();
         this.left = left;

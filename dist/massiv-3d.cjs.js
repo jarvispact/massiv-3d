@@ -2,6 +2,42 @@
 
 Object.defineProperty(exports, '__esModule', { value: true });
 
+/* eslint-disable no-bitwise, no-nested-ternary, no-mixed-operators */
+
+// https://gist.github.com/jcxplorer/823878
+
+var uuid = () => {
+    let uuid = '';
+    let i = 0;
+
+    for (i; i < 32; i++) {
+        const random = Math.random() * 16 | 0;
+
+        if (i === 8 || i === 12 || i === 16 || i === 20) {
+            uuid += '-';
+        }
+
+        uuid += (i === 12 ? 4 : (i === 16 ? (random & 3 | 8) : random)).toString(16);
+    }
+
+    return uuid;
+};
+
+class Component {
+    constructor(entityId) {
+        this.id = uuid();
+        this.entityId = entityId || null;
+    }
+
+    getEntityId() {
+        return this.entityId;
+    }
+
+    setEntityId(newEntityId) {
+        this.entityId = newEntityId;
+    }
+}
+
 /* eslint-disable prefer-destructuring */
 
 class Vec3 {
@@ -57,6 +93,170 @@ class Vec3 {
         this.z = (mat4.m02 * x + mat4.m06 * y + mat4.m10 * z + mat4.m14) / w;
 
         return this;
+    }
+}
+
+class DirectionalLight extends Component {
+    constructor(direction, ambientColor, diffuseColor, specularColor) {
+        super();
+        this.direction = direction || new Vec3(0, 0, 0);
+        this.ambientColor = ambientColor || new Vec3(1, 1, 1);
+        this.diffuseColor = diffuseColor || new Vec3(1, 1, 1);
+        this.specularColor = specularColor || new Vec3(1, 1, 1);
+    }
+
+    getDirection() {
+        return this.direction;
+    }
+
+    setDirection(x, y, z) {
+        this.direction = new Vec3(x, y, z);
+        return this;
+    }
+
+    getAmbientColor() {
+        return this.ambientColor;
+    }
+
+    setAmbientColor(r, g, b) {
+        this.ambientColor = new Vec3(r, g, b);
+        return this;
+    }
+
+    getDiffuseColor() {
+        return this.diffuseColor;
+    }
+
+    setDiffuseColor(r, g, b) {
+        this.diffuseColor = new Vec3(r, g, b);
+        return this;
+    }
+
+    getSpecularColor() {
+        return this.specularColor;
+    }
+
+    setSpecularColor(r, g, b) {
+        this.specularColor = new Vec3(r, g, b);
+        return this;
+    }
+}
+
+class Geometry extends Component {
+    constructor(vertices, normals, uvs, vertexColors) {
+        super();
+        this.vertices = vertices || [];
+        this.normals = normals || [];
+        this.uvs = uvs || [];
+        this.vertexColors = vertexColors || [];
+
+        this.vertexVectorSize = 3;
+        this.normalVectorSize = 3;
+        this.uvVectorSize = 2;
+        this.vertexColorVectorSize = 4;
+    }
+
+    getVertices() {
+        return this.vertices;
+    }
+
+    getVerticesAsFloat32Array() {
+        return Float32Array.from(this.vertices);
+    }
+
+    setVertices(vertices) {
+        this.vertices = vertices;
+        return this;
+    }
+
+    getNormals() {
+        return this.normals;
+    }
+
+    getNormalsAsFloat32Array() {
+        return Float32Array.from(this.normals);
+    }
+
+    setNormals(normals) {
+        this.normals = normals;
+        return this;
+    }
+
+    getUvs() {
+        return this.uvs;
+    }
+
+    getUvsAsFloat32Array() {
+        return Float32Array.from(this.uvs);
+    }
+
+    setUvs(uvs) {
+        this.uvs = uvs;
+        return this;
+    }
+
+    getVertexColors() {
+        return this.vertexColors;
+    }
+
+    getVertexColorsAsFloat32Array() {
+        return Float32Array.from(this.vertexColors);
+    }
+
+    setVertexColors(vertexColors) {
+        this.vertexColors = vertexColors;
+        return this;
+    }
+
+    getVertexVectorSize() {
+        return this.vertexVectorSize;
+    }
+
+    setVertexVectorSize(vertexVectorSize) {
+        this.vertexVectorSize = vertexVectorSize;
+        return this;
+    }
+
+    getNormalVectorSize() {
+        return this.normalVectorSize;
+    }
+
+    setNormalVectorSize(normalVectorSize) {
+        this.normalVectorSize = normalVectorSize;
+        return this;
+    }
+
+    getUvVectorSize() {
+        return this.uvVectorSize;
+    }
+
+    setUvVectorSize(uvVectorSize) {
+        this.uvVectorSize = uvVectorSize;
+        return this;
+    }
+
+    getVertexColorVectorSize() {
+        return this.vertexColorVectorSize;
+    }
+
+    setVertexColorVectorSize(vertexColorVectorSize) {
+        this.vertexColorVectorSize = vertexColorVectorSize;
+        return this;
+    }
+
+    clone() {
+        const clone = new Geometry();
+        clone.setVertices([...this.vertices]);
+        clone.setNormals([...this.normals]);
+        clone.setUvs([...this.uvs]);
+        clone.setVertexColors([...this.vertexColors]);
+
+        clone.vertexVectorSize = this.vertexVectorSize;
+        clone.normalVectorSize = this.normalVectorSize;
+        clone.uvVectorSize = this.uvVectorSize;
+        clone.vertexColorVectorSize = this.vertexColorVectorSize;
+
+        return clone;
     }
 }
 
@@ -383,45 +583,7 @@ class Mat4 {
     }
 }
 
-/* eslint-disable no-bitwise, no-nested-ternary, no-mixed-operators */
-
-// https://gist.github.com/jcxplorer/823878
-
-var uuid = () => {
-    let uuid = '';
-    let i = 0;
-
-    for (i; i < 32; i++) {
-        const random = Math.random() * 16 | 0;
-
-        if (i === 8 || i === 12 || i === 16 || i === 20) {
-            uuid += '-';
-        }
-
-        uuid += (i === 12 ? 4 : (i === 16 ? (random & 3 | 8) : random)).toString(16);
-    }
-
-    return uuid;
-};
-
-class Component {
-    constructor(entityId) {
-        this.id = uuid();
-        this.entityId = entityId || null;
-    }
-
-    getEntityId() {
-        return this.entityId;
-    }
-
-    setEntityId(newEntityId) {
-        this.entityId = newEntityId;
-    }
-}
-
-// Abstract Class
-
-class Camera extends Component {
+class AbstractCamera extends Component {
     constructor() {
         super();
         this.upVector = new Vec3(0, 1, 0);
@@ -434,7 +596,7 @@ class Camera extends Component {
     }
 }
 
-class OrthographicCamera extends Camera {
+class OrthographicCamera extends AbstractCamera {
     constructor(left, right, bottom, top, near, far) {
         super();
         this.left = left;
@@ -457,7 +619,7 @@ class OrthographicCamera extends Camera {
     }
 }
 
-class PerspectiveCamera extends Camera {
+class PerspectiveCamera extends AbstractCamera {
     constructor(fov, aspect, near, far) {
         super();
         this.fov = fov;
@@ -476,126 +638,89 @@ class PerspectiveCamera extends Camera {
     }
 }
 
-class Entity {
-    constructor() {
-        this.id = uuid();
+class AbstractMaterial extends Component {
+    constructor(indices) {
+        super();
+        this.indices = indices || [];
+    }
+
+    getIndices() {
+        return this.indices;
+    }
+
+    getIndicesAsUint32Array() {
+        return new Uint32Array(this.indices);
+    }
+
+    setIndices(indices) {
+        this.indices = indices;
+        return this;
     }
 }
 
-class Geometry extends Component {
-    constructor(vertices, normals, uvs, vertexColors) {
-        super();
-        this.vertices = vertices || [];
-        this.normals = normals || [];
-        this.uvs = uvs || [];
-        this.vertexColors = vertexColors || [];
-
-        this.vertexVectorSize = 3;
-        this.normalVectorSize = 3;
-        this.uvVectorSize = 2;
-        this.vertexColorVectorSize = 4;
+class StandardMaterial extends AbstractMaterial {
+    constructor(indices, diffuseColor, specularColor, ambientIntensity, specularExponent, specularShininess) {
+        super(indices);
+        this.ambientIntensity = ambientIntensity || 0.1;
+        this.diffuseColor = diffuseColor || new Vec3(1, 0, 0);
+        this.specularColor = specularColor || new Vec3(1, 1, 1);
+        this.specularExponent = specularExponent || 0.5;
+        this.specularShininess = specularShininess || 256;
     }
 
-    getVertices() {
-        return this.vertices;
+    getAmbientIntensity() {
+        return this.ambientIntensity;
     }
 
-    getVerticesAsFloat32Array() {
-        return Float32Array.from(this.vertices);
-    }
-
-    setVertices(vertices) {
-        this.vertices = vertices;
+    setAmbientIntensity(ambientIntensity) {
+        this.ambientIntensity = ambientIntensity;
         return this;
     }
 
-    getNormals() {
-        return this.normals;
+    getDiffuseColor() {
+        return this.diffuseColor;
     }
 
-    getNormalsAsFloat32Array() {
-        return Float32Array.from(this.normals);
-    }
-
-    setNormals(normals) {
-        this.normals = normals;
+    setDiffuseColor(r, g, b) {
+        this.diffuseColor = new Vec3(r, g, b);
         return this;
     }
 
-    getUvs() {
-        return this.uvs;
+    getSpecularColor() {
+        return this.specularColor;
     }
 
-    getUvsAsFloat32Array() {
-        return Float32Array.from(this.uvs);
-    }
-
-    setUvs(uvs) {
-        this.uvs = uvs;
+    setSpecularColor(r, g, b) {
+        this.specularColor = new Vec3(r, g, b);
         return this;
     }
 
-    getVertexColors() {
-        return this.vertexColors;
+    getSpecularExponent() {
+        return this.specularExponent;
     }
 
-    getVertexColorsAsFloat32Array() {
-        return Float32Array.from(this.vertexColors);
-    }
-
-    setVertexColors(vertexColors) {
-        this.vertexColors = vertexColors;
+    setSpecularExponent(specularExponent) {
+        this.specularExponent = specularExponent;
         return this;
     }
 
-    getVertexVectorSize() {
-        return this.vertexVectorSize;
+    getSpecularShininess() {
+        return this.specularShininess;
     }
 
-    setVertexVectorSize(vertexVectorSize) {
-        this.vertexVectorSize = vertexVectorSize;
-        return this;
-    }
-
-    getNormalVectorSize() {
-        return this.normalVectorSize;
-    }
-
-    setNormalVectorSize(normalVectorSize) {
-        this.normalVectorSize = normalVectorSize;
-        return this;
-    }
-
-    getUvVectorSize() {
-        return this.uvVectorSize;
-    }
-
-    setUvVectorSize(uvVectorSize) {
-        this.uvVectorSize = uvVectorSize;
-        return this;
-    }
-
-    getVertexColorVectorSize() {
-        return this.vertexColorVectorSize;
-    }
-
-    setVertexColorVectorSize(vertexColorVectorSize) {
-        this.vertexColorVectorSize = vertexColorVectorSize;
+    setSpecularShininess(specularShininess) {
+        this.specularShininess = specularShininess;
         return this;
     }
 
     clone() {
-        const clone = new Geometry();
-        clone.setVertices([...this.vertices]);
-        clone.setNormals([...this.normals]);
-        clone.setUvs([...this.uvs]);
-        clone.setVertexColors([...this.vertexColors]);
-
-        clone.vertexVectorSize = this.vertexVectorSize;
-        clone.normalVectorSize = this.normalVectorSize;
-        clone.uvVectorSize = this.uvVectorSize;
-        clone.vertexColorVectorSize = this.vertexColorVectorSize;
-
+        const clone = new StandardMaterial();
+        clone.setIndices([...this.indices]);
+        clone.ambientIntensity = this.ambientIntensity;
+        clone.diffuseColor = this.diffuseColor.clone();
+        clone.specularColor = this.specularColor.clone();
+        clone.specularExponent = this.specularExponent;
+        clone.specularShininess = this.specularShininess;
         return clone;
     }
 }
@@ -703,229 +828,9 @@ class Transform3D extends Component {
     }
 }
 
-// Abstract Class
-
-class Material extends Component {
-    constructor(indices) {
-        super();
-        this.indices = indices || [];
-    }
-
-    getIndices() {
-        return this.indices;
-    }
-
-    getIndicesAsUint32Array() {
-        return new Uint32Array(this.indices);
-    }
-
-    setIndices(indices) {
-        this.indices = indices;
-        return this;
-    }
-}
-
-class StandardMaterial extends Material {
-    constructor(indices, diffuseColor, specularColor, ambientIntensity, specularExponent, specularShininess) {
-        super(indices);
-        this.ambientIntensity = ambientIntensity || 0.1;
-        this.diffuseColor = diffuseColor || new Vec3(1, 0, 0);
-        this.specularColor = specularColor || new Vec3(1, 1, 1);
-        this.specularExponent = specularExponent || 0.5;
-        this.specularShininess = specularShininess || 256;
-    }
-
-    getAmbientIntensity() {
-        return this.ambientIntensity;
-    }
-
-    setAmbientIntensity(ambientIntensity) {
-        this.ambientIntensity = ambientIntensity;
-        return this;
-    }
-
-    getDiffuseColor() {
-        return this.diffuseColor;
-    }
-
-    setDiffuseColor(r, g, b) {
-        this.diffuseColor = new Vec3(r, g, b);
-        return this;
-    }
-
-    getSpecularColor() {
-        return this.specularColor;
-    }
-
-    setSpecularColor(r, g, b) {
-        this.specularColor = new Vec3(r, g, b);
-        return this;
-    }
-
-    getSpecularExponent() {
-        return this.specularExponent;
-    }
-
-    setSpecularExponent(specularExponent) {
-        this.specularExponent = specularExponent;
-        return this;
-    }
-
-    getSpecularShininess() {
-        return this.specularShininess;
-    }
-
-    setSpecularShininess(specularShininess) {
-        this.specularShininess = specularShininess;
-        return this;
-    }
-
-    clone() {
-        const clone = new StandardMaterial();
-        clone.setIndices([...this.indices]);
-        clone.ambientIntensity = this.ambientIntensity;
-        clone.diffuseColor = this.diffuseColor.clone();
-        clone.specularColor = this.specularColor.clone();
-        clone.specularExponent = this.specularExponent;
-        clone.specularShininess = this.specularShininess;
-        return clone;
-    }
-}
-
-class Mesh extends Transform3D {
-    constructor({ geometry, material } = {}) {
-        super();
-        this.geometry = geometry || new Geometry();
-        this.material = material || new StandardMaterial();
-    }
-
-    clone() {
-        const clone = new Mesh();
-        clone.geometry = this.geometry.clone();
-        clone.material = this.material.clone();
-        return clone;
-    }
-}
-
-class Node {
-    constructor({ id } = {}) {
-        this.id = id || uuid();
-        this.parent = null;
-        this.children = [];
-    }
-
-    getParent() {
-        return this.parent;
-    }
-
-    setParent(parent) {
-        this.parent = parent;
-        return this;
-    }
-
-    addChild(child) {
-        child.setParent(this);
-        this.children.push(child);
-    }
-
-    addChildren(children) {
-        for (let i = 0; i < children.length; i++) {
-            children[i].setParent(this);
-        }
-
-        this.children.push(...children);
-    }
-
-    getChildren() {
-        return this.children;
-    }
-}
-
-class DirectionalLight extends Component {
-    constructor(direction, ambientColor, diffuseColor, specularColor) {
-        super();
-        this.direction = direction || new Vec3(0, 0, 0);
-        this.ambientColor = ambientColor || new Vec3(1, 1, 1);
-        this.diffuseColor = diffuseColor || new Vec3(1, 1, 1);
-        this.specularColor = specularColor || new Vec3(1, 1, 1);
-    }
-
-    getDirection() {
-        return this.direction;
-    }
-
-    setDirection(x, y, z) {
-        this.direction = new Vec3(x, y, z);
-        return this;
-    }
-
-    getAmbientColor() {
-        return this.ambientColor;
-    }
-
-    setAmbientColor(r, g, b) {
-        this.ambientColor = new Vec3(r, g, b);
-        return this;
-    }
-
-    getDiffuseColor() {
-        return this.diffuseColor;
-    }
-
-    setDiffuseColor(r, g, b) {
-        this.diffuseColor = new Vec3(r, g, b);
-        return this;
-    }
-
-    getSpecularColor() {
-        return this.specularColor;
-    }
-
-    setSpecularColor(r, g, b) {
-        this.specularColor = new Vec3(r, g, b);
-        return this;
-    }
-}
-
-class Scene extends Transform3D {
+class Entity {
     constructor() {
-        super();
-        this.activeCamera = null;
-    }
-
-    setActiveCamera(camera) {
-        this.activeCamera = camera;
-    }
-
-    getActiveCamera() {
-        return this.activeCamera;
-    }
-
-    getChildrenRecursive() {
-        let flatChildrenList = this.getChildren();
-
-        for (let i = 0; i < flatChildrenList.length; i++) {
-            const child = flatChildrenList[i];
-            flatChildrenList = flatChildrenList.concat(child.getChildren());
-        }
-
-        const cameras = [];
-        const meshes = [];
-        const directionalLights = [];
-
-        for (let i = 0; i < flatChildrenList.length; i++) {
-            const child = flatChildrenList[i];
-            if (child instanceof Camera) cameras.push(child);
-            if (child instanceof Mesh) meshes.push(child);
-            if (child instanceof DirectionalLight) directionalLights.push(child);
-        }
-
-        return {
-            activeCamera: this.activeCamera || cameras[0],
-            cameras,
-            meshes,
-            directionalLights,
-        };
+        this.id = uuid();
     }
 }
 
@@ -1904,13 +1809,13 @@ class TestRenderer {
         const meshes = world.entities.map(entity => {
             const transform = world.components.find(component => component instanceof Transform3D && component.entityId === entity.id);
             const geometry = world.components.find(component => component instanceof Geometry && component.entityId === entity.id);
-            const material = world.components.find(component => component instanceof Material && component.entityId === entity.id);
+            const material = world.components.find(component => component instanceof AbstractMaterial && component.entityId === entity.id);
             return transform && geometry && material ? { transform, geometry, material } : undefined;
         }).filter(Boolean);
 
         const activeCamera = world.entities.map(entity => {
             const transform = world.components.find(component => component instanceof Transform3D && component.entityId === entity.id);
-            const camera = world.components.find(component => component instanceof Camera && component.entityId === entity.id);
+            const camera = world.components.find(component => component instanceof AbstractCamera && component.entityId === entity.id);
             return transform && camera ? { transform, camera } : undefined;
         }).filter(Boolean)[0];
 
@@ -1969,12 +1874,9 @@ exports.Entity = Entity;
 exports.Geometry = Geometry;
 exports.Mat3 = Mat3;
 exports.Mat4 = Mat4;
-exports.Mesh = Mesh;
-exports.Node = Node;
 exports.OrthographicCamera = OrthographicCamera;
 exports.PerspectiveCamera = PerspectiveCamera;
 exports.Quat = Quat;
-exports.Scene = Scene;
 exports.StandardMaterial = StandardMaterial;
 exports.TestRenderer = TestRenderer;
 exports.Transform3D = Transform3D;

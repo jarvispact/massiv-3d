@@ -1,6 +1,6 @@
-import Camera from './camera';
+import AbstractCamera from './abstract-camera';
 
-class PerspectiveCamera extends Camera {
+class PerspectiveCamera extends AbstractCamera {
     constructor(fov, aspect, near, far) {
         super();
         this.fov = fov;
