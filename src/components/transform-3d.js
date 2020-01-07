@@ -32,9 +32,8 @@ class Transform3D extends Component {
     computeModelMatrix() {
         if (this.transformDirty) {
             this.modelMatrix.setFromQuaternionTranslationScale(this.quaternion, this.position, this.scaling);
+            this.transformDirty = false;
         }
-
-        this.transformDirty = false;
     }
 }
 

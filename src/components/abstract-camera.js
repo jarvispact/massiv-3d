@@ -12,6 +12,7 @@ class AbstractCamera extends Component {
 
     lookAt(position, center) {
         this.viewMatrix.lookAt(position, center, this.upVector);
+        return this;
     }
 }
 

@@ -3,7 +3,7 @@
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="initial-scale=1, maximum-scale=1, user-scalable=no">
-        <title>demo-cube</title>
+        <title>performance</title>
         <style type="text/css">
             #container {
                 position: fixed;
@@ -24,7 +24,7 @@
             const { vertices, normals, uvs, indices } = DemoCube;
 
             const domNode = document.getElementById('container');
-            const renderer = new MASSIV.TestRenderer(domNode, { useUniformBuffers: false });
+            const renderer = new MASSIV.TestRenderer(domNode);
 
             const world = new MASSIV.World();
 
@@ -32,21 +32,28 @@
                 new MASSIV.DirectionalLight(new MASSIV.Vec3(0, 5, 0)),
             ]);
 
-            const light2 = world.createEntity([
-                new MASSIV.DirectionalLight(new MASSIV.Vec3(5, 5, 5)),
-            ]);
-
-            const cameraPosition = new MASSIV.Vec3(0, 5, 10);
+            const cameraPosition = new MASSIV.Vec3(0, 20, 50);
             const camera = world.createEntity([
                 new MASSIV.Transform3D(cameraPosition),
                 new MASSIV.PerspectiveCamera(45, domNode.clientWidth / domNode.clientHeight, 0.1, 1000).lookAt(cameraPosition, new MASSIV.Vec3(0, 0, 0)),
             ]);
 
-            const cube = world.createEntity([
-                new MASSIV.Transform3D(),
-                new MASSIV.Geometry(vertices, normals, uvs),
-                new MASSIV.StandardMaterial(indices, new MASSIV.Vec3(1, 0, 0)),
-            ]);
+            const cubeArray = [];
+            let sizeX = 15;
+            let sizeY = 15;
+            let sizeZ = 15;
+
+            for (let x = -15; x < sizeX; x += 3) {
+                for (let y = -15; y < sizeY; y += 3) {
+                    for (let z = -15; z < sizeX; z += 3) {
+                        world.createEntity([
+                            new MASSIV.Transform3D(new MASSIV.Vec3(x, y, z)),
+                            new MASSIV.Geometry(vertices, normals, uvs),
+                            new MASSIV.StandardMaterial(indices, new MASSIV.Vec3(1, 0, 0)),
+                        ]);
+                    }
+                }
+            }
 
             const computeModelMatrixSystem = (world) => {
                 for (let i = 0; i < world.components.length; i++) {
@@ -56,8 +63,8 @@
             };
 
             const rotationSystem = (world, delta) => {
-                const cubeTransform = world.components.find(c => c.entityId === cube.id && c instanceof MASSIV.Transform3D);
-                cubeTransform.rotate(30 * delta, 30 * delta, 0);
+                const cubeTransforms = world.components.filter(c => c instanceof MASSIV.Transform3D);
+                cubeTransforms.forEach(c => c.rotate(30 * delta, 30 * delta, 0));
             };
 
             world.addSystem(computeModelMatrixSystem);

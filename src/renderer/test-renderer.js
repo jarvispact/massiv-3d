@@ -3,30 +3,27 @@
 import Mat3 from '../math/mat3';
 import ShaderBuilder from './shader-builder';
 import Geometry from '../components/geometry';
-import AbstractMaterial from '../components/abstract-material';
 import Transform3D from '../components/transform-3d';
-import AbstractCamera from '../components/abstract-camera';
-import DirectonalLight from '../components/directional-light';
-import Vec3 from '../math/vec3';
+import Uniform from './uniform';
 
 const arrayBufferLookupTable = {
     vertex: (geometry, shaderLoc) => ({
-        location: shaderLoc.vertex,
+        location: shaderLoc.VERTEX,
         bufferData: geometry.getVerticesAsFloat32Array(),
         bufferSize: geometry.getVertexVectorSize(),
     }),
     normal: (geometry, shaderLoc) => ({
-        location: shaderLoc.normal,
+        location: shaderLoc.NORMAL,
         bufferData: geometry.getNormalsAsFloat32Array(),
         bufferSize: geometry.getNormalVectorSize(),
     }),
     uv: (geometry, shaderLoc) => ({
-        location: shaderLoc.uv,
+        location: shaderLoc.UV,
         bufferData: geometry.getUvsAsFloat32Array(),
         bufferSize: geometry.getUvVectorSize(),
     }),
     vertexColor: (geometry, shaderLoc) => ({
-        location: shaderLoc.vertexColor,
+        location: shaderLoc.VERTEX_COLOR,
         bufferData: geometry.getVertexColorsAsFloat32Array(),
         bufferSize: geometry.getVertexColorVectorSize(),
     }),
@@ -46,27 +43,27 @@ const setCanvasStyle = (canvas) => {
     canvas.style.height = '100%';
 };
 
-const getRenderables = (components) => {
-    const material = components.filter(c => c instanceof AbstractMaterial);
-    return material.map(m => ({
-        material: m,
-        geometry: components.find(c => c instanceof Geometry && c.getEntityId() === m.getEntityId()),
-        transform: components.find(c => c instanceof Transform3D && c.getEntityId() === m.getEntityId()),
-    }));
-};
+const getRenderables = (componentsByType, componentsByEntityId) => componentsByType.MATERIAL.map(m => ({
+    id: m.getEntityId(),
+    material: m,
+    geometry: componentsByEntityId[m.getEntityId()].find(c => c instanceof Geometry),
+    transform: componentsByEntityId[m.getEntityId()].find(c => c instanceof Transform3D),
+}));
 
-const getActiveCamera = (components) => {
-    const camera = components.find(c => c instanceof AbstractCamera);
+const getActiveCamera = (componentsByType, componentsByEntityId) => {
+    const camera = componentsByType.CAMERA[0];
     return {
         camera,
-        transform: components.find(c => c instanceof Transform3D && c.getEntityId() === camera.getEntityId()),
+        transform: componentsByEntityId[camera.getEntityId()].find(c => c instanceof Transform3D),
     };
 };
 
-const getDirectionalLights = (components) => components.filter(c => c instanceof DirectonalLight);
+const getDirectionalLights = (componentsByType) => componentsByType.DIRECTIONAL_LIGHT;
+
+const getLightValuesAsFlatArray = (lights, propertyName) => lights.flatMap(l => l[propertyName].getAsArray());
 
 class TestRenderer {
-    constructor(domNode) {
+    constructor(domNode, options = {}) {
         this.domNode = domNode;
         this.canvas = document.createElement('canvas');
         this.domNode.appendChild(this.canvas);
@@ -74,18 +71,25 @@ class TestRenderer {
         this.canvas.height = this.domNode.clientHeight;
         setCanvasStyle(this.canvas);
 
+        this.options = {
+            useUniformBuffers: options.useUniformBuffers,
+        };
+
         this.gl = this.canvas.getContext('webgl2');
         this.gl.enable(this.gl.DEPTH_TEST);
         this.gl.depthFunc(this.gl.LEQUAL);
-
-        this.shaderLayoutLocations = {
-            vertex: 0,
-            normal: 1,
-            uv: 2,
-            vertexColor: 3,
-        };
+        this.gl.clearColor(0, 0, 0, 1);
 
         this.renderableCache = {};
+    }
+
+    static get SHADER_LAYOUT_LOCATIONS() {
+        return {
+            VERTEX: 0,
+            NORMAL: 1,
+            UV: 2,
+            VERTEX_COLOR: 3,
+        };
     }
 
     createShader(type, source) {
@@ -127,7 +131,7 @@ class TestRenderer {
     }
 
     createArrayBuffer(type, geometry) {
-        const result = arrayBufferLookupTable[type](geometry, this.shaderLayoutLocations);
+        const result = arrayBufferLookupTable[type](geometry, TestRenderer.SHADER_LAYOUT_LOCATIONS);
         const buffer = this.gl.createBuffer();
         this.gl.bindBuffer(this.gl.ARRAY_BUFFER, buffer);
         this.gl.bufferData(this.gl.ARRAY_BUFFER, result.bufferData, this.gl.STATIC_DRAW);
@@ -205,80 +209,96 @@ class TestRenderer {
         this.gl.viewport(0, 0, this.canvas.width, this.canvas.height);
     }
 
-    cacheRenderable(renderable, { activeCamera, directionalLights }) {
-        const shaderCode = ShaderBuilder.buildShaderForStandardMaterial(this.shaderLayoutLocations);
-        const vertexShader = this.createShader(this.gl.VERTEX_SHADER, shaderCode.vertexShaderSourceCode);
-        const fragmentShader = this.createShader(this.gl.FRAGMENT_SHADER, shaderCode.fragmentShaderSourceCode);
+    cacheRenderable(renderable, activeCamera, directionalLights) {
+        const gl = this.gl;
+        const materialClassName = renderable.material.constructor.name;
+
+        const shaderData = this.options.useUniformBuffers
+            ? ShaderBuilder[materialClassName].buildShaderWithUniformBuffers(TestRenderer.SHADER_LAYOUT_LOCATIONS, Uniform.TYPES)
+            : ShaderBuilder[materialClassName].buildShaderWithUniforms(TestRenderer.SHADER_LAYOUT_LOCATIONS, Uniform.TYPES);
+
+        const vertexShader = this.createShader(this.gl.VERTEX_SHADER, shaderData.vertexShaderSourceCode);
+        const fragmentShader = this.createShader(this.gl.FRAGMENT_SHADER, shaderData.fragmentShaderSourceCode);
         const shader = this.createProgram(vertexShader, fragmentShader);
+        console.log('cache called');
 
-        activeCamera.camera.lookAt(activeCamera.transform.position, new Vec3(0, 0, 0));
-        const mv = activeCamera.camera.viewMatrix.clone().multiply(renderable.transform.modelMatrix);
-        const mvp = activeCamera.camera.projectionMatrix.clone().multiply(mv);
-        const normalMatrix = Mat3.normalMatrixFromMat4(mv);
+        const activeUniformsCount = this.gl.getProgramParameter(shader, this.gl.ACTIVE_UNIFORMS);
+        const uniforms = [];
 
-        const MatricesUniformUBO = this.createUBO(shader, 3, 'MatricesUniform', [
-            'matrices.modelMatrix',
-            'matrices.mvp',
-            'matrices.normalMatrix',
-        ],
-        [
-            renderable.transform.modelMatrix.getAsArray(),
-            mvp.getAsArray(),
-            normalMatrix.getAsMat4Array(),
-        ]);
+        for (let u = 0; u < activeUniformsCount; u++) {
+            const uniformInfo = this.gl.getActiveUniform(shader, u);
+            const uniformLocation = gl.getUniformLocation(shader, uniformInfo.name);
+            uniforms.push(new Uniform(gl, uniformLocation, uniformInfo.name, uniformInfo.type));
+        }
 
-        // ===============================
+        // const mv = activeCamera.camera.viewMatrix.clone().multiply(renderable.transform.modelMatrix);
+        // const mvp = activeCamera.camera.projectionMatrix.clone().multiply(mv);
+        // const normalMatrix = Mat3.normalMatrixFromMat4(mv);
 
-        const MaterialUniformUBO = this.createUBO(shader, 2, 'MaterialUniform', [
-            'material.diffuseColor',
-            'material.specularColor',
-            'material.ambientIntensity',
-            'material.specularExponent',
-            'material.specularShininess',
-        ],
-        [
-            renderable.material.diffuseColor.getAsArray(),
-            renderable.material.specularColor.getAsArray(),
-            [renderable.material.ambientIntensity],
-            [renderable.material.specularExponent],
-            [renderable.material.specularShininess],
-        ]);
+        // const MatricesUniformUBO = this.createUBO(shader, 3, 'MatricesUniform', [
+        //     'matrices.modelMatrix',
+        //     'matrices.mvp',
+        //     'matrices.normalMatrix',
+        // ],
+        // [
+        //     renderable.transform.modelMatrix.getAsArray(),
+        //     mvp.getAsArray(),
+        //     normalMatrix.getAsMat4Array(),
+        // ]);
 
-        // ==================================
+        // // ===============================
 
-        const dirLightNames = directionalLights.flatMap((_, idx) => [
-            `directionalLights[${idx}].direction`,
-            `directionalLights[${idx}].ambientColor`,
-            `directionalLights[${idx}].diffuseColor`,
-            `directionalLights[${idx}].specularColor`,
-        ]);
+        // const MaterialUniformUBO = this.createUBO(shader, 2, 'MaterialUniform', [
+        //     'material.diffuseColor',
+        //     'material.specularColor',
+        //     'material.ambientIntensity',
+        //     'material.specularExponent',
+        //     'material.specularShininess',
+        // ],
+        // [
+        //     renderable.material.diffuseColor.getAsArray(),
+        //     renderable.material.specularColor.getAsArray(),
+        //     [renderable.material.ambientIntensity],
+        //     [renderable.material.specularExponent],
+        //     [renderable.material.specularShininess],
+        // ]);
 
-        const dirLightValues = directionalLights.flatMap((dirLight) => [
-            dirLight.direction.getAsArray(),
-            dirLight.ambientColor.getAsArray(),
-            dirLight.diffuseColor.getAsArray(),
-            dirLight.specularColor.getAsArray(),
-        ]);
+        // // ==================================
 
-        const SceneUniformUBO = this.createUBO(shader, 1, 'SceneUniform', [
-            ...dirLightNames,
-            'numDirectionalLights',
-            'cameraPosition',
-        ], [
-            ...dirLightValues,
-            [directionalLights.length],
-            activeCamera.transform.position.getAsArray(),
-        ]);
+        // const dirLightNames = directionalLights.flatMap((_, idx) => [
+        //     `directionalLights[${idx}].direction`,
+        //     `directionalLights[${idx}].ambientColor`,
+        //     `directionalLights[${idx}].diffuseColor`,
+        //     `directionalLights[${idx}].specularColor`,
+        // ]);
+
+        // const dirLightValues = directionalLights.flatMap((dirLight) => [
+        //     dirLight.direction.getAsArray(),
+        //     dirLight.ambientColor.getAsArray(),
+        //     dirLight.diffuseColor.getAsArray(),
+        //     dirLight.specularColor.getAsArray(),
+        // ]);
+
+        // const SceneUniformUBO = this.createUBO(shader, 1, 'SceneUniform', [
+        //     ...dirLightNames,
+        //     'numDirectionalLights',
+        //     'cameraPosition',
+        // ], [
+        //     ...dirLightValues,
+        //     [directionalLights.length],
+        //     activeCamera.transform.position.getAsArray(),
+        // ]);
 
         const cachedRenderable = {
             vao: this.createVertexArray(renderable.geometry),
             indices: this.createElementArrayBuffer(renderable.material),
             shader,
-            ubos: {
-                MatricesUniformUBO,
-                SceneUniformUBO,
-                MaterialUniformUBO,
-            },
+            uniforms,
+            // ubos: {
+            //     MatricesUniformUBO,
+            //     SceneUniformUBO,
+            //     MaterialUniformUBO,
+            // },
         };
 
         this.renderableCache[renderable.id] = cachedRenderable;
@@ -287,52 +307,80 @@ class TestRenderer {
 
     render(world) {
         this.gl.viewport(0, 0, this.canvas.width, this.canvas.height);
-        this.gl.clearColor(0, 0, 0, 1);
         this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT);
 
-        const renderables = getRenderables(world.components);
-        const activeCamera = getActiveCamera(world.components);
-        const directionalLights = getDirectionalLights(world.components);
+        const renderables = getRenderables(world.componentsByType, world.componentsByEntityId);
+        const activeCamera = getActiveCamera(world.componentsByType, world.componentsByEntityId);
+        const directionalLights = getDirectionalLights(world.componentsByType);
 
         for (let i = 0; i < renderables.length; i++) {
             const renderable = renderables[i];
-            const cachedMesh = this.renderableCache[renderable.id] || this.cacheRenderable(renderable, { activeCamera, directionalLights });
+            const cachedRenderable = this.renderableCache[renderable.id] || this.cacheRenderable(renderable, activeCamera, directionalLights);
 
-            this.gl.bindVertexArray(cachedMesh.vao);
-            this.gl.useProgram(cachedMesh.shader);
+            this.gl.bindVertexArray(cachedRenderable.vao);
+            this.gl.useProgram(cachedRenderable.shader);
 
-            const ubos = cachedMesh.ubos;
+            // const ubos = cachedRenderable.ubos;
 
             const mv = activeCamera.camera.viewMatrix.clone().multiply(renderable.transform.modelMatrix);
             const mvp = activeCamera.camera.projectionMatrix.clone().multiply(mv);
             const normalMatrix = Mat3.normalMatrixFromMat4(mv);
-            ubos.MatricesUniformUBO.views.modelMatrix.set(renderable.transform.modelMatrix.getAsArray());
-            ubos.MatricesUniformUBO.views.mvp.set(mvp.getAsArray());
-            ubos.MatricesUniformUBO.views.normalMatrix.set(normalMatrix.getAsMat4Array());
 
-            this.gl.bindBuffer(this.gl.UNIFORM_BUFFER, ubos.MatricesUniformUBO.webglBuffer);
-            this.gl.bufferSubData(this.gl.UNIFORM_BUFFER, 0, ubos.MatricesUniformUBO.arrayBuffer);
-            this.gl.bindBufferBase(this.gl.UNIFORM_BUFFER, ubos.MatricesUniformUBO.blockBinding, ubos.MatricesUniformUBO.webglBuffer);
+            const uniformValueLookupTable = {
+                modelMatrix: renderable.transform.modelMatrix.getAsArray(),
+                normalMatrix: normalMatrix.getAsArray(),
+                mv: mv.getAsArray(),
+                mvp: mvp.getAsArray(),
+                diffuseColor: renderable.material.diffuseColor.getAsArray(),
+                specularColor: renderable.material.specularColor.getAsArray(),
+                ambientIntensity: renderable.material.ambientIntensity,
+                specularExponent: renderable.material.specularExponent,
+                specularShininess: renderable.material.specularShininess,
+                cameraPosition: activeCamera.transform.position.getAsArray(),
+                'dirLightDirection[0]': getLightValuesAsFlatArray(directionalLights, 'direction'),
+                'dirLightAmbientColor[0]': getLightValuesAsFlatArray(directionalLights, 'ambientColor'),
+                'dirLightDiffuseColor[0]': getLightValuesAsFlatArray(directionalLights, 'diffuseColor'),
+                'dirLightSpecularColor[0]': getLightValuesAsFlatArray(directionalLights, 'specularColor'),
+                numDirLights: directionalLights.length,
+            };
+
+            if (this.options.useUniformBuffers) {
+                // TODO
+            } else {
+                for (let u = 0; u < cachedRenderable.uniforms.length; u++) {
+                    const uniform = cachedRenderable.uniforms[u];
+                    const uniformValue = uniformValueLookupTable[uniform.name];
+                    uniform.update(uniformValue);
+                }
+            }
+
+            // ubos.MatricesUniformUBO.views.modelMatrix.set(renderable.transform.modelMatrix.getAsArray());
+            // ubos.MatricesUniformUBO.views.mvp.set(mvp.getAsArray());
+            // ubos.MatricesUniformUBO.views.normalMatrix.set(normalMatrix.getAsMat4Array());
+
+            // this.gl.bindBuffer(this.gl.UNIFORM_BUFFER, ubos.MatricesUniformUBO.webglBuffer);
+            // this.gl.bufferSubData(this.gl.UNIFORM_BUFFER, 0, ubos.MatricesUniformUBO.arrayBuffer);
+            // this.gl.bindBufferBase(this.gl.UNIFORM_BUFFER, ubos.MatricesUniformUBO.blockBinding, ubos.MatricesUniformUBO.webglBuffer);
+
+            // // =============================
+
+            // ubos.MaterialUniformUBO.views.diffuseColor.set(renderable.material.diffuseColor.getAsArray());
+
+            // this.gl.bindBuffer(this.gl.UNIFORM_BUFFER, ubos.MaterialUniformUBO.webglBuffer);
+            // this.gl.bufferSubData(this.gl.UNIFORM_BUFFER, 0, ubos.MaterialUniformUBO.arrayBuffer);
+            // this.gl.bindBufferBase(this.gl.UNIFORM_BUFFER, ubos.MaterialUniformUBO.blockBinding, ubos.MaterialUniformUBO.webglBuffer);
+
+            // // =============================
+
+            // ubos.SceneUniformUBO.views['directionalLights[0].direction'].set(directionalLights[0].direction.getAsArray());
+
+            // this.gl.bindBuffer(this.gl.UNIFORM_BUFFER, ubos.SceneUniformUBO.webglBuffer);
+            // this.gl.bufferSubData(this.gl.UNIFORM_BUFFER, 0, ubos.SceneUniformUBO.arrayBuffer);
+            // this.gl.bindBufferBase(this.gl.UNIFORM_BUFFER, ubos.SceneUniformUBO.blockBinding, ubos.SceneUniformUBO.webglBuffer);
 
             // =============================
 
-            ubos.MaterialUniformUBO.views.diffuseColor.set(renderable.material.diffuseColor.getAsArray());
-
-            this.gl.bindBuffer(this.gl.UNIFORM_BUFFER, ubos.MaterialUniformUBO.webglBuffer);
-            this.gl.bufferSubData(this.gl.UNIFORM_BUFFER, 0, ubos.MaterialUniformUBO.arrayBuffer);
-            this.gl.bindBufferBase(this.gl.UNIFORM_BUFFER, ubos.MaterialUniformUBO.blockBinding, ubos.MaterialUniformUBO.webglBuffer);
-
-            // =============================
-
-            ubos.SceneUniformUBO.views['directionalLights[0].direction'].set(directionalLights[0].direction.getAsArray());
-
-            this.gl.bindBuffer(this.gl.UNIFORM_BUFFER, ubos.SceneUniformUBO.webglBuffer);
-            this.gl.bufferSubData(this.gl.UNIFORM_BUFFER, 0, ubos.SceneUniformUBO.arrayBuffer);
-            this.gl.bindBufferBase(this.gl.UNIFORM_BUFFER, ubos.SceneUniformUBO.blockBinding, ubos.SceneUniformUBO.webglBuffer);
-
-            // =============================
-
-            this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, cachedMesh.indices);
+            this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, cachedRenderable.indices);
             this.gl.drawElements(this.gl.TRIANGLES, renderable.material.indices.length, this.gl.UNSIGNED_INT, 0);
         }
     }

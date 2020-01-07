@@ -4,9 +4,9 @@ import Vec3 from '../math/vec3';
 class StandardMaterial extends AbstractMaterial {
     constructor(indices, diffuseColor, specularColor, ambientIntensity, specularExponent, specularShininess) {
         super(indices);
-        this.ambientIntensity = ambientIntensity || 0.1;
         this.diffuseColor = diffuseColor || new Vec3(1, 0, 0);
         this.specularColor = specularColor || new Vec3(1, 1, 1);
+        this.ambientIntensity = ambientIntensity || 0.1;
         this.specularExponent = specularExponent || 0.5;
         this.specularShininess = specularShininess || 256;
     }

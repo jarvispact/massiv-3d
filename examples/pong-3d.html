@@ -32,9 +32,10 @@
                 new MASSIV.DirectionalLight(new MASSIV.Vec3(0, 5, 0)),
             ]);
 
+            const cameraPosition = new MASSIV.Vec3(0, 15, 20);
             const camera = world.createEntity([
-                new MASSIV.Transform3D(new MASSIV.Vec3(0, 15, 20)),
-                new MASSIV.PerspectiveCamera(45, domNode.clientWidth / domNode.clientHeight, 0.1, 1000),
+                new MASSIV.Transform3D(cameraPosition),
+                new MASSIV.PerspectiveCamera(45, domNode.clientWidth / domNode.clientHeight, 0.1, 1000).lookAt(cameraPosition, new MASSIV.Vec3(0, 0, 0)),
             ]);
 
             const ball = world.createEntity([
