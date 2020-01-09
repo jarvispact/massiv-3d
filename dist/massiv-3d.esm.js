@@ -1133,6 +1133,139 @@ class Vec4 {
     }
 }
 
+/* eslint-disable no-console */
+
+const SHADER_LAYOUT_LOCATIONS = {
+    VERTEX: 0,
+    NORMAL: 1,
+    UV: 2,
+    VERTEX_COLOR: 3,
+};
+
+const createShader = (gl, type, source) => {
+    const shader = gl.createShader(type);
+    gl.shaderSource(shader, source);
+    gl.compileShader(shader);
+    const success = gl.getShaderParameter(shader, gl.COMPILE_STATUS);
+    if (success) return shader;
+    console.error(gl.getShaderInfoLog(shader));
+    gl.deleteShader(shader);
+    return undefined;
+};
+
+const createProgram = (gl, vertexShader, fragmentShader) => {
+    const program = gl.createProgram();
+    gl.attachShader(program, vertexShader);
+    gl.attachShader(program, fragmentShader);
+    gl.linkProgram(program);
+    const success = gl.getProgramParameter(program, gl.LINK_STATUS);
+    if (success) return program;
+    console.error(gl.getProgramInfoLog(program));
+    gl.deleteProgram(program);
+    return undefined;
+};
+
+const createTexture = (gl, image) => {
+    const texture = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+
+    const level = 0;
+    const internalFormat = gl.RGBA;
+    const srcFormat = gl.RGBA;
+    const srcType = gl.UNSIGNED_BYTE;
+
+    gl.texImage2D(gl.TEXTURE_2D, level, internalFormat, srcFormat, srcType, image);
+    gl.generateMipmap(gl.TEXTURE_2D);
+
+    return texture;
+};
+
+const arrayBufferLookupTable = {
+    vertex: (geometry) => ({
+        location: SHADER_LAYOUT_LOCATIONS.VERTEX,
+        bufferData: geometry.getVerticesAsFloat32Array(),
+        bufferSize: geometry.getVertexVectorSize(),
+    }),
+    normal: (geometry) => ({
+        location: SHADER_LAYOUT_LOCATIONS.NORMAL,
+        bufferData: geometry.getNormalsAsFloat32Array(),
+        bufferSize: geometry.getNormalVectorSize(),
+    }),
+    uv: (geometry) => ({
+        location: SHADER_LAYOUT_LOCATIONS.UV,
+        bufferData: geometry.getUvsAsFloat32Array(),
+        bufferSize: geometry.getUvVectorSize(),
+    }),
+    vertexColor: (geometry) => ({
+        location: SHADER_LAYOUT_LOCATIONS.VERTEX_COLOR,
+        bufferData: geometry.getVertexColorsAsFloat32Array(),
+        bufferSize: geometry.getVertexColorVectorSize(),
+    }),
+};
+
+const createArrayBuffer = (gl, type, geometry) => {
+    const result = arrayBufferLookupTable[type](geometry);
+    const buffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+    gl.bufferData(gl.ARRAY_BUFFER, result.bufferData, gl.STATIC_DRAW);
+    gl.enableVertexAttribArray(result.location);
+    gl.vertexAttribPointer(result.location, result.bufferSize, gl.FLOAT, false, 0, 0);
+};
+
+const createElementArrayBuffer = (gl, material) => {
+    const buffer = gl.createBuffer();
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, buffer);
+    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, material.getIndicesAsUint32Array(), gl.STATIC_DRAW);
+    return buffer;
+};
+
+const createVertexArray = (gl, geometry) => {
+    const vao = gl.createVertexArray();
+    gl.bindVertexArray(vao);
+
+    const hasPositions = geometry.getVertices().length > 0;
+    if (hasPositions) createArrayBuffer(gl, 'vertex', geometry);
+
+    const hasNormals = geometry.getNormals().length > 0;
+    if (hasNormals) createArrayBuffer(gl, 'normal', geometry);
+
+    const hasUvs = geometry.getUvs().length > 0;
+    if (hasUvs) createArrayBuffer(gl, 'uv', geometry);
+
+    const hasColors = geometry.getVertexColors().length > 0;
+    if (hasColors) createArrayBuffer(gl, 'vertexColor', geometry);
+
+    return vao;
+};
+
+const createUniformTypeLookupTable = (gl) => ({
+    [gl.FLOAT_MAT4]: 'mat4',
+    [gl.FLOAT_MAT3]: 'mat3',
+    [gl.FLOAT_VEC3]: 'vec3',
+    [gl.FLOAT]: 'float',
+    [gl.INT]: 'int',
+});
+
+const uniformTypeToUpdateUniformFunction = {
+    mat4: (gl, location, value) => gl.uniformMatrix4fv(location, false, value),
+    mat3: (gl, location, value) => gl.uniformMatrix3fv(location, false, value),
+    vec3: (gl, location, value) => gl.uniform3fv(location, value),
+    float: (gl, location, value) => gl.uniform1f(location, value),
+    int: (gl, location, value) => gl.uniform1i(location, value),
+};
+
+const WebGLUtils = {
+    SHADER_LAYOUT_LOCATIONS,
+    createShader,
+    createProgram,
+    createTexture,
+    createArrayBuffer,
+    createElementArrayBuffer,
+    createVertexArray,
+    createUniformTypeLookupTable,
+    uniformTypeToUpdateUniformFunction,
+};
+
 /* eslint-disable max-len */
 
 const ShaderBuilder = {
@@ -1224,390 +1357,25 @@ const ShaderBuilder = {
     },
 };
 
-/* eslint-disable no-console, no-bitwise */
-
-const arrayBufferLookupTable = {
-    vertex: (geometry, shaderLoc) => ({
-        location: shaderLoc.vertex,
-        bufferData: geometry.getVerticesAsFloat32Array(),
-        bufferSize: geometry.getVertexVectorSize(),
-    }),
-    normal: (geometry, shaderLoc) => ({
-        location: shaderLoc.normal,
-        bufferData: geometry.getNormalsAsFloat32Array(),
-        bufferSize: geometry.getNormalVectorSize(),
-    }),
-    uv: (geometry, shaderLoc) => ({
-        location: shaderLoc.uv,
-        bufferData: geometry.getUvsAsFloat32Array(),
-        bufferSize: geometry.getUvVectorSize(),
-    }),
-    vertexColor: (geometry, shaderLoc) => ({
-        location: shaderLoc.vertexColor,
-        bufferData: geometry.getVertexColorsAsFloat32Array(),
-        bufferSize: geometry.getVertexColorVectorSize(),
-    }),
-};
-
-const getViewNameForUniformName = (uniformName) => {
-    if (uniformName.includes('[')) return uniformName;
-    if (uniformName.includes('.')) return uniformName.split('.')[1];
-    return uniformName;
-};
-
-class WebGl2Renderer {
-    constructor(domNode) {
-        this.domNode = domNode;
-        this.canvas = document.createElement('canvas');
-        this.domNode.appendChild(this.canvas);
-        this.canvas.style.position = 'relative';
-        this.canvas.style.top = '0px';
-        this.canvas.style.left = '0px';
-        this.canvas.style.width = '100%';
-        this.canvas.style.height = '100%';
-        this.canvas.width = this.domNode.clientWidth;
-        this.canvas.height = this.domNode.clientHeight;
-        this.gl = this.canvas.getContext('webgl2');
-
-        this.gl.enable(this.gl.DEPTH_TEST);
-        this.gl.depthFunc(this.gl.LEQUAL);
-
-        this.shaderLayoutLocations = {
-            vertex: 0,
-            normal: 1,
-            uv: 2,
-            vertexColor: 3,
-        };
-
-        this.sceneCache = {};
-        this.meshCache = {};
-    }
-
-    createShader(type, source) {
-        const { gl } = this;
-        const shader = gl.createShader(type);
-        gl.shaderSource(shader, source);
-        gl.compileShader(shader);
-        const success = gl.getShaderParameter(shader, gl.COMPILE_STATUS);
-        if (success) return shader;
-        console.error(gl.getShaderInfoLog(shader));
-        gl.deleteShader(shader);
-        return undefined;
-    }
-
-    createProgram(vertexShader, fragmentShader) {
-        const { gl } = this;
-        const program = gl.createProgram();
-        gl.attachShader(program, vertexShader);
-        gl.attachShader(program, fragmentShader);
-        gl.linkProgram(program);
-        const success = gl.getProgramParameter(program, gl.LINK_STATUS);
-        if (success) return program;
-        console.error(gl.getProgramInfoLog(program));
-        gl.deleteProgram(program);
-        return undefined;
-    }
-
-    createTexture(image) {
-        const { gl } = this;
-        const texture = gl.createTexture();
-        gl.bindTexture(gl.TEXTURE_2D, texture);
-
-        const level = 0;
-        const internalFormat = gl.RGBA;
-        const srcFormat = gl.RGBA;
-        const srcType = gl.UNSIGNED_BYTE;
-
-        gl.texImage2D(gl.TEXTURE_2D, level, internalFormat, srcFormat, srcType, image);
-        gl.generateMipmap(gl.TEXTURE_2D);
-
-        return texture;
-    }
-
-    createArrayBuffer(type, geometry) {
-        const { gl } = this;
-        const { location, bufferData, bufferSize } = arrayBufferLookupTable[type](geometry, this.shaderLayoutLocations);
-        const buffer = gl.createBuffer();
-        gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
-        gl.bufferData(gl.ARRAY_BUFFER, bufferData, gl.STATIC_DRAW);
-        gl.enableVertexAttribArray(location);
-        gl.vertexAttribPointer(location, bufferSize, gl.FLOAT, false, 0, 0);
-    }
-
-    createVertexArray(geometry) {
-        const { gl } = this;
-        const vao = gl.createVertexArray();
-        gl.bindVertexArray(vao);
-
-        const hasPositions = geometry.getVertices().length > 0;
-        if (hasPositions) this.createArrayBuffer('vertex', geometry);
-
-        const hasNormals = geometry.getNormals().length > 0;
-        if (hasNormals) this.createArrayBuffer('normal', geometry);
-
-        const hasUvs = geometry.getUvs().length > 0;
-        if (hasUvs) this.createArrayBuffer('uv', geometry);
-
-        const hasColors = geometry.getVertexColors().length > 0;
-        if (hasColors) this.createArrayBuffer('vertexColor', geometry);
-
-        return vao;
-    }
-
-    createElementArrayBuffer(material) {
-        const { gl } = this;
-        const buffer = this.gl.createBuffer();
-        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, buffer);
-        gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, material.getIndicesAsUint32Array(), gl.STATIC_DRAW);
-        return buffer;
-    }
-
-    createUBO(shader, blockBinding, uniformBlockName, uniformNames, uniformValues) {
-        const { gl } = this;
-
-        const blockIndex = gl.getUniformBlockIndex(shader, uniformBlockName);
-        const blockSize = gl.getActiveUniformBlockParameter(shader, blockIndex, gl.UNIFORM_BLOCK_DATA_SIZE);
-        const arrayBuffer = new ArrayBuffer(blockSize);
-
-        const uniformIndices = gl.getUniformIndices(shader, uniformNames);
-        const uniformOffsets = gl.getActiveUniforms(shader, uniformIndices, gl.UNIFORM_OFFSET);
-
-        // TODO: add support for different data types
-        const views = uniformNames
-            .map(getViewNameForUniformName)
-            .reduce((accum, name, idx) => {
-                accum[name] = name === 'numDirectionalLights' ? new Int32Array(arrayBuffer, uniformOffsets[idx]) : new Float32Array(arrayBuffer, uniformOffsets[idx]);
-                accum[name].set(uniformValues[idx]);
-                return accum;
-            }, {});
-
-        console.log({ uniformNames, arrayBuffer, uniformIndices, uniformOffsets, views });
-
-        const webglBuffer = gl.createBuffer();
-        gl.bindBuffer(gl.UNIFORM_BUFFER, webglBuffer);
-        gl.bufferData(gl.UNIFORM_BUFFER, arrayBuffer, gl.DYNAMIC_DRAW);
-        gl.uniformBlockBinding(shader, blockIndex, blockBinding);
-        gl.bindBufferBase(gl.UNIFORM_BUFFER, blockBinding, webglBuffer);
-
-        return {
-            webglBuffer,
-            arrayBuffer,
-            blockBinding,
-            views,
-        };
-    }
-
-    resize() {
-        const { gl, canvas, domNode } = this;
-        const w = domNode.clientWidth;
-        const h = domNode.clientHeight;
-        canvas.width = w;
-        canvas.height = h;
-        gl.viewport(0, 0, canvas.width, canvas.height);
-    }
-
-    cacheMesh(mesh, { activeCamera, directionalLights }) {
-        const { gl, shaderLayoutLocations } = this;
-
-        const { vertexShaderSourceCode, fragmentShaderSourceCode } = ShaderBuilder.buildShaderForStandardMaterial(shaderLayoutLocations);
-        const vertexShader = this.createShader(gl.VERTEX_SHADER, vertexShaderSourceCode);
-        const fragmentShader = this.createShader(gl.FRAGMENT_SHADER, fragmentShaderSourceCode);
-        const shader = this.createProgram(vertexShader, fragmentShader);
-
-        const mv = activeCamera.viewMatrix.clone().multiply(mesh.modelMatrix);
-        const mvp = activeCamera.projectionMatrix.clone().multiply(mv);
-        const normalMatrix = Mat3.normalMatrixFromMat4(mv);
-
-        const MatricesUniformUBO = this.createUBO(shader, 3, 'MatricesUniform', [
-            'matrices.modelMatrix',
-            'matrices.mvp',
-            'matrices.normalMatrix',
-        ],
-        [
-            mesh.modelMatrix.getAsArray(),
-            mvp.getAsArray(),
-            normalMatrix.getAsMat4Array(),
-        ]);
-
-        // ===============================
-
-        const MaterialUniformUBO = this.createUBO(shader, 2, 'MaterialUniform', [
-            'material.diffuseColor',
-            'material.specularColor',
-            'material.ambientIntensity',
-            'material.specularExponent',
-            'material.specularShininess',
-        ],
-        [
-            mesh.material.diffuseColor.getAsArray(),
-            mesh.material.specularColor.getAsArray(),
-            [mesh.material.ambientIntensity],
-            [mesh.material.specularExponent],
-            [mesh.material.specularShininess],
-        ]);
-
-        // ==================================
-
-        const dirLightNames = directionalLights.flatMap((_, idx) => [
-            `directionalLights[${idx}].direction`,
-            `directionalLights[${idx}].ambientColor`,
-            `directionalLights[${idx}].diffuseColor`,
-            `directionalLights[${idx}].specularColor`,
-        ]);
-
-        const dirLightValues = directionalLights.flatMap((dirLight) => [
-            dirLight.direction.getAsArray(),
-            dirLight.ambientColor.getAsArray(),
-            dirLight.diffuseColor.getAsArray(),
-            dirLight.specularColor.getAsArray(),
-        ]);
-
-        const SceneUniformUBO = this.createUBO(shader, 1, 'SceneUniform', [
-            ...dirLightNames,
-            'numDirectionalLights',
-            'cameraPosition',
-        ], [
-            ...dirLightValues,
-            [directionalLights.length],
-            activeCamera.position.getAsArray(),
-        ]);
-
-        const cachedMesh = {
-            vao: this.createVertexArray(mesh.geometry),
-            indices: this.createElementArrayBuffer(mesh.material),
-            shader,
-            ubos: {
-                MatricesUniformUBO,
-                SceneUniformUBO,
-                MaterialUniformUBO,
-            },
-        };
-
-        this.meshCache[mesh.id] = cachedMesh;
-        return cachedMesh;
-    }
-
-    render(scene) {
-        const { gl } = this;
-        gl.viewport(0, 0, this.canvas.width, this.canvas.height);
-        gl.clearColor(0, 0, 0, 1);
-        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-
-        scene.computeModelMatrix();
-        const { activeCamera, meshes, directionalLights } = scene.getChildrenRecursive();
-
-        for (let i = 0; i < meshes.length; i++) {
-            const currentMesh = meshes[i];
-            const cachedMesh = this.meshCache[currentMesh.id] || this.cacheMesh(currentMesh, { activeCamera, directionalLights });
-
-            gl.bindVertexArray(cachedMesh.vao);
-            gl.useProgram(cachedMesh.shader);
-
-            const { MatricesUniformUBO, MaterialUniformUBO, SceneUniformUBO } = cachedMesh.ubos;
-
-            const mv = activeCamera.viewMatrix.clone().multiply(currentMesh.modelMatrix);
-            const mvp = activeCamera.projectionMatrix.clone().multiply(mv);
-            const normalMatrix = Mat3.normalMatrixFromMat4(mv);
-            MatricesUniformUBO.views.modelMatrix.set(currentMesh.modelMatrix.getAsArray());
-            MatricesUniformUBO.views.mvp.set(mvp.getAsArray());
-            MatricesUniformUBO.views.normalMatrix.set(normalMatrix.getAsMat4Array());
-
-            gl.bindBuffer(gl.UNIFORM_BUFFER, MatricesUniformUBO.webglBuffer);
-            gl.bufferSubData(gl.UNIFORM_BUFFER, 0, MatricesUniformUBO.arrayBuffer);
-            gl.bindBufferBase(gl.UNIFORM_BUFFER, MatricesUniformUBO.blockBinding, MatricesUniformUBO.webglBuffer);
-
-            // =============================
-
-            MaterialUniformUBO.views.diffuseColor.set(currentMesh.material.diffuseColor.getAsArray());
-
-            gl.bindBuffer(gl.UNIFORM_BUFFER, MaterialUniformUBO.webglBuffer);
-            gl.bufferSubData(gl.UNIFORM_BUFFER, 0, MaterialUniformUBO.arrayBuffer);
-            gl.bindBufferBase(gl.UNIFORM_BUFFER, MaterialUniformUBO.blockBinding, MaterialUniformUBO.webglBuffer);
-
-            // =============================
-
-            SceneUniformUBO.views['directionalLights[0].direction'].set(directionalLights[0].direction.getAsArray());
-
-            gl.bindBuffer(gl.UNIFORM_BUFFER, SceneUniformUBO.webglBuffer);
-            gl.bufferSubData(gl.UNIFORM_BUFFER, 0, SceneUniformUBO.arrayBuffer);
-            gl.bindBufferBase(gl.UNIFORM_BUFFER, SceneUniformUBO.blockBinding, SceneUniformUBO.webglBuffer);
-
-            // =============================
-
-            gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, cachedMesh.indices);
-            gl.drawElements(gl.TRIANGLES, currentMesh.material.indices.length, gl.UNSIGNED_INT, 0);
-        }
-    }
-}
-
-const UNIFORM_TYPES = {
-    MAT4: 'mat4',
-    MAT3: 'mat3',
-    VEC3: 'vec3',
-    FLOAT: 'float',
-    INT: 'int',
-};
-
-const uniformTypeToGlFunction = {
-    [UNIFORM_TYPES.MAT4]: (gl, location, value) => gl.uniformMatrix4fv(location, false, value),
-    [UNIFORM_TYPES.MAT3]: (gl, location, value) => gl.uniformMatrix3fv(location, false, value),
-    [UNIFORM_TYPES.VEC3]: (gl, location, value) => gl.uniform3fv(location, value),
-    [UNIFORM_TYPES.FLOAT]: (gl, location, value) => gl.uniform1f(location, value),
-    [UNIFORM_TYPES.INT]: (gl, location, value) => gl.uniform1i(location, value),
-};
-
 class Uniform {
     constructor(gl, location, name, type) {
-        const webglUniformTypeToUniformType = {
-            [gl.FLOAT_MAT4]: Uniform.TYPES.MAT4,
-            [gl.FLOAT_MAT3]: Uniform.TYPES.MAT3,
-            [gl.FLOAT_VEC3]: Uniform.TYPES.VEC3,
-            [gl.FLOAT]: Uniform.TYPES.FLOAT,
-            [gl.INT]: Uniform.TYPES.INT,
-        };
-
         this.gl = gl;
         this.location = location;
         this.name = name;
-        this.type = webglUniformTypeToUniformType[type];
         this.value = null;
-    }
 
-    static get TYPES() {
-        return UNIFORM_TYPES;
+        const webglUniformTypeToUniformType = WebGLUtils.createUniformTypeLookupTable(gl);
+        this.type = webglUniformTypeToUniformType[type];
     }
 
     update(newValue) {
         if (newValue === this.value) return;
         this.value = newValue;
-        uniformTypeToGlFunction[this.type](this.gl, this.location, this.value);
+        WebGLUtils.uniformTypeToUpdateUniformFunction[this.type](this.gl, this.location, this.value);
     }
 }
 
 /* eslint-disable no-console, no-bitwise, prefer-destructuring */
-
-const arrayBufferLookupTable$1 = {
-    vertex: (geometry, shaderLoc) => ({
-        location: shaderLoc.VERTEX,
-        bufferData: geometry.getVerticesAsFloat32Array(),
-        bufferSize: geometry.getVertexVectorSize(),
-    }),
-    normal: (geometry, shaderLoc) => ({
-        location: shaderLoc.NORMAL,
-        bufferData: geometry.getNormalsAsFloat32Array(),
-        bufferSize: geometry.getNormalVectorSize(),
-    }),
-    uv: (geometry, shaderLoc) => ({
-        location: shaderLoc.UV,
-        bufferData: geometry.getUvsAsFloat32Array(),
-        bufferSize: geometry.getUvVectorSize(),
-    }),
-    vertexColor: (geometry, shaderLoc) => ({
-        location: shaderLoc.VERTEX_COLOR,
-        bufferData: geometry.getVertexColorsAsFloat32Array(),
-        bufferSize: geometry.getVertexColorVectorSize(),
-    }),
-};
 
 const setCanvasStyle = (canvas) => {
     canvas.style.position = 'relative';
@@ -1636,7 +1404,7 @@ const getDirectionalLights = (componentsByType) => componentsByType.DIRECTIONAL_
 
 const getLightValuesAsFlatArray = (lights, propertyName) => lights.flatMap(l => l[propertyName].getAsArray());
 
-class TestRenderer {
+class WebGL2Renderer {
     constructor(domNode) {
         this.domNode = domNode;
         this.canvas = document.createElement('canvas');
@@ -1653,88 +1421,6 @@ class TestRenderer {
         this.renderableCache = {};
     }
 
-    static get SHADER_LAYOUT_LOCATIONS() {
-        return {
-            VERTEX: 0,
-            NORMAL: 1,
-            UV: 2,
-            VERTEX_COLOR: 3,
-        };
-    }
-
-    createShader(type, source) {
-        const shader = this.gl.createShader(type);
-        this.gl.shaderSource(shader, source);
-        this.gl.compileShader(shader);
-        const success = this.gl.getShaderParameter(shader, this.gl.COMPILE_STATUS);
-        if (success) return shader;
-        console.error(this.gl.getShaderInfoLog(shader));
-        this.gl.deleteShader(shader);
-        return undefined;
-    }
-
-    createProgram(vertexShader, fragmentShader) {
-        const program = this.gl.createProgram();
-        this.gl.attachShader(program, vertexShader);
-        this.gl.attachShader(program, fragmentShader);
-        this.gl.linkProgram(program);
-        const success = this.gl.getProgramParameter(program, this.gl.LINK_STATUS);
-        if (success) return program;
-        console.error(this.gl.getProgramInfoLog(program));
-        this.gl.deleteProgram(program);
-        return undefined;
-    }
-
-    createTexture(image) {
-        const texture = this.gl.createTexture();
-        this.gl.bindTexture(this.gl.TEXTURE_2D, texture);
-
-        const level = 0;
-        const internalFormat = this.gl.RGBA;
-        const srcFormat = this.gl.RGBA;
-        const srcType = this.gl.UNSIGNED_BYTE;
-
-        this.gl.texImage2D(this.gl.TEXTURE_2D, level, internalFormat, srcFormat, srcType, image);
-        this.gl.generateMipmap(this.gl.TEXTURE_2D);
-
-        return texture;
-    }
-
-    createArrayBuffer(type, geometry) {
-        const result = arrayBufferLookupTable$1[type](geometry, TestRenderer.SHADER_LAYOUT_LOCATIONS);
-        const buffer = this.gl.createBuffer();
-        this.gl.bindBuffer(this.gl.ARRAY_BUFFER, buffer);
-        this.gl.bufferData(this.gl.ARRAY_BUFFER, result.bufferData, this.gl.STATIC_DRAW);
-        this.gl.enableVertexAttribArray(result.location);
-        this.gl.vertexAttribPointer(result.location, result.bufferSize, this.gl.FLOAT, false, 0, 0);
-    }
-
-    createVertexArray(geometry) {
-        const vao = this.gl.createVertexArray();
-        this.gl.bindVertexArray(vao);
-
-        const hasPositions = geometry.getVertices().length > 0;
-        if (hasPositions) this.createArrayBuffer('vertex', geometry);
-
-        const hasNormals = geometry.getNormals().length > 0;
-        if (hasNormals) this.createArrayBuffer('normal', geometry);
-
-        const hasUvs = geometry.getUvs().length > 0;
-        if (hasUvs) this.createArrayBuffer('uv', geometry);
-
-        const hasColors = geometry.getVertexColors().length > 0;
-        if (hasColors) this.createArrayBuffer('vertexColor', geometry);
-
-        return vao;
-    }
-
-    createElementArrayBuffer(material) {
-        const buffer = this.gl.createBuffer();
-        this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, buffer);
-        this.gl.bufferData(this.gl.ELEMENT_ARRAY_BUFFER, material.getIndicesAsUint32Array(), this.gl.STATIC_DRAW);
-        return buffer;
-    }
-
     resize() {
         const w = this.domNode.clientWidth;
         const h = this.domNode.clientHeight;
@@ -1746,25 +1432,24 @@ class TestRenderer {
     cacheRenderable(renderable) {
         const gl = this.gl;
         const materialClassName = renderable.material.constructor.name;
-        const shaderData = ShaderBuilder[materialClassName].buildShader(TestRenderer.SHADER_LAYOUT_LOCATIONS);
+        const shaderData = ShaderBuilder[materialClassName].buildShader(WebGLUtils.SHADER_LAYOUT_LOCATIONS);
 
-        const vertexShader = this.createShader(this.gl.VERTEX_SHADER, shaderData.vertexShaderSourceCode);
-        const fragmentShader = this.createShader(this.gl.FRAGMENT_SHADER, shaderData.fragmentShaderSourceCode);
-        const shader = this.createProgram(vertexShader, fragmentShader);
-        console.log('cache called');
+        const vertexShader = WebGLUtils.createShader(gl, gl.VERTEX_SHADER, shaderData.vertexShaderSourceCode);
+        const fragmentShader = WebGLUtils.createShader(gl, gl.FRAGMENT_SHADER, shaderData.fragmentShaderSourceCode);
+        const shader = WebGLUtils.createProgram(gl, vertexShader, fragmentShader);
 
-        const activeUniformsCount = this.gl.getProgramParameter(shader, this.gl.ACTIVE_UNIFORMS);
+        const activeUniformsCount = gl.getProgramParameter(shader, gl.ACTIVE_UNIFORMS);
         const uniforms = [];
 
         for (let u = 0; u < activeUniformsCount; u++) {
-            const uniformInfo = this.gl.getActiveUniform(shader, u);
+            const uniformInfo = gl.getActiveUniform(shader, u);
             const uniformLocation = gl.getUniformLocation(shader, uniformInfo.name);
             uniforms.push(new Uniform(gl, uniformLocation, uniformInfo.name, uniformInfo.type));
         }
 
         const cachedRenderable = {
-            vao: this.createVertexArray(renderable.geometry),
-            indices: this.createElementArrayBuffer(renderable.material),
+            vao: WebGLUtils.createVertexArray(gl, renderable.geometry),
+            indices: WebGLUtils.createElementArrayBuffer(gl, renderable.material),
             shader,
             uniforms,
         };
@@ -1822,4 +1507,4 @@ class TestRenderer {
     }
 }
 
-export { Component, DirectionalLight, Entity, Geometry, Mat3, Mat4, OrthographicCamera, PerspectiveCamera, Quat, StandardMaterial, TestRenderer, Transform3D, Vec2, Vec3, Vec4, WebGl2Renderer as WebGL2Renderer, World };
+export { Component, DirectionalLight, Entity, Geometry, Mat3, Mat4, OrthographicCamera, PerspectiveCamera, Quat, StandardMaterial, Transform3D, Vec2, Vec3, Vec4, WebGL2Renderer, WebGLUtils, World };
