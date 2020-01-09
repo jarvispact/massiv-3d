@@ -62,7 +62,7 @@ class WebGL2Renderer {
     cacheRenderable(renderable) {
         const gl = this.gl;
         const materialClassName = renderable.material.constructor.name;
-        const shaderData = ShaderBuilder[materialClassName].buildShader(WebGLUtils.SHADER_LAYOUT_LOCATIONS);
+        const shaderData = ShaderBuilder[materialClassName].buildShader();
 
         const vertexShader = WebGLUtils.createShader(gl, gl.VERTEX_SHADER, shaderData.vertexShaderSourceCode);
         const fragmentShader = WebGLUtils.createShader(gl, gl.FRAGMENT_SHADER, shaderData.fragmentShaderSourceCode);

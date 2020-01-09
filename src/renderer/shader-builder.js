@@ -1,17 +1,19 @@
 /* eslint-disable max-len */
 
+import WebGLUtils from './webgl-utils';
+
 const ShaderBuilder = {
     StandardMaterial: {
-        buildShader(shaderLayoutLocations) {
+        buildShader() {
             const vertexShaderSource = `
                 #version 300 es
     
                 precision highp float;
                 precision highp int;
     
-                layout(location = ${shaderLayoutLocations.VERTEX}) in vec3 position;
-                layout(location = ${shaderLayoutLocations.NORMAL}) in vec3 normal;
-                layout(location = ${shaderLayoutLocations.UV}) in vec2 uv;
+                layout(location = ${WebGLUtils.SHADER_LAYOUT_LOCATIONS.VERTEX}) in vec3 position;
+                layout(location = ${WebGLUtils.SHADER_LAYOUT_LOCATIONS.NORMAL}) in vec3 normal;
+                layout(location = ${WebGLUtils.SHADER_LAYOUT_LOCATIONS.UV}) in vec2 uv;
     
                 uniform mat4 modelMatrix;
                 uniform mat4 mvp;

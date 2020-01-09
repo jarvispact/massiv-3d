@@ -1274,16 +1274,16 @@ const WebGLUtils = {
 
 const ShaderBuilder = {
     StandardMaterial: {
-        buildShader(shaderLayoutLocations) {
+        buildShader() {
             const vertexShaderSource = `
                 #version 300 es
     
                 precision highp float;
                 precision highp int;
     
-                layout(location = ${shaderLayoutLocations.VERTEX}) in vec3 position;
-                layout(location = ${shaderLayoutLocations.NORMAL}) in vec3 normal;
-                layout(location = ${shaderLayoutLocations.UV}) in vec2 uv;
+                layout(location = ${WebGLUtils.SHADER_LAYOUT_LOCATIONS.VERTEX}) in vec3 position;
+                layout(location = ${WebGLUtils.SHADER_LAYOUT_LOCATIONS.NORMAL}) in vec3 normal;
+                layout(location = ${WebGLUtils.SHADER_LAYOUT_LOCATIONS.UV}) in vec2 uv;
     
                 uniform mat4 modelMatrix;
                 uniform mat4 mvp;
@@ -1436,7 +1436,7 @@ class WebGL2Renderer {
     cacheRenderable(renderable) {
         const gl = this.gl;
         const materialClassName = renderable.material.constructor.name;
-        const shaderData = ShaderBuilder[materialClassName].buildShader(WebGLUtils.SHADER_LAYOUT_LOCATIONS);
+        const shaderData = ShaderBuilder[materialClassName].buildShader();
 
         const vertexShader = WebGLUtils.createShader(gl, gl.VERTEX_SHADER, shaderData.vertexShaderSourceCode);
         const fragmentShader = WebGLUtils.createShader(gl, gl.FRAGMENT_SHADER, shaderData.fragmentShaderSourceCode);
