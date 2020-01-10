@@ -5,10 +5,8 @@ class Uniform {
         this.gl = gl;
         this.location = location;
         this.name = name;
+        this.type = type;
         this.value = null;
-
-        const webglUniformTypeToUniformType = WebGLUtils.createUniformTypeLookupTable(gl);
-        this.type = webglUniformTypeToUniformType[type];
     }
 
     update(newValue) {

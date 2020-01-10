@@ -21,54 +21,61 @@
         <script src="./assets/massiv-3d.umd.js"></script>
         <script src="./assets/helpers.js"></script>
         <script type="text/javascript">
-            const { vertices, normals, uvs, indices } = DemoCube;
+            (async () => {
+                const { vertices, normals, uvs, indices } = DemoCube;
 
-            const domNode = document.getElementById('container');
-            const renderer = new MASSIV.WebGL2Renderer(domNode);
+                const [boxDiffuseMap, boxSpecularMap] = await Promise.all([
+                    MASSIV.ImageLoader.load('./assets/box-diffuse-texture.jpg'),
+                    MASSIV.ImageLoader.load('./assets/box-specular-texture.jpg'),
+                ]);
 
-            const world = new MASSIV.World();
+                const domNode = document.getElementById('container');
+                const renderer = new MASSIV.WebGL2Renderer(domNode);
 
-            const light = world.createEntity([
-                new MASSIV.DirectionalLight(new MASSIV.Vec3(0, 5, 0)),
-            ]);
+                const world = new MASSIV.World();
 
-            const light2 = world.createEntity([
-                new MASSIV.DirectionalLight(new MASSIV.Vec3(5, 5, 5)),
-            ]);
+                const light = world.createEntity([
+                    new MASSIV.DirectionalLight(new MASSIV.Vec3(5, 5, 5)),
+                ]);
 
-            const cameraPosition = new MASSIV.Vec3(0, 5, 10);
-            const camera = world.createEntity([
-                new MASSIV.Transform3D(cameraPosition),
-                new MASSIV.PerspectiveCamera(45, domNode.clientWidth / domNode.clientHeight, 0.1, 1000).lookAt(cameraPosition, new MASSIV.Vec3(0, 0, 0)),
-            ]);
+                const cameraPosition = new MASSIV.Vec3(0, 2, 4);
+                const camera = world.createEntity([
+                    new MASSIV.Transform3D(cameraPosition),
+                    new MASSIV.PerspectiveCamera(45, domNode.clientWidth / domNode.clientHeight, 0.1, 1000).lookAt(cameraPosition, new MASSIV.Vec3(0, 0, 0)),
+                ]);
 
-            const cube = world.createEntity([
-                new MASSIV.Transform3D(),
-                new MASSIV.Geometry(vertices, normals, uvs),
-                new MASSIV.StandardMaterial(indices, new MASSIV.Vec3(1, 0, 0)),
-            ]);
+                const material = new MASSIV.StandardMaterial(indices, new MASSIV.Vec3(1, 0, 0));
+                material.diffuseMap = boxDiffuseMap;
+                material.specularMap = boxSpecularMap;
 
-            const computeModelMatrixSystem = (world) => {
-                for (let i = 0; i < world.components.length; i++) {
-                    const component = world.components[i];
-                    if (component instanceof MASSIV.Transform3D) component.computeModelMatrix();
-                }
-            };
+                const cube = world.createEntity([
+                    new MASSIV.Transform3D(),
+                    new MASSIV.Geometry(vertices, normals, uvs),
+                    material,
+                ]);
 
-            const rotationSystem = (world, delta) => {
-                const cubeTransform = world.components.find(c => c.entityId === cube.id && c instanceof MASSIV.Transform3D);
-                cubeTransform.rotate(30 * delta, 30 * delta, 0);
-            };
+                const computeModelMatrixSystem = (world) => {
+                    for (let i = 0; i < world.components.length; i++) {
+                        const component = world.components[i];
+                        if (component instanceof MASSIV.Transform3D) component.computeModelMatrix();
+                    }
+                };
 
-            world.addSystem(computeModelMatrixSystem);
-            world.addSystem(rotationSystem);
+                const rotationSystem = (world, delta) => {
+                    const cubeTransform = world.components.find(c => c.entityId === cube.id && c instanceof MASSIV.Transform3D);
+                    cubeTransform.rotate(30 * delta, 30 * delta, 0);
+                };
 
-            const update = (delta) => {
-                for (let i = 0; i < world.systems.length; i++) { world.systems[i](world, delta); }
-                renderer.render(world);
-            };
+                world.addSystem(computeModelMatrixSystem);
+                world.addSystem(rotationSystem);
 
-            createUpdateLoop(domNode, update);
+                const update = (delta) => {
+                    for (let i = 0; i < world.systems.length; i++) { world.systems[i](world, delta); }
+                    renderer.render(world);
+                };
+
+                createUpdateLoop(domNode, update);
+            })();
         </script>
     </body>
 </html>

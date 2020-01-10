@@ -109,6 +109,7 @@ const createUniformTypeLookupTable = (gl) => ({
     [gl.FLOAT_VEC3]: 'vec3',
     [gl.FLOAT]: 'float',
     [gl.INT]: 'int',
+    [gl.SAMPLER_2D]: 'sampler2D',
 });
 
 const uniformTypeToUpdateUniformFunction = {
@@ -117,6 +118,7 @@ const uniformTypeToUpdateUniformFunction = {
     vec3: (gl, location, value) => gl.uniform3fv(location, value),
     float: (gl, location, value) => gl.uniform1f(location, value),
     int: (gl, location, value) => gl.uniform1i(location, value),
+    sampler2D: (gl, location, index) => gl.uniform1i(location, index),
 };
 
 const WebGLUtils = {

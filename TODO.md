@@ -1,10 +1,8 @@
 # TODO
 
-- refactor uniform buffers
-- add texture support to standard-material (diffuse, specular)
+- add support for multiple viewports
 - add obj-loader
 - add normal mapping
-- rename test-renderer to webgl-2-renderer
 - check performance
 - performance optimizations based on performance tests
 - define a clear ecs interface

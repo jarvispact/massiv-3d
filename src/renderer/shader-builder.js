@@ -4,7 +4,10 @@ import WebGLUtils from './webgl-utils';
 
 const ShaderBuilder = {
     StandardMaterial: {
-        buildShader() {
+        buildShader(material) {
+            const useDiffuseMap = !!material.diffuseMap;
+            const useSpecularMap = !!material.specularMap;
+
             const vertexShaderSource = `
                 #version 300 es
     
@@ -33,6 +36,9 @@ const ShaderBuilder = {
 
             const fragmentShaderSource = `
                 #version 300 es
+
+                ${useDiffuseMap ? '#define USE_DIFFUSE_MAP' : ''}
+                ${useSpecularMap ? '#define USE_SPECULAR_MAP' : ''}
     
                 precision highp float;
                 precision highp int;
@@ -49,6 +55,9 @@ const ShaderBuilder = {
                 uniform float specularExponent;
                 uniform float specularShininess;
 
+                uniform sampler2D diffuseMap;
+                uniform sampler2D specularMap;
+
                 uniform vec3 cameraPosition;
                 uniform vec3 dirLightDirection[MAX_DIRECTIONAL_LIGHTS];
                 uniform vec3 dirLightAmbientColor[MAX_DIRECTIONAL_LIGHTS];
@@ -60,6 +69,14 @@ const ShaderBuilder = {
     
                 vec3 CalcDirLight(vec3 dirLightDirection, vec3 dirLightAmbientColor, vec3 dirLightDiffuseColor, vec3 dirLightSpecularColor, vec3 normal, vec3 viewDir)
                 {
+                    #ifdef USE_DIFFUSE_MAP
+                    vec3 diffuseColor = texture(diffuseMap, vUv).xyz;
+                    #endif
+
+                    #ifdef USE_SPECULAR_MAP
+                    vec3 specularColor = texture(specularMap, vUv).xyz;
+                    #endif
+
                     vec3 lightDir = normalize(dirLightDirection);
                     float diff = max(dot(normal, lightDir), 0.0);
                     vec3 reflectDir = reflect(-lightDir, normal);

@@ -9,6 +9,8 @@ class StandardMaterial extends AbstractMaterial {
         this.ambientIntensity = ambientIntensity || 0.1;
         this.specularExponent = specularExponent || 0.5;
         this.specularShininess = specularShininess || 256;
+        this.diffuseMap = null;
+        this.specularMap = null;
     }
 
     getAmbientIntensity() {

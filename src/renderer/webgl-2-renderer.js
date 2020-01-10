@@ -48,6 +48,7 @@ class WebGL2Renderer {
         this.gl.depthFunc(this.gl.LEQUAL);
         this.gl.clearColor(0, 0, 0, 1);
 
+        this.webglUniformTypeToUniformType = WebGLUtils.createUniformTypeLookupTable(this.gl);
         this.renderableCache = {};
     }
 
@@ -62,7 +63,7 @@ class WebGL2Renderer {
     cacheRenderable(renderable) {
         const gl = this.gl;
         const materialClassName = renderable.material.constructor.name;
-        const shaderData = ShaderBuilder[materialClassName].buildShader();
+        const shaderData = ShaderBuilder[materialClassName].buildShader(renderable.material);
 
         const vertexShader = WebGLUtils.createShader(gl, gl.VERTEX_SHADER, shaderData.vertexShaderSourceCode);
         const fragmentShader = WebGLUtils.createShader(gl, gl.FRAGMENT_SHADER, shaderData.fragmentShaderSourceCode);
@@ -70,11 +71,22 @@ class WebGL2Renderer {
 
         const activeUniformsCount = gl.getProgramParameter(shader, gl.ACTIVE_UNIFORMS);
         const uniforms = [];
+        const textures = {};
+
+        const textureLookupTable = {
+            diffuseMap: renderable.material.diffuseMap,
+            specularMap: renderable.material.specularMap,
+        };
 
         for (let u = 0; u < activeUniformsCount; u++) {
             const uniformInfo = gl.getActiveUniform(shader, u);
             const uniformLocation = gl.getUniformLocation(shader, uniformInfo.name);
-            uniforms.push(new Uniform(gl, uniformLocation, uniformInfo.name, uniformInfo.type));
+            const uniformType = this.webglUniformTypeToUniformType[uniformInfo.type];
+            uniforms.push(new Uniform(gl, uniformLocation, uniformInfo.name, uniformType));
+
+            if (this.webglUniformTypeToUniformType[uniformInfo.type] === 'sampler2D') {
+                textures[uniformInfo.name] = WebGLUtils.createTexture(gl, textureLookupTable[uniformInfo.name]);
+            }
         }
 
         const cachedRenderable = {
@@ -82,6 +94,7 @@ class WebGL2Renderer {
             indices: WebGLUtils.createElementArrayBuffer(gl, renderable.material),
             shader,
             uniforms,
+            textures,
         };
 
         this.renderableCache[renderable.id] = cachedRenderable;
@@ -125,10 +138,20 @@ class WebGL2Renderer {
                 numDirLights: directionalLights.length,
             };
 
+            let textureIndex = 0;
             for (let u = 0; u < cachedRenderable.uniforms.length; u++) {
                 const uniform = cachedRenderable.uniforms[u];
                 const uniformValue = uniformValueLookupTable[uniform.name];
-                uniform.update(uniformValue);
+
+                // TODO: do we need to call it every frame or only when texture changes ?
+                if (uniform.type === 'sampler2D') {
+                    this.gl.activeTexture(this.gl.TEXTURE0 + textureIndex);
+                    this.gl.bindTexture(this.gl.TEXTURE_2D, cachedRenderable.textures[uniform.name]);
+                    uniform.update(textureIndex);
+                    textureIndex++;
+                } else {
+                    uniform.update(uniformValue);
+                }
             }
 
             this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, cachedRenderable.indices);
