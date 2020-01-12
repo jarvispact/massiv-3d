@@ -22,12 +22,15 @@
         <script src="./assets/helpers.js"></script>
         <script type="text/javascript">
             (async () => {
-                const { vertices, normals, uvs, indices } = DemoCube;
-
-                const [boxDiffuseMap, boxSpecularMap] = await Promise.all([
-                    MASSIV.ImageLoader.load('./assets/box-diffuse-texture.jpg'),
-                    MASSIV.ImageLoader.load('./assets/box-specular-texture.jpg'),
+                const [boxDiffuseMap] = await Promise.all([
+                    MASSIV.ImageLoader.load('./assets/earth-diffuse-texture.jpg'),
+                    // MASSIV.ImageLoader.load('./assets/box-specular-texture.jpg'),
                 ]);
+
+                const objData = await MASSIV.ObjLoader.load('./assets/earth.obj');
+                const objects = MASSIV.ObjParser.parse(objData);
+                const [{ vertices, normals, uvs, materials }] = objects;
+                const { indices } = materials[0];
 
                 const domNode = document.getElementById('container');
                 const renderer = new MASSIV.WebGL2Renderer(domNode);
@@ -38,7 +41,11 @@
                     new MASSIV.DirectionalLight(new MASSIV.Vec3(5, 5, 5)),
                 ]);
 
-                const cameraPosition = new MASSIV.Vec3(0, 2, 4);
+                const light2 = world.createEntity([
+                    new MASSIV.DirectionalLight(new MASSIV.Vec3(-5, 5, 5)),
+                ]);
+
+                const cameraPosition = new MASSIV.Vec3(0, 3, 10);
                 const camera = world.createEntity([
                     new MASSIV.Transform3D(cameraPosition),
                     new MASSIV.PerspectiveCamera(45, domNode.clientWidth / domNode.clientHeight, 0.1, 1000).lookAt(cameraPosition, new MASSIV.Vec3(0, 0, 0)),
@@ -46,10 +53,12 @@
 
                 const material = new MASSIV.StandardMaterial(indices, new MASSIV.Vec3(1, 0, 0));
                 material.diffuseMap = boxDiffuseMap;
-                material.specularMap = boxSpecularMap;
+                // material.specularMap = boxSpecularMap;
 
-                const cube = world.createEntity([
-                    new MASSIV.Transform3D(),
+                const transform = new MASSIV.Transform3D();
+                transform.scale(0.01, 0.01, 0.01);
+                const earth = world.createEntity([
+                    transform,
                     new MASSIV.Geometry(vertices, normals, uvs),
                     material,
                 ]);
@@ -62,8 +71,8 @@
                 };
 
                 const rotationSystem = (world, delta) => {
-                    const cubeTransform = world.components.find(c => c.entityId === cube.id && c instanceof MASSIV.Transform3D);
-                    cubeTransform.rotate(30 * delta, 30 * delta, 0);
+                    const earthTransform = world.components.find(c => c.entityId === earth.id && c instanceof MASSIV.Transform3D);
+                    earthTransform.rotate(30 * delta, 30 * delta, 0);
                 };
 
                 world.addSystem(computeModelMatrixSystem);

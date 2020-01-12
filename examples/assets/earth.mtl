@@ -1,0 +1,27 @@
+# Blender MTL File: 'None'
+# Material Count: 2
+
+newmtl 01___Default
+Ns 10.000002
+Ka 1.000000 1.000000 1.000000
+Kd 0.000000 0.000000 0.000000
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 1
+map_Bump /home/jarvispact/Downloads/h5uo4n0v569s-earth/4096_bump.jpg
+map_Kd /home/jarvispact/Downloads/h5uo4n0v569s-earth/4096_earth.jpg
+map_Ke /home/jarvispact/Downloads/h5uo4n0v569s-earth/4096_night_lights.jpg
+
+newmtl 02___Default
+Ns 10.000002
+Ka 1.000000 1.000000 1.000000
+Kd 0.588200 0.588200 0.588200
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 1
+map_Kd /home/jarvispact/Downloads/h5uo4n0v569s-earth/4096_clouds.jpg
+map_d /home/jarvispact/Downloads/h5uo4n0v569s-earth/4096_clouds.jpg
