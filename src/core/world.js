@@ -68,6 +68,12 @@ class World {
     addSystem(system) {
         this.systems.push(system);
     }
+
+    update(delta) {
+        for (let i = 0; i < this.systems.length; i++) {
+            this.systems[i](this, delta);
+        }
+    }
 }
 
 export default World;

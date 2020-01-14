@@ -21,61 +21,78 @@
         <script src="./assets/massiv-3d.umd.js"></script>
         <script src="./assets/helpers.js"></script>
         <script type="text/javascript">
-            const { vertices, normals, uvs, indices } = DemoCube;
+            (async () => {
+                const [girlSittingData, girlStandingData] = await Promise.all([
+                    MASSIV.ObjLoader.load('./assets/high-poly/girl-sitting.obj'),
+                    MASSIV.ObjLoader.load('./assets/high-poly/girl-standing.obj'),
+                ]);
 
-            const domNode = document.getElementById('container');
-            const renderer = new MASSIV.WebGL2Renderer(domNode);
+                const [[girlSitting], [girlStanding]] = [
+                    MASSIV.ObjParser.parse(girlSittingData),
+                    MASSIV.ObjParser.parse(girlStandingData)
+                ];
 
-            const world = new MASSIV.World();
+                const domNode = document.getElementById('container');
+                const renderer = new MASSIV.WebGL2Renderer(domNode);
 
-            const light = world.createEntity([
-                new MASSIV.DirectionalLight(new MASSIV.Vec3(0, 5, 0)),
-            ]);
+                const world = new MASSIV.World();
+                createDefaultLightAndCamera(domNode, world);
 
-            const cameraPosition = new MASSIV.Vec3(0, 20, 50);
-            const camera = world.createEntity([
-                new MASSIV.Transform3D(cameraPosition),
-                new MASSIV.PerspectiveCamera(45, domNode.clientWidth / domNode.clientHeight, 0.1, 1000).lookAt(cameraPosition, new MASSIV.Vec3(0, 0, 0)),
-            ]);
+                const sittingGirl = world.createEntity([
+                    new MASSIV.Transform3D(new MASSIV.Vec3(6, -3, 0), null, new MASSIV.Vec3(1.5, 1.5, 1.5)),
+                    new MASSIV.Geometry(girlSitting.vertices, girlSitting.normals, girlSitting.uvs),
+                    new MASSIV.StandardMaterial(girlSitting.materials[0].indices, new MASSIV.Vec3(1, 0, 0)),
+                ]);
 
-            const cubeArray = [];
-            let sizeX = 15;
-            let sizeY = 15;
-            let sizeZ = 15;
+                const standingGirl = world.createEntity([
+                    new MASSIV.Transform3D(new MASSIV.Vec3(3, -3, 0), null, new MASSIV.Vec3(1.5, 1.5, 1.5)),
+                    new MASSIV.Geometry(girlStanding.vertices, girlStanding.normals, girlStanding.uvs),
+                    new MASSIV.StandardMaterial(girlStanding.materials[0].indices, new MASSIV.Vec3(0, 1, 0)),
+                ]);
 
-            for (let x = -15; x < sizeX; x += 3) {
-                for (let y = -15; y < sizeY; y += 3) {
-                    for (let z = -15; z < sizeX; z += 3) {
-                        world.createEntity([
-                            new MASSIV.Transform3D(new MASSIV.Vec3(x, y, z)),
-                            new MASSIV.Geometry(vertices, normals, uvs),
-                            new MASSIV.StandardMaterial(indices, new MASSIV.Vec3(1, 0, 0)),
-                        ]);
+                const sittingGirl2 = world.createEntity([
+                    new MASSIV.Transform3D(new MASSIV.Vec3(-3, -3, 0), null, new MASSIV.Vec3(1.5, 1.5, 1.5)),
+                    new MASSIV.Geometry(girlSitting.vertices, girlSitting.normals, girlSitting.uvs),
+                    new MASSIV.StandardMaterial(girlSitting.materials[0].indices, new MASSIV.Vec3(1, 0, 0)),
+                ]);
+
+                const standingGirl2 = world.createEntity([
+                    new MASSIV.Transform3D(new MASSIV.Vec3(-6, -3, 0), null, new MASSIV.Vec3(1.5, 1.5, 1.5)),
+                    new MASSIV.Geometry(girlStanding.vertices, girlStanding.normals, girlStanding.uvs),
+                    new MASSIV.StandardMaterial(girlStanding.materials[0].indices, new MASSIV.Vec3(0, 1, 0)),
+                ]);
+
+                const computeModelMatrixSystem = (world) => {
+                    for (let i = 0; i < world.components.length; i++) {
+                        const component = world.components[i];
+                        if (component instanceof MASSIV.Transform3D) component.computeModelMatrix();
                     }
-                }
-            }
+                };
 
-            const computeModelMatrixSystem = (world) => {
-                for (let i = 0; i < world.components.length; i++) {
-                    const component = world.components[i];
-                    if (component instanceof MASSIV.Transform3D) component.computeModelMatrix();
-                }
-            };
+                const rotationSystem = (world, delta) => {
+                    const sittingGirlTransform = sittingGirl.getComponents().find(c => c instanceof MASSIV.Transform3D);
+                    sittingGirlTransform.rotate(0, 30 * delta, 0);
 
-            const rotationSystem = (world, delta) => {
-                const cubeTransforms = world.components.filter(c => c instanceof MASSIV.Transform3D);
-                cubeTransforms.forEach(c => c.rotate(30 * delta, 30 * delta, 0));
-            };
+                    const standingGirlTransform = standingGirl.getComponents().find(c => c instanceof MASSIV.Transform3D);
+                    standingGirlTransform.rotate(0, 30 * delta, 0);
 
-            world.addSystem(computeModelMatrixSystem);
-            world.addSystem(rotationSystem);
+                    const sittingGirl2Transform = sittingGirl2.getComponents().find(c => c instanceof MASSIV.Transform3D);
+                    sittingGirl2Transform.rotate(0, 30 * delta, 0);
 
-            const update = (delta) => {
-                for (let i = 0; i < world.systems.length; i++) { world.systems[i](world, delta); }
-                renderer.render(world);
-            };
+                    const standingGirl2Transform = standingGirl2.getComponents().find(c => c instanceof MASSIV.Transform3D);
+                    standingGirl2Transform.rotate(0, 30 * delta, 0);
+                };
 
-            createUpdateLoop(domNode, update);
+                world.addSystem(computeModelMatrixSystem);
+                world.addSystem(rotationSystem);
+
+                const update = (delta) => {
+                    world.update(delta);
+                    renderer.render(world);
+                };
+
+                createUpdateLoop(domNode, update);
+            })();
         </script>
     </body>
 </html>

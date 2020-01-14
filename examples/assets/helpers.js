@@ -156,3 +156,17 @@ const createUpdateLoop = (domNode, update) => {
 
     requestAnimationFrame(tick);
 };
+
+const createDefaultLightAndCamera = (domNode, world) => {
+    const light = world.createEntity([
+        new MASSIV.DirectionalLight(new MASSIV.Vec3(5, 5, 5)),
+    ]);
+
+    const cameraPosition = new MASSIV.Vec3(0, 3, 10);
+    const camera = world.createEntity([
+        new MASSIV.Transform3D(cameraPosition),
+        new MASSIV.PerspectiveCamera(45, domNode.clientWidth / domNode.clientHeight, 0.1, 1000).lookAt(cameraPosition, new MASSIV.Vec3(0, 0, 0)),
+    ]);
+
+    return {light, camera};
+};

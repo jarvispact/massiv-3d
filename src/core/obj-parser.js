@@ -5,6 +5,7 @@ const vertexUvRegex = /^vt\s(\S+)\s(\S+)$/;
 const vertexNormalRegex = /^vn\s(\S+)\s(\S+)\s(\S+)$/;
 const faceRegex = /^f\s(\S+)\s(\S+)\s(\S+)$/;
 const vnuRegex = /^(\d{1,})\/(\d{1,})\/(\d{1,})$/;
+const vnRegex = /^(\d{1,})\/\/(\d{1,})$/;
 
 const toFloat = val => Number.parseFloat(val);
 const toInt = val => Number.parseInt(val, 10);
@@ -72,6 +73,7 @@ const ObjParser = {
                 const currentMaterial = currentObject.materials[currentObject.materials.length - 1];
                 const [, firstVertex, secondVertex, thirdVertex] = faceMatch;
 
+                // VERTEX/UV/NORMAL
                 const firstVertexVnuMatch = firstVertex.match(vnuRegex);
                 const secondVertexVnuMatch = secondVertex.match(vnuRegex);
                 const thirdVertexVnuMatch = thirdVertex.match(vnuRegex);
@@ -100,6 +102,33 @@ const ObjParser = {
 
                     currentObject.vertices.push(...vertices);
                     currentObject.uvs.push(...uvs);
+                    currentObject.normals.push(...normals);
+                    currentMaterial.indices.push(indexCounter, indexCounter + 1, indexCounter + 2);
+                    indexCounter += 3;
+                }
+
+                // VERTEX//NORMAL
+                const firstVertexVnMatch = firstVertex.match(vnRegex);
+                const secondVertexVnMatch = secondVertex.match(vnRegex);
+                const thirdVertexVnMatch = thirdVertex.match(vnRegex);
+                if (firstVertexVnMatch && secondVertexVnMatch && thirdVertexVnMatch) {
+                    const [, firstPositionIndex, firstNormalIndex] = firstVertexVnMatch;
+                    const [, secondPositionIndex, secondNormalIndex] = secondVertexVnMatch;
+                    const [, thirdPositionIndex, thirdNormalIndex] = thirdVertexVnMatch;
+
+                    const vertices = [
+                        ...currentObject.allVertices[correctIndex(toInt(firstPositionIndex))],
+                        ...currentObject.allVertices[correctIndex(toInt(secondPositionIndex))],
+                        ...currentObject.allVertices[correctIndex(toInt(thirdPositionIndex))],
+                    ];
+
+                    const normals = [
+                        ...currentObject.allNormals[correctIndex(toInt(firstNormalIndex))],
+                        ...currentObject.allNormals[correctIndex(toInt(secondNormalIndex))],
+                        ...currentObject.allNormals[correctIndex(toInt(thirdNormalIndex))],
+                    ];
+
+                    currentObject.vertices.push(...vertices);
                     currentObject.normals.push(...normals);
                     currentMaterial.indices.push(indexCounter, indexCounter + 1, indexCounter + 2);
                     indexCounter += 3;
