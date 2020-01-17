@@ -51,5 +51,8 @@
     "pre-commit": "^1.2.2",
     "rollup": "^1.27.14",
     "rollup-plugin-node-resolve": "^5.2.0"
+  },
+  "dependencies": {
+    "gl-matrix": "^3.1.0"
   }
 }

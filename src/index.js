@@ -1,4 +1,5 @@
-export * from './components';
+export * from 'gl-matrix';
+
 export * from './core';
-export * from './math';
 export * from './renderer';
+export * from './utils';

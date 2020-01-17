@@ -48,23 +48,23 @@ const createTexture = (gl, image) => {
 const arrayBufferLookupTable = {
     vertex: (geometry) => ({
         location: SHADER_LAYOUT_LOCATIONS.VERTEX,
-        bufferData: geometry.getVerticesAsFloat32Array(),
-        bufferSize: geometry.getVertexVectorSize(),
+        bufferData: Float32Array.from(geometry.vertices),
+        bufferSize: 3,
     }),
     normal: (geometry) => ({
         location: SHADER_LAYOUT_LOCATIONS.NORMAL,
-        bufferData: geometry.getNormalsAsFloat32Array(),
-        bufferSize: geometry.getNormalVectorSize(),
+        bufferData: Float32Array.from(geometry.normals),
+        bufferSize: 3,
     }),
     uv: (geometry) => ({
         location: SHADER_LAYOUT_LOCATIONS.UV,
-        bufferData: geometry.getUvsAsFloat32Array(),
-        bufferSize: geometry.getUvVectorSize(),
+        bufferData: Float32Array.from(geometry.uvs),
+        bufferSize: 2,
     }),
     vertexColor: (geometry) => ({
         location: SHADER_LAYOUT_LOCATIONS.VERTEX_COLOR,
-        bufferData: geometry.getVertexColorsAsFloat32Array(),
-        bufferSize: geometry.getVertexColorVectorSize(),
+        bufferData: Float32Array.from(geometry.vertexColors),
+        bufferSize: 4,
     }),
 };
 
@@ -80,7 +80,7 @@ const createArrayBuffer = (gl, type, geometry) => {
 const createElementArrayBuffer = (gl, material) => {
     const buffer = gl.createBuffer();
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, buffer);
-    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, material.getIndicesAsUint32Array(), gl.STATIC_DRAW);
+    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, Uint32Array.from(material.indices), gl.STATIC_DRAW);
     return buffer;
 };
 
@@ -88,16 +88,16 @@ const createVertexArray = (gl, geometry) => {
     const vao = gl.createVertexArray();
     gl.bindVertexArray(vao);
 
-    const hasPositions = geometry.getVertices().length > 0;
+    const hasPositions = geometry.vertices.length > 0;
     if (hasPositions) createArrayBuffer(gl, 'vertex', geometry);
 
-    const hasNormals = geometry.getNormals().length > 0;
+    const hasNormals = geometry.normals.length > 0;
     if (hasNormals) createArrayBuffer(gl, 'normal', geometry);
 
-    const hasUvs = geometry.getUvs().length > 0;
+    const hasUvs = geometry.uvs.length > 0;
     if (hasUvs) createArrayBuffer(gl, 'uv', geometry);
 
-    const hasColors = geometry.getVertexColors().length > 0;
+    const hasColors = geometry.vertexColors.length > 0;
     if (hasColors) createArrayBuffer(gl, 'vertexColor', geometry);
 
     return vao;

@@ -1,7 +1,7 @@
 # TODO
 
+- update camera projectionMatrix on resize automatically
 - add support for multiple viewports
-- add obj-loader
 - add normal mapping
 - check performance
 - performance optimizations based on performance tests

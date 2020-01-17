@@ -1,27 +1,24 @@
-import Entity from './entity';
-import Component from '../components/component';
-import AbstractMaterial from '../components/abstract-material';
-import Geometry from '../components/geometry';
-import Transform3D from '../components/transform-3d';
-import AbstractCamera from '../components/abstract-camera';
-import DirectionalLight from '../components/directional-light';
+import { mat4 } from 'gl-matrix';
+import { createEntity } from './entity';
+import { COMPONENT_TYPES, createDirectionalLightComponent, createPerspectiveCameraComponent, createTransform3DComponent } from './component';
 
 class World {
     constructor() {
-        this.entities = [];
-        this.components = [];
-        this.systems = [];
         this.subscribers = [];
 
-        this.componentsByType = {
-            MATERIAL: [],
-            TRANSFORM3D: [],
-            GEOMETRY: [],
-            CAMERA: [],
-            DIRECTIONAL_LIGHT: [],
-        };
+        this.componentsByType = Object.values(COMPONENT_TYPES).reduce((accum, type) => {
+            accum[type] = [];
+            return accum;
+        }, {});
 
         this.componentsByEntityId = {};
+    }
+
+    static get EVENTS() {
+        return {
+            INIT: 'INIT',
+            UPDATE: 'UPDATE',
+        };
     }
 
     on(event, fn) {
@@ -31,48 +28,72 @@ class World {
     emit(event, ...args) {
         for (let i = 0; i < this.subscribers.length; i++) {
             const subscriber = this.subscribers[i];
-            if (subscriber.event === event) subscriber.fn(...args);
+            if (subscriber.event === event) subscriber.fn(this, ...args);
         }
     }
 
-    createEntity(components) {
-        const entity = new Entity(this);
-        this.entities.push(entity);
+    registerEntity(components) {
+        const entity = createEntity(this);
 
         for (let i = 0; i < components.length; i++) {
             const component = components[i];
+            component.entityId = entity.id;
+            this.componentsByType[component.type].push(component);
 
-            if (component instanceof Component) {
-                component.setEntityId(entity.id);
-                this.components.push(component);
-
-                // duplicate data for faster access by entityId
-                if (!this.componentsByEntityId[entity.id]) this.componentsByEntityId[entity.id] = [];
-                this.componentsByEntityId[entity.id].push(component);
-
-                // duplicate data for faster access by type
-                if (component instanceof AbstractMaterial) this.componentsByType.MATERIAL.push(component);
-                if (component instanceof Geometry) this.componentsByType.GEOMETRY.push(component);
-                if (component instanceof Transform3D) this.componentsByType.TRANSFORM3D.push(component);
-                if (component instanceof AbstractCamera) this.componentsByType.CAMERA.push(component);
-                if (component instanceof DirectionalLight) this.componentsByType.DIRECTIONAL_LIGHT.push(component);
-            } else {
-                // eslint-disable-next-line no-console
-                console.error('createEntity constructor only accepts instances of class: "Component"', { component, entity });
-            }
+            if (!Array.isArray(this.componentsByEntityId[entity.id])) this.componentsByEntityId[entity.id] = [];
+            this.componentsByEntityId[entity.id].push(component);
         }
 
         return entity;
     }
 
-    addSystem(system) {
-        this.systems.push(system);
+    findComponentsByEntityId(entityId, typeFilters) {
+        if (!typeFilters) return this.componentsByEntityId[entityId];
+        return this.componentsByEntityId[entityId].filter(c => typeFilters.includes(c.type));
     }
 
-    update(delta) {
-        for (let i = 0; i < this.systems.length; i++) {
-            this.systems[i](this, delta);
-        }
+    findComponentByEntityId(entityId, typeFilters) {
+        return this.findComponentsByEntityId(entityId, typeFilters)[0];
+    }
+
+    findComponentsByType(type) {
+        return this.componentsByType[type];
+    }
+
+    createDefaultLight({ direction = [5, 5, 5] } = {}) {
+        return this.registerEntity([
+            createDirectionalLightComponent({ direction }),
+        ]);
+    }
+
+    createDefaultCamera({ canvas, position = [0, 3, 5], lookAt = [0, 0, 0] } = {}) {
+        const c = createPerspectiveCameraComponent({ aspect: canvas.clientWidth / canvas.clientHeight });
+        const t = createTransform3DComponent({ position });
+        const camera = this.registerEntity([c, t]);
+
+        mat4.lookAt(c.viewMatrix, t.position, lookAt, c.upVector);
+        mat4.perspective(c.projectionMatrix, c.fov, c.aspect, c.near, c.far);
+
+        return camera;
+    }
+
+    run() {
+        let then = 0;
+        const getDelta = (now) => {
+            now *= 0.001;
+            const delta = now - then;
+            then = now;
+            return delta;
+        };
+
+        this.emit(World.EVENTS.INIT);
+
+        const tick = (now) => {
+            this.emit(World.EVENTS.UPDATE, getDelta(now));
+            requestAnimationFrame(tick);
+        };
+
+        requestAnimationFrame(tick);
     }
 }
 

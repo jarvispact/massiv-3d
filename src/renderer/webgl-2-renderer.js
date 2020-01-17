@@ -1,47 +1,38 @@
 /* eslint-disable no-console, no-bitwise, prefer-destructuring */
 
-import Mat3 from '../math/mat3';
+import { mat4, mat3 } from 'gl-matrix';
 import WebGLUtils from './webgl-utils';
 import ShaderBuilder from './shader-builder';
-import Geometry from '../components/geometry';
-import Transform3D from '../components/transform-3d';
 import Uniform from './uniform';
 
-const setCanvasStyle = (canvas) => {
-    canvas.style.position = 'relative';
-    canvas.style.top = '0px';
-    canvas.style.left = '0px';
-    canvas.style.width = '100%';
-    canvas.style.height = '100%';
-};
-
-const getRenderables = (componentsByType, componentsByEntityId) => componentsByType.MATERIAL.map(m => ({
-    id: m.getEntityId(),
+const getRenderables = (componentsByType, componentsByEntityId) => componentsByType.STANDARD_MATERIAL.map(m => ({
+    id: m.entityId,
     material: m,
-    geometry: componentsByEntityId[m.getEntityId()].find(c => c instanceof Geometry),
-    transform: componentsByEntityId[m.getEntityId()].find(c => c instanceof Transform3D),
+    geometry: componentsByEntityId[m.entityId].find(c => c.type === 'GEOMETRY'),
+    transform: componentsByEntityId[m.entityId].find(c => c.type === 'TRANSFORM_3D'),
 }));
 
 const getActiveCamera = (componentsByType, componentsByEntityId) => {
-    const camera = componentsByType.CAMERA[0];
+    const camera = componentsByType.PERSPECTIVE_CAMERA[0];
     return {
         camera,
-        transform: componentsByEntityId[camera.getEntityId()].find(c => c instanceof Transform3D),
+        transform: componentsByEntityId[camera.entityId].find(c => c.type === 'TRANSFORM_3D'),
     };
 };
 
 const getDirectionalLights = (componentsByType) => componentsByType.DIRECTIONAL_LIGHT;
 
-const getLightValuesAsFlatArray = (lights, propertyName) => lights.flatMap(l => l[propertyName].getAsArray());
+const getLightValuesAsFlatArray = (lights, propertyName) => {
+    const flatValues = [];
+    for (let i = 0; i < lights.length; i++) flatValues.push(...lights[i][propertyName]);
+    return flatValues;
+};
 
 class WebGL2Renderer {
-    constructor(domNode) {
-        this.domNode = domNode;
-        this.canvas = document.createElement('canvas');
-        this.domNode.appendChild(this.canvas);
-        this.canvas.width = this.domNode.clientWidth;
-        this.canvas.height = this.domNode.clientHeight;
-        setCanvasStyle(this.canvas);
+    constructor(canvas) {
+        this.canvas = canvas;
+        this.canvas.width = this.canvas.clientWidth;
+        this.canvas.height = this.canvas.clientHeight;
 
         this.gl = this.canvas.getContext('webgl2');
         this.gl.enable(this.gl.DEPTH_TEST);
@@ -53,17 +44,20 @@ class WebGL2Renderer {
     }
 
     resize() {
-        const w = this.domNode.clientWidth;
-        const h = this.domNode.clientHeight;
-        this.canvas.width = w;
-        this.canvas.height = h;
-        this.gl.viewport(0, 0, this.canvas.width, this.canvas.height);
+        const c = this.gl.canvas;
+        const w = c.clientWidth;
+        const h = c.clientHeight;
+
+        if (c.width !== w || c.height !== h) {
+            c.width = w;
+            c.height = h;
+            this.gl.viewport(0, 0, c.width, c.height);
+        }
     }
 
     cacheRenderable(renderable) {
         const gl = this.gl;
-        const materialClassName = renderable.material.constructor.name;
-        const shaderData = ShaderBuilder[materialClassName].buildShader(renderable.material);
+        const shaderData = ShaderBuilder[renderable.material.type].buildShader(renderable.material);
 
         const vertexShader = WebGLUtils.createShader(gl, gl.VERTEX_SHADER, shaderData.vertexShaderSourceCode);
         const fragmentShader = WebGLUtils.createShader(gl, gl.FRAGMENT_SHADER, shaderData.fragmentShaderSourceCode);
@@ -102,7 +96,7 @@ class WebGL2Renderer {
     }
 
     render(world) {
-        this.gl.viewport(0, 0, this.canvas.width, this.canvas.height);
+        this.resize();
         this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT);
 
         const renderables = getRenderables(world.componentsByType, world.componentsByEntityId);
@@ -116,21 +110,21 @@ class WebGL2Renderer {
             this.gl.bindVertexArray(cachedRenderable.vao);
             this.gl.useProgram(cachedRenderable.shader);
 
-            const mv = activeCamera.camera.viewMatrix.clone().multiply(renderable.transform.modelMatrix);
-            const mvp = activeCamera.camera.projectionMatrix.clone().multiply(mv);
-            const normalMatrix = Mat3.normalMatrixFromMat4(mv);
+            const mv = mat4.multiply(mat4.create(), activeCamera.camera.viewMatrix, renderable.transform.modelMatrix);
+            const mvp = mat4.multiply(mat4.create(), activeCamera.camera.projectionMatrix, mv);
+            const normalMatrix = mat3.normalFromMat4(mat3.create(), mv);
 
             const uniformValueLookupTable = {
-                modelMatrix: renderable.transform.modelMatrix.getAsArray(),
-                normalMatrix: normalMatrix.getAsArray(),
-                mv: mv.getAsArray(),
-                mvp: mvp.getAsArray(),
-                diffuseColor: renderable.material.diffuseColor.getAsArray(),
-                specularColor: renderable.material.specularColor.getAsArray(),
+                modelMatrix: renderable.transform.modelMatrix,
+                normalMatrix,
+                mv,
+                mvp,
+                diffuseColor: renderable.material.diffuseColor,
+                specularColor: renderable.material.specularColor,
                 ambientIntensity: renderable.material.ambientIntensity,
                 specularExponent: renderable.material.specularExponent,
                 specularShininess: renderable.material.specularShininess,
-                cameraPosition: activeCamera.transform.position.getAsArray(),
+                cameraPosition: activeCamera.transform.position,
                 'dirLightDirection[0]': getLightValuesAsFlatArray(directionalLights, 'direction'),
                 'dirLightAmbientColor[0]': getLightValuesAsFlatArray(directionalLights, 'ambientColor'),
                 'dirLightDiffuseColor[0]': getLightValuesAsFlatArray(directionalLights, 'diffuseColor'),

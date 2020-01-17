@@ -3,7 +3,7 @@
 import WebGLUtils from './webgl-utils';
 
 const ShaderBuilder = {
-    StandardMaterial: {
+    STANDARD_MATERIAL: {
         buildShader(material) {
             const useDiffuseMap = !!material.diffuseMap;
             const useSpecularMap = !!material.specularMap;
