@@ -26,8 +26,11 @@
                 const renderer = new MASSIV.WebGL2Renderer(canvas);
 
                 const world = new MASSIV.World();
-                world.createDefaultLight();
                 world.createDefaultCamera({ canvas });
+
+                world.registerEntity([
+                    MASSIV.createDirectionalLightComponent({ direction: [5, 5, 5] }),
+                ]);
 
                 const objData = await MASSIV.ObjLoader.load('./assets/demo-cube/cube.obj');
                 const [{vertices, normals, uvs, materials}] = MASSIV.ObjParser.parse(objData);

@@ -7921,12 +7921,6 @@
           return this.componentsByType[type];
       }
 
-      createDefaultLight({ direction = [5, 5, 5] } = {}) {
-          return this.registerEntity([
-              createDirectionalLightComponent({ direction }),
-          ]);
-      }
-
       createDefaultCamera({ canvas, position = [0, 3, 5], lookAt: lookAt$1 = [0, 0, 0] } = {}) {
           const c = createPerspectiveCameraComponent({ aspect: canvas.clientWidth / canvas.clientHeight });
           const t = createTransform3DComponent({ position });

@@ -1,6 +1,6 @@
 import { mat4 } from 'gl-matrix';
 import { createEntity } from './entity';
-import { COMPONENT_TYPES, createDirectionalLightComponent, createPerspectiveCameraComponent, createTransform3DComponent } from './component';
+import { COMPONENT_TYPES, createPerspectiveCameraComponent, createTransform3DComponent } from './component';
 
 class World {
     constructor() {
@@ -58,12 +58,6 @@ class World {
 
     findComponentsByType(type) {
         return this.componentsByType[type];
-    }
-
-    createDefaultLight({ direction = [5, 5, 5] } = {}) {
-        return this.registerEntity([
-            createDirectionalLightComponent({ direction }),
-        ]);
     }
 
     createDefaultCamera({ canvas, position = [0, 3, 5], lookAt = [0, 0, 0] } = {}) {
