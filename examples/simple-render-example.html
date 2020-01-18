@@ -32,7 +32,7 @@
                 ]);
 
                 const objData = await MASSIV.ObjLoader.load('./assets/demo-cube/cube.obj');
-                const [{vertices, normals, uvs, materials}] = MASSIV.ObjParser.parse(objData);
+                const [{vertices, normals, uvs, materials}] = MASSIV.ObjParser.parse(objData);                
 
                 world.registerEntity([
                     MASSIV.createTransform3DComponent(),

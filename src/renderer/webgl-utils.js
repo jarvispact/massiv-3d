@@ -48,22 +48,22 @@ const createTexture = (gl, image) => {
 const arrayBufferLookupTable = {
     vertex: (geometry) => ({
         location: SHADER_LAYOUT_LOCATIONS.VERTEX,
-        bufferData: Float32Array.from(geometry.vertices),
+        bufferData: geometry.vertices,
         bufferSize: 3,
     }),
     normal: (geometry) => ({
         location: SHADER_LAYOUT_LOCATIONS.NORMAL,
-        bufferData: Float32Array.from(geometry.normals),
+        bufferData: geometry.normals,
         bufferSize: 3,
     }),
     uv: (geometry) => ({
         location: SHADER_LAYOUT_LOCATIONS.UV,
-        bufferData: Float32Array.from(geometry.uvs),
+        bufferData: geometry.uvs,
         bufferSize: 2,
     }),
     vertexColor: (geometry) => ({
         location: SHADER_LAYOUT_LOCATIONS.VERTEX_COLOR,
-        bufferData: Float32Array.from(geometry.vertexColors),
+        bufferData: geometry.vertexColors,
         bufferSize: 4,
     }),
 };
@@ -80,7 +80,7 @@ const createArrayBuffer = (gl, type, geometry) => {
 const createElementArrayBuffer = (gl, material) => {
     const buffer = gl.createBuffer();
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, buffer);
-    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, Uint32Array.from(material.indices), gl.STATIC_DRAW);
+    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, material.indices, gl.STATIC_DRAW);
     return buffer;
 };
 

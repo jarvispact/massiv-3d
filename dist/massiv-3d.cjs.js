@@ -7584,6 +7584,8 @@ var vec2 = /*#__PURE__*/Object.freeze({
   forEach: forEach$2
 });
 
+/* eslint-disable max-len */
+
 const COMPONENT_TYPES = {
     GEOMETRY: 'GEOMETRY',
     DIRECTIONAL_LIGHT: 'DIRECTIONAL_LIGHT',
@@ -7597,30 +7599,30 @@ const createGeometryComponent = (data = {}) => ({
     type: COMPONENT_TYPES.GEOMETRY,
     entityId: null,
 
-    vertices: data.vertices || [],
-    normals: data.normals || [],
-    uvs: data.uvs || [],
-    vertexColors: data.vertexColors || [],
+    vertices: Float32Array.from(data.vertices || []),
+    normals: Float32Array.from(data.normals || []),
+    uvs: Float32Array.from(data.uvs || []),
+    vertexColors: Float32Array.from(data.vertexColors || []),
 });
 
 const createDirectionalLightComponent = (data = {}) => ({
     type: COMPONENT_TYPES.DIRECTIONAL_LIGHT,
     entityId: null,
 
-    direction: data.direction || [],
-    ambientColor: data.ambientColor || fromValues$4(1, 1, 1),
-    diffuseColor: data.diffuseColor || fromValues$4(1, 1, 1),
-    specularColor: data.specularColor || fromValues$4(1, 1, 1),
+    direction: Float32Array.from(data.direction || []),
+    ambientColor: data.ambientColor ? fromValues$4(...data.ambientColor) : fromValues$4(1, 1, 1),
+    diffuseColor: data.diffuseColor ? fromValues$4(...data.diffuseColor) : fromValues$4(1, 1, 1),
+    specularColor: data.specularColor ? fromValues$4(...data.specularColor) : fromValues$4(1, 1, 1),
 });
 
 const createStandardMaterialComponent = (data = {}) => ({
     type: COMPONENT_TYPES.STANDARD_MATERIAL,
     entityId: null,
 
-    indices: data.indices || [],
+    indices: Uint32Array.from(data.indices || []),
 
-    diffuseColor: data.diffuseColor || fromValues$4(0.74, 0.38, 0.41),
-    specularColor: data.specularColor || fromValues$4(1, 1, 1),
+    diffuseColor: data.diffuseColor ? fromValues$4(...data.diffuseColor) : fromValues$4(0.74, 0.38, 0.41),
+    specularColor: data.specularColor ? fromValues$4(...data.specularColor) : fromValues$4(1, 1, 1),
     ambientIntensity: data.ambientIntensity || 0.1,
     specularExponent: data.specularExponent || 0.5,
     specularShininess: data.specularShininess || 256,
@@ -7632,19 +7634,19 @@ const createTransform3DComponent = (data = {}) => ({
     type: COMPONENT_TYPES.TRANSFORM_3D,
     entityId: null,
 
-    position: data.position || fromValues$4(0, 0, 0),
-    quaternion: data.quaternion || fromValues$6(0, 0, 0, 1),
-    scale: data.scale || fromValues$4(1, 1, 1),
-    modelMatrix: data.modelMatrix || fromValues$3(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1),
+    position: data.position ? fromValues$4(...data.position) : fromValues$4(0, 0, 0),
+    quaternion: data.quaternion ? fromValues$6(...data.quaternion) : fromValues$6(0, 0, 0, 1),
+    scale: data.scale ? fromValues$4(...data.scale) : fromValues$4(1, 1, 1),
+    modelMatrix: data.modelMatrix ? fromValues$3(...data.modelMatrix) : fromValues$3(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1),
 });
 
 const createPerspectiveCameraComponent = (data = {}) => ({
     type: COMPONENT_TYPES.PERSPECTIVE_CAMERA,
     entityId: null,
 
-    upVector: data.upVector || fromValues$4(0, 1, 0),
-    viewMatrix: data.viewMatrix || fromValues$3(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1),
-    projectionMatrix: data.projectionMatrix || fromValues$3(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1),
+    upVector: data.upVector ? fromValues$4(...data.upVector) : fromValues$4(0, 1, 0),
+    viewMatrix: data.viewMatrix ? fromValues$3(...data.viewMatrix) : fromValues$3(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1),
+    projectionMatrix: data.projectionMatrix ? fromValues$3(...data.projectionMatrix) : fromValues$3(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1),
 
     fov: data.fov || 45,
     aspect: data.aspect,
@@ -7656,9 +7658,9 @@ const createOrthographicCameraComponent = (data = {}) => ({
     type: COMPONENT_TYPES.ORTHOGRAPHIC_CAMERA,
     entityId: null,
 
-    upVector: data.upVector || fromValues$4(0, 1, 0),
-    viewMatrix: data.viewMatrix || fromValues$3(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1),
-    projectionMatrix: data.projectionMatrix || fromValues$3(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1),
+    upVector: data.upVector ? fromValues$4(...data.upVector) : fromValues$4(0, 1, 0),
+    viewMatrix: data.viewMatrix ? fromValues$3(...data.viewMatrix) : fromValues$3(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1),
+    projectionMatrix: data.projectionMatrix ? fromValues$3(...data.projectionMatrix) : fromValues$3(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1),
 
     left: data.left,
     right: data.right,
@@ -8000,22 +8002,22 @@ const createTexture = (gl, image) => {
 const arrayBufferLookupTable = {
     vertex: (geometry) => ({
         location: SHADER_LAYOUT_LOCATIONS.VERTEX,
-        bufferData: Float32Array.from(geometry.vertices),
+        bufferData: geometry.vertices,
         bufferSize: 3,
     }),
     normal: (geometry) => ({
         location: SHADER_LAYOUT_LOCATIONS.NORMAL,
-        bufferData: Float32Array.from(geometry.normals),
+        bufferData: geometry.normals,
         bufferSize: 3,
     }),
     uv: (geometry) => ({
         location: SHADER_LAYOUT_LOCATIONS.UV,
-        bufferData: Float32Array.from(geometry.uvs),
+        bufferData: geometry.uvs,
         bufferSize: 2,
     }),
     vertexColor: (geometry) => ({
         location: SHADER_LAYOUT_LOCATIONS.VERTEX_COLOR,
-        bufferData: Float32Array.from(geometry.vertexColors),
+        bufferData: geometry.vertexColors,
         bufferSize: 4,
     }),
 };
@@ -8032,7 +8034,7 @@ const createArrayBuffer = (gl, type, geometry) => {
 const createElementArrayBuffer = (gl, material) => {
     const buffer = gl.createBuffer();
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, buffer);
-    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, Uint32Array.from(material.indices), gl.STATIC_DRAW);
+    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, material.indices, gl.STATIC_DRAW);
     return buffer;
 };
 
