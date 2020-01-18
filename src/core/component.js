@@ -1,7 +1,7 @@
 /* eslint-disable max-len */
 import { vec3, quat, mat4 } from 'gl-matrix';
 
-export const COMPONENT_TYPES = {
+const types = {
     GEOMETRY: 'GEOMETRY',
     DIRECTIONAL_LIGHT: 'DIRECTIONAL_LIGHT',
     STANDARD_MATERIAL: 'STANDARD_MATERIAL',
@@ -10,8 +10,8 @@ export const COMPONENT_TYPES = {
     ORTHOGRAPHIC_CAMERA: 'ORTHOGRAPHIC_CAMERA',
 };
 
-export const createGeometryComponent = (data = {}) => ({
-    type: COMPONENT_TYPES.GEOMETRY,
+const createGeometry = (data = {}) => ({
+    type: types.GEOMETRY,
     entityId: null,
 
     vertices: Float32Array.from(data.vertices || []),
@@ -20,8 +20,8 @@ export const createGeometryComponent = (data = {}) => ({
     vertexColors: Float32Array.from(data.vertexColors || []),
 });
 
-export const createDirectionalLightComponent = (data = {}) => ({
-    type: COMPONENT_TYPES.DIRECTIONAL_LIGHT,
+const createDirectionalLight = (data = {}) => ({
+    type: types.DIRECTIONAL_LIGHT,
     entityId: null,
 
     direction: Float32Array.from(data.direction || []),
@@ -30,8 +30,8 @@ export const createDirectionalLightComponent = (data = {}) => ({
     specularColor: data.specularColor ? vec3.fromValues(...data.specularColor) : vec3.fromValues(1, 1, 1),
 });
 
-export const createStandardMaterialComponent = (data = {}) => ({
-    type: COMPONENT_TYPES.STANDARD_MATERIAL,
+const createStandardMaterial = (data = {}) => ({
+    type: types.STANDARD_MATERIAL,
     entityId: null,
 
     indices: Uint32Array.from(data.indices || []),
@@ -45,8 +45,8 @@ export const createStandardMaterialComponent = (data = {}) => ({
     specularMap: data.specularMap || null,
 });
 
-export const createTransform3DComponent = (data = {}) => ({
-    type: COMPONENT_TYPES.TRANSFORM_3D,
+const createTransform3D = (data = {}) => ({
+    type: types.TRANSFORM_3D,
     entityId: null,
 
     position: data.position ? vec3.fromValues(...data.position) : vec3.fromValues(0, 0, 0),
@@ -55,8 +55,8 @@ export const createTransform3DComponent = (data = {}) => ({
     modelMatrix: data.modelMatrix ? mat4.fromValues(...data.modelMatrix) : mat4.fromValues(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1),
 });
 
-export const createPerspectiveCameraComponent = (data = {}) => ({
-    type: COMPONENT_TYPES.PERSPECTIVE_CAMERA,
+const createPerspectiveCamera = (data = {}) => ({
+    type: types.PERSPECTIVE_CAMERA,
     entityId: null,
 
     upVector: data.upVector ? vec3.fromValues(...data.upVector) : vec3.fromValues(0, 1, 0),
@@ -69,8 +69,8 @@ export const createPerspectiveCameraComponent = (data = {}) => ({
     far: data.far || 1000,
 });
 
-export const createOrthographicCameraComponent = (data = {}) => ({
-    type: COMPONENT_TYPES.ORTHOGRAPHIC_CAMERA,
+const createOrthographicCamera = (data = {}) => ({
+    type: types.ORTHOGRAPHIC_CAMERA,
     entityId: null,
 
     upVector: data.upVector ? vec3.fromValues(...data.upVector) : vec3.fromValues(0, 1, 0),
@@ -84,3 +84,15 @@ export const createOrthographicCameraComponent = (data = {}) => ({
     near: data.near,
     far: data.far,
 });
+
+const Component = {
+    types,
+    createGeometry,
+    createDirectionalLight,
+    createStandardMaterial,
+    createTransform3D,
+    createPerspectiveCamera,
+    createOrthographicCamera,
+};
+
+export default Component;

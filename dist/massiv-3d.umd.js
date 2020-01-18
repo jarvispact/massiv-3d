@@ -7588,7 +7588,7 @@
 
   /* eslint-disable max-len */
 
-  const COMPONENT_TYPES = {
+  const types = {
       GEOMETRY: 'GEOMETRY',
       DIRECTIONAL_LIGHT: 'DIRECTIONAL_LIGHT',
       STANDARD_MATERIAL: 'STANDARD_MATERIAL',
@@ -7597,8 +7597,8 @@
       ORTHOGRAPHIC_CAMERA: 'ORTHOGRAPHIC_CAMERA',
   };
 
-  const createGeometryComponent = (data = {}) => ({
-      type: COMPONENT_TYPES.GEOMETRY,
+  const createGeometry = (data = {}) => ({
+      type: types.GEOMETRY,
       entityId: null,
 
       vertices: Float32Array.from(data.vertices || []),
@@ -7607,8 +7607,8 @@
       vertexColors: Float32Array.from(data.vertexColors || []),
   });
 
-  const createDirectionalLightComponent = (data = {}) => ({
-      type: COMPONENT_TYPES.DIRECTIONAL_LIGHT,
+  const createDirectionalLight = (data = {}) => ({
+      type: types.DIRECTIONAL_LIGHT,
       entityId: null,
 
       direction: Float32Array.from(data.direction || []),
@@ -7617,8 +7617,8 @@
       specularColor: data.specularColor ? fromValues$4(...data.specularColor) : fromValues$4(1, 1, 1),
   });
 
-  const createStandardMaterialComponent = (data = {}) => ({
-      type: COMPONENT_TYPES.STANDARD_MATERIAL,
+  const createStandardMaterial = (data = {}) => ({
+      type: types.STANDARD_MATERIAL,
       entityId: null,
 
       indices: Uint32Array.from(data.indices || []),
@@ -7632,8 +7632,8 @@
       specularMap: data.specularMap || null,
   });
 
-  const createTransform3DComponent = (data = {}) => ({
-      type: COMPONENT_TYPES.TRANSFORM_3D,
+  const createTransform3D = (data = {}) => ({
+      type: types.TRANSFORM_3D,
       entityId: null,
 
       position: data.position ? fromValues$4(...data.position) : fromValues$4(0, 0, 0),
@@ -7642,8 +7642,8 @@
       modelMatrix: data.modelMatrix ? fromValues$3(...data.modelMatrix) : fromValues$3(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1),
   });
 
-  const createPerspectiveCameraComponent = (data = {}) => ({
-      type: COMPONENT_TYPES.PERSPECTIVE_CAMERA,
+  const createPerspectiveCamera = (data = {}) => ({
+      type: types.PERSPECTIVE_CAMERA,
       entityId: null,
 
       upVector: data.upVector ? fromValues$4(...data.upVector) : fromValues$4(0, 1, 0),
@@ -7656,8 +7656,8 @@
       far: data.far || 1000,
   });
 
-  const createOrthographicCameraComponent = (data = {}) => ({
-      type: COMPONENT_TYPES.ORTHOGRAPHIC_CAMERA,
+  const createOrthographicCamera = (data = {}) => ({
+      type: types.ORTHOGRAPHIC_CAMERA,
       entityId: null,
 
       upVector: data.upVector ? fromValues$4(...data.upVector) : fromValues$4(0, 1, 0),
@@ -7671,6 +7671,16 @@
       near: data.near,
       far: data.far,
   });
+
+  const Component = {
+      types,
+      createGeometry,
+      createDirectionalLight,
+      createStandardMaterial,
+      createTransform3D,
+      createPerspectiveCamera,
+      createOrthographicCamera,
+  };
 
   /* eslint-disable no-bitwise, no-nested-ternary, no-mixed-operators */
 
@@ -7693,7 +7703,7 @@
       return uuid;
   };
 
-  const createEntity = (world) => {
+  const create$9 = (world) => {
       const id = uuid();
 
       const getComponents = (type) => {
@@ -7708,6 +7718,10 @@
           getComponents,
           getComponent,
       };
+  };
+
+  const Entity = {
+      create: create$9,
   };
 
   const ImageLoader = {
@@ -7869,7 +7883,7 @@
       constructor() {
           this.subscribers = [];
 
-          this.componentsByType = Object.values(COMPONENT_TYPES).reduce((accum, type) => {
+          this.componentsByType = Object.values(Component.types).reduce((accum, type) => {
               accum[type] = [];
               return accum;
           }, {});
@@ -7896,7 +7910,7 @@
       }
 
       registerEntity(components) {
-          const entity = createEntity(this);
+          const entity = Entity.create(this);
 
           for (let i = 0; i < components.length; i++) {
               const component = components[i];
@@ -7924,8 +7938,8 @@
       }
 
       createDefaultCamera({ canvas, position = [0, 3, 5], lookAt: lookAt$1 = [0, 0, 0] } = {}) {
-          const c = createPerspectiveCameraComponent({ aspect: canvas.clientWidth / canvas.clientHeight });
-          const t = createTransform3DComponent({ position });
+          const c = Component.createPerspectiveCamera({ aspect: canvas.clientWidth / canvas.clientHeight });
+          const t = Component.createTransform3D({ position });
           const camera = this.registerEntity([c, t]);
 
           lookAt(c.viewMatrix, t.position, lookAt$1, c.upVector);
@@ -8366,20 +8380,14 @@
 
   const rangeMap = (value, x1, y1, x2, y2) => ((value - x1) * (y2 - x2)) / ((y1 - x1) + x2);
 
-  exports.COMPONENT_TYPES = COMPONENT_TYPES;
+  exports.Component = Component;
+  exports.Entity = Entity;
   exports.ImageLoader = ImageLoader;
   exports.ObjLoader = ObjLoader;
   exports.ObjParser = ObjParser;
   exports.WebGL2Renderer = WebGL2Renderer;
   exports.WebGLUtils = WebGLUtils;
   exports.World = World;
-  exports.createDirectionalLightComponent = createDirectionalLightComponent;
-  exports.createEntity = createEntity;
-  exports.createGeometryComponent = createGeometryComponent;
-  exports.createOrthographicCameraComponent = createOrthographicCameraComponent;
-  exports.createPerspectiveCameraComponent = createPerspectiveCameraComponent;
-  exports.createStandardMaterialComponent = createStandardMaterialComponent;
-  exports.createTransform3DComponent = createTransform3DComponent;
   exports.glMatrix = common;
   exports.mat2 = mat2;
   exports.mat2d = mat2d;

@@ -1,6 +1,6 @@
 import uuid from '../utils/uuid';
 
-export const createEntity = (world) => {
+const create = (world) => {
     const id = uuid();
 
     const getComponents = (type) => {
@@ -16,3 +16,9 @@ export const createEntity = (world) => {
         getComponent,
     };
 };
+
+const Entity = {
+    create,
+};
+
+export default Entity;

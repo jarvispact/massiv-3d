@@ -1,12 +1,12 @@
 import { mat4 } from 'gl-matrix';
-import { createEntity } from './entity';
-import { COMPONENT_TYPES, createPerspectiveCameraComponent, createTransform3DComponent } from './component';
+import Entity from './entity';
+import Component from './component';
 
 class World {
     constructor() {
         this.subscribers = [];
 
-        this.componentsByType = Object.values(COMPONENT_TYPES).reduce((accum, type) => {
+        this.componentsByType = Object.values(Component.types).reduce((accum, type) => {
             accum[type] = [];
             return accum;
         }, {});
@@ -33,7 +33,7 @@ class World {
     }
 
     registerEntity(components) {
-        const entity = createEntity(this);
+        const entity = Entity.create(this);
 
         for (let i = 0; i < components.length; i++) {
             const component = components[i];
@@ -61,8 +61,8 @@ class World {
     }
 
     createDefaultCamera({ canvas, position = [0, 3, 5], lookAt = [0, 0, 0] } = {}) {
-        const c = createPerspectiveCameraComponent({ aspect: canvas.clientWidth / canvas.clientHeight });
-        const t = createTransform3DComponent({ position });
+        const c = Component.createPerspectiveCamera({ aspect: canvas.clientWidth / canvas.clientHeight });
+        const t = Component.createTransform3D({ position });
         const camera = this.registerEntity([c, t]);
 
         mat4.lookAt(c.viewMatrix, t.position, lookAt, c.upVector);

@@ -29,21 +29,21 @@
                 world.createDefaultCamera({ canvas });
 
                 world.registerEntity([
-                    MASSIV.createDirectionalLightComponent({ direction: [5, 5, 5] }),
+                    MASSIV.Component.createDirectionalLight({ direction: [5, 5, 5] }),
                 ]);
 
                 const objData = await MASSIV.ObjLoader.load('./assets/demo-cube/cube.obj');
                 const [{vertices, normals, uvs, materials}] = MASSIV.ObjParser.parse(objData);
 
                 const demoCubeEntity = world.registerEntity([
-                    MASSIV.createTransform3DComponent(),
-                    MASSIV.createGeometryComponent({ vertices, normals, uvs }),
-                    MASSIV.createStandardMaterialComponent({ indices: materials[0].indices }),
+                    MASSIV.Component.createTransform3D(),
+                    MASSIV.Component.createGeometry({ vertices, normals, uvs }),
+                    MASSIV.Component.createStandardMaterial({ indices: materials[0].indices }),
                 ]);
 
                 let currentRotation = 0;
                 const update = (world, delta) => {
-                    const t = world.findComponentByEntityId(demoCubeEntity.id, [MASSIV.COMPONENT_TYPES.TRANSFORM_3D]);
+                    const t = world.findComponentByEntityId(demoCubeEntity.id, [MASSIV.Component.types.TRANSFORM_3D]);
                     MASSIV.quat.fromEuler(t.quaternion, currentRotation, currentRotation, 0);
                     MASSIV.mat4.fromRotationTranslationScale(t.modelMatrix, t.quaternion, t.position, t.scale);
                     currentRotation += 30 * delta;
