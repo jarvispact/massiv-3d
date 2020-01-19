@@ -1,10 +1,19 @@
 import { mat4 } from 'gl-matrix';
 import Entity from './entity';
 import Component from './component';
+import InputManager from './input-manager';
+import System from './system';
+
+const createGetDelta = (then = 0) => (now) => {
+    now *= 0.001;
+    const delta = now - then;
+    then = now;
+    return delta;
+};
 
 class World {
     constructor() {
-        this.subscribers = [];
+        this.systems = [];
 
         this.componentsByType = Object.values(Component.types).reduce((accum, type) => {
             accum[type] = [];
@@ -12,24 +21,7 @@ class World {
         }, {});
 
         this.componentsByEntityId = {};
-    }
-
-    static get EVENTS() {
-        return {
-            INIT: 'INIT',
-            UPDATE: 'UPDATE',
-        };
-    }
-
-    on(event, fn) {
-        this.subscribers.push({ event, fn });
-    }
-
-    emit(event, ...args) {
-        for (let i = 0; i < this.subscribers.length; i++) {
-            const subscriber = this.subscribers[i];
-            if (subscriber.event === event) subscriber.fn(this, ...args);
-        }
+        this.inputManager = null;
     }
 
     registerEntity(components) {
@@ -38,6 +30,7 @@ class World {
         for (let i = 0; i < components.length; i++) {
             const component = components[i];
             component.entityId = entity.id;
+            if (!this.componentsByType[component.type]) this.componentsByType[component.type] = [];
             this.componentsByType[component.type].push(component);
 
             if (!Array.isArray(this.componentsByEntityId[entity.id])) this.componentsByEntityId[entity.id] = [];
@@ -45,6 +38,19 @@ class World {
         }
 
         return entity;
+    }
+
+    registerSystem(system) {
+        this.systems.push(system);
+    }
+
+    registerInputManager(canvas) {
+        this.inputManager = new InputManager(canvas);
+        return this.inputManager;
+    }
+
+    getInputManager() {
+        return this.inputManager;
     }
 
     findComponentsByEntityId(entityId, typeFilters) {
@@ -71,19 +77,20 @@ class World {
         return camera;
     }
 
-    run() {
-        let then = 0;
-        const getDelta = (now) => {
-            now *= 0.001;
-            const delta = now - then;
-            then = now;
-            return delta;
-        };
+    step() {
+        System.updateTransform(this);
+        System.updatePerspectiveCamera(this);
+        for (let i = 0; i < this.systems.length; i++) this.systems[i](this);
+    }
 
-        this.emit(World.EVENTS.INIT);
+    run() {
+        const getDelta = createGetDelta();
+
+        System.updateTransform(this);
+        System.updatePerspectiveCamera(this);
 
         const tick = (now) => {
-            this.emit(World.EVENTS.UPDATE, getDelta(now));
+            for (let i = 0; i < this.systems.length; i++) this.systems[i](this, getDelta(now));
             requestAnimationFrame(tick);
         };
 

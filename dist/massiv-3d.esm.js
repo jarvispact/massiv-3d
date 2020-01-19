@@ -7589,6 +7589,16 @@ const types = {
     TRANSFORM_3D: 'TRANSFORM_3D',
     PERSPECTIVE_CAMERA: 'PERSPECTIVE_CAMERA',
     ORTHOGRAPHIC_CAMERA: 'ORTHOGRAPHIC_CAMERA',
+    ORBIT_CAMERA_CONTROL: 'ORBIT_CAMERA_CONTROL',
+    EULER_ROTATION: 'EULER_ROTATION',
+};
+
+const create$9 = (data) => {
+    if (!data || !data.type) throw new Error('a component needs a type property');
+    return {
+        entityId: null,
+        ...data,
+    };
 };
 
 const createGeometry = (data = {}) => ({
@@ -7634,12 +7644,15 @@ const createTransform3D = (data = {}) => ({
     quaternion: data.quaternion ? fromValues$6(...data.quaternion) : fromValues$6(0, 0, 0, 1),
     scale: data.scale ? fromValues$4(...data.scale) : fromValues$4(1, 1, 1),
     modelMatrix: data.modelMatrix ? fromValues$3(...data.modelMatrix) : fromValues$3(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1),
+
+    matrixAutoUpdate: data.matrixAutoUpdate || true,
 });
 
 const createPerspectiveCamera = (data = {}) => ({
     type: types.PERSPECTIVE_CAMERA,
     entityId: null,
 
+    lookAt: data.lookAt ? fromValues$4(...data.lookAt) : fromValues$4(0, 0, 0),
     upVector: data.upVector ? fromValues$4(...data.upVector) : fromValues$4(0, 1, 0),
     viewMatrix: data.viewMatrix ? fromValues$3(...data.viewMatrix) : fromValues$3(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1),
     projectionMatrix: data.projectionMatrix ? fromValues$3(...data.projectionMatrix) : fromValues$3(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1),
@@ -7654,6 +7667,7 @@ const createOrthographicCamera = (data = {}) => ({
     type: types.ORTHOGRAPHIC_CAMERA,
     entityId: null,
 
+    lookAt: data.lookAt ? fromValues$4(...data.lookAt) : fromValues$4(0, 0, 0),
     upVector: data.upVector ? fromValues$4(...data.upVector) : fromValues$4(0, 1, 0),
     viewMatrix: data.viewMatrix ? fromValues$3(...data.viewMatrix) : fromValues$3(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1),
     projectionMatrix: data.projectionMatrix ? fromValues$3(...data.projectionMatrix) : fromValues$3(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1),
@@ -7666,14 +7680,23 @@ const createOrthographicCamera = (data = {}) => ({
     far: data.far,
 });
 
+const createOrbitCameraControl = (data = {}) => ({
+    type: types.ORBIT_CAMERA_CONTROL,
+    entityId: null,
+
+    speed: data.speed || 1,
+});
+
 const Component = {
     types,
+    create: create$9,
     createGeometry,
     createDirectionalLight,
     createStandardMaterial,
     createTransform3D,
     createPerspectiveCamera,
     createOrthographicCamera,
+    createOrbitCameraControl,
 };
 
 /* eslint-disable no-bitwise, no-nested-ternary, no-mixed-operators */
@@ -7697,7 +7720,7 @@ var uuid = () => {
     return uuid;
 };
 
-const create$9 = (world) => {
+const create$a = (world) => {
     const id = uuid();
 
     const getComponents = (type) => {
@@ -7715,7 +7738,7 @@ const create$9 = (world) => {
 };
 
 const Entity = {
-    create: create$9,
+    create: create$a,
 };
 
 const ImageLoader = {
@@ -7873,9 +7896,83 @@ const ObjParser = {
     },
 };
 
+const updateTransform = (world) => {
+    const transforms = world.findComponentsByType(Component.types.TRANSFORM_3D);
+    for (let i = 0; i < transforms.length; i++) {
+        const t = transforms[i];
+        fromRotationTranslationScale(t.modelMatrix, t.quaternion, t.position, t.scale);
+    }
+};
+
+const updatePerspectiveCamera = (world) => {
+    const cameras = world.findComponentsByType(Component.types.PERSPECTIVE_CAMERA);
+    for (let i = 0; i < cameras.length; i++) {
+        const c = cameras[i];
+        const t = world.findComponentByEntityId(c.entityId, [Component.types.TRANSFORM_3D]);
+        lookAt(c.viewMatrix, t.position, c.lookAt, c.upVector);
+        perspective(c.projectionMatrix, c.fov, c.aspect, c.near, c.far);
+    }
+};
+
+const updateOrbitControlSystem = (world, delta) => {
+    const inputManager = world.getInputManager();
+    const orbitControls = world.findComponentsByType(Component.types.ORBIT_CAMERA_CONTROL);
+    for (let i = 0; i < orbitControls.length; i++) {
+        const orbitControl = orbitControls[i];
+        const c = world.findComponentByEntityId(orbitControl.entityId, [Component.types.PERSPECTIVE_CAMERA]);
+        const t = world.findComponentByEntityId(orbitControl.entityId, [Component.types.TRANSFORM_3D]);
+
+        const x = t.position[0];
+        const z = t.position[2];
+
+        if (inputManager.isKeyDown('ArrowLeft')) {
+            t.position[0] = x * Math.cos(orbitControl.speed * delta) + z * Math.sin(orbitControl.speed * delta);
+            t.position[2] = z * Math.cos(orbitControl.speed * delta) - x * Math.sin(orbitControl.speed * delta);
+        }
+
+        if (inputManager.isKeyDown('ArrowRight')) {
+            t.position[0] = x * Math.cos(orbitControl.speed * delta) - z * Math.sin(orbitControl.speed * delta);
+            t.position[2] = z * Math.cos(orbitControl.speed * delta) + x * Math.sin(orbitControl.speed * delta);
+        }
+
+        lookAt(c.viewMatrix, t.position, [0, 0, 0], c.upVector);
+    }
+};
+
+const System = {
+    updateTransform,
+    updatePerspectiveCamera,
+    updateOrbitControlSystem,
+};
+
+class InputManager {
+    constructor(canvas) {
+        this.canvas = canvas;
+        this.canvas.focus();
+        this.keyDownMap = {};
+
+        const keyDownHandler = (event) => { this.keyDownMap[event.key] = true; };
+        const keyUpHandler = (event) => { this.keyDownMap[event.key] = false; };
+
+        this.canvas.addEventListener('keydown', keyDownHandler);
+        this.canvas.addEventListener('keyup', keyUpHandler);
+    }
+
+    isKeyDown(key) {
+        return this.keyDownMap[key] || false;
+    }
+}
+
+const createGetDelta = (then = 0) => (now) => {
+    now *= 0.001;
+    const delta = now - then;
+    then = now;
+    return delta;
+};
+
 class World {
     constructor() {
-        this.subscribers = [];
+        this.systems = [];
 
         this.componentsByType = Object.values(Component.types).reduce((accum, type) => {
             accum[type] = [];
@@ -7883,24 +7980,7 @@ class World {
         }, {});
 
         this.componentsByEntityId = {};
-    }
-
-    static get EVENTS() {
-        return {
-            INIT: 'INIT',
-            UPDATE: 'UPDATE',
-        };
-    }
-
-    on(event, fn) {
-        this.subscribers.push({ event, fn });
-    }
-
-    emit(event, ...args) {
-        for (let i = 0; i < this.subscribers.length; i++) {
-            const subscriber = this.subscribers[i];
-            if (subscriber.event === event) subscriber.fn(this, ...args);
-        }
+        this.inputManager = null;
     }
 
     registerEntity(components) {
@@ -7909,6 +7989,7 @@ class World {
         for (let i = 0; i < components.length; i++) {
             const component = components[i];
             component.entityId = entity.id;
+            if (!this.componentsByType[component.type]) this.componentsByType[component.type] = [];
             this.componentsByType[component.type].push(component);
 
             if (!Array.isArray(this.componentsByEntityId[entity.id])) this.componentsByEntityId[entity.id] = [];
@@ -7916,6 +7997,19 @@ class World {
         }
 
         return entity;
+    }
+
+    registerSystem(system) {
+        this.systems.push(system);
+    }
+
+    registerInputManager(canvas) {
+        this.inputManager = new InputManager(canvas);
+        return this.inputManager;
+    }
+
+    getInputManager() {
+        return this.inputManager;
     }
 
     findComponentsByEntityId(entityId, typeFilters) {
@@ -7942,19 +8036,20 @@ class World {
         return camera;
     }
 
-    run() {
-        let then = 0;
-        const getDelta = (now) => {
-            now *= 0.001;
-            const delta = now - then;
-            then = now;
-            return delta;
-        };
+    step() {
+        System.updateTransform(this);
+        System.updatePerspectiveCamera(this);
+        for (let i = 0; i < this.systems.length; i++) this.systems[i](this);
+    }
 
-        this.emit(World.EVENTS.INIT);
+    run() {
+        const getDelta = createGetDelta();
+
+        System.updateTransform(this);
+        System.updatePerspectiveCamera(this);
 
         const tick = (now) => {
-            this.emit(World.EVENTS.UPDATE, getDelta(now));
+            for (let i = 0; i < this.systems.length; i++) this.systems[i](this, getDelta(now));
             requestAnimationFrame(tick);
         };
 
@@ -8372,6 +8467,11 @@ class WebGL2Renderer {
     }
 }
 
-const rangeMap = (value, x1, y1, x2, y2) => ((value - x1) * (y2 - x2)) / ((y1 - x1) + x2);
+const rangeMap = (value, inMin, inMax, outMin, outMax) => ((value - inMin) * (outMax - outMin)) / ((inMax - inMin) + outMin);
 
-export { Component, Entity, ImageLoader, ObjLoader, ObjParser, WebGL2Renderer, WebGLUtils, World, common as glMatrix, mat2, mat2d, mat3, mat4, quat, quat2, rangeMap, uuid, vec2, vec3, vec4 };
+const Utils = {
+    rangeMap,
+    uuid,
+};
+
+export { Component, Entity, ImageLoader, ObjLoader, ObjParser, System, Utils, WebGL2Renderer, WebGLUtils, World, common as glMatrix, mat2, mat2d, mat3, mat4, quat, quat2, vec2, vec3, vec4 };

@@ -1,2 +1,9 @@
-export { default as rangeMap } from './range-map';
-export { default as uuid } from './uuid';
+import rangeMap from './range-map';
+import uuid from './uuid';
+
+const Utils = {
+    rangeMap,
+    uuid,
+};
+
+export default Utils;

@@ -3,7 +3,7 @@
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="initial-scale=1, maximum-scale=1, user-scalable=no">
-        <title>simple-spinning-cube-example</title>
+        <title>camera-orbit-control-example</title>
         <style type="text/css">
             #canvas {
                 position: fixed;
@@ -17,17 +17,19 @@
     </head>
 
     <body>
-        <canvas id="canvas"></canvas>
+        <canvas id="canvas" tabindex="1"></canvas>
         <script src="./assets/massiv-3d.umd.js"></script>
         <script type="text/javascript">
             (async () => {
                 const canvas = document.getElementById('canvas');
                 const renderer = new MASSIV.WebGL2Renderer(canvas);
                 const world = new MASSIV.World();
+                world.registerInputManager(canvas);
 
                 world.registerEntity([
-                    MASSIV.Component.createTransform3D({ position: [3, 3, 5] }),
+                    MASSIV.Component.createTransform3D({ position: [0, 5, 8] }),
                     MASSIV.Component.createPerspectiveCamera({ aspect: canvas.clientWidth / canvas.clientHeight }),
+                    MASSIV.Component.createOrbitCameraControl({ speed: 1 }),
                 ]);
 
                 world.registerEntity([
@@ -37,23 +39,15 @@
                 const objData = await MASSIV.ObjLoader.load('./assets/demo-cube/cube.obj');
                 const [{vertices, normals, uvs, materials}] = MASSIV.ObjParser.parse(objData);
 
-                const demoCubeEntity = world.registerEntity([
-                    MASSIV.Component.createTransform3D(),
-                    MASSIV.Component.createGeometry({ vertices, normals, uvs }),
-                    MASSIV.Component.createStandardMaterial({ indices: materials[0].indices }),
-                    MASSIV.Component.create({ type: 'EULER', rotation: [0, 0, 0], speed: 20 }),
-                ]);
+                [ [-2, 0, -2], [2, 0, -2], [-2, 0, 2], [2, 0, 2] ].forEach(position => {
+                    world.registerEntity([
+                        MASSIV.Component.createTransform3D({ position }),
+                        MASSIV.Component.createGeometry({ vertices, normals, uvs }),
+                        MASSIV.Component.createStandardMaterial({ indices: materials[0].indices }),
+                    ]);
+                });
 
-                const updateRotationSystem = (world, delta) => {
-                    const euler = world.findComponentByEntityId(demoCubeEntity.id, ['EULER']);
-                    const transform = world.findComponentByEntityId(demoCubeEntity.id, [MASSIV.Component.types.TRANSFORM_3D]);
-                    euler.rotation[0] += euler.speed * delta;
-                    euler.rotation[1] += euler.speed * delta;
-                    MASSIV.quat.fromEuler(transform.quaternion, ...euler.rotation);
-                };
-
-                world.registerSystem(updateRotationSystem);
-                world.registerSystem(MASSIV.System.updateTransform);
+                world.registerSystem(MASSIV.System.updateOrbitControlSystem);
                 world.registerSystem(() => renderer.render(world))
                 world.run();
             })();

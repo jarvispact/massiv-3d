@@ -23,9 +23,12 @@
             (async () => {
                 const canvas = document.getElementById('canvas');
                 const renderer = new MASSIV.WebGL2Renderer(canvas);
-
                 const world = new MASSIV.World();
-                world.createDefaultCamera({ canvas, position: [3, 3, 5] });
+
+                world.registerEntity([
+                    MASSIV.Component.createTransform3D({ position: [3, 3, 5] }),
+                    MASSIV.Component.createPerspectiveCamera({ aspect: canvas.clientWidth / canvas.clientHeight }),
+                ]);
 
                 world.registerEntity([
                     MASSIV.Component.createDirectionalLight({ direction: [5, 5, 5] }),
@@ -40,7 +43,8 @@
                     MASSIV.Component.createStandardMaterial({ indices: materials[0].indices }),
                 ]);
 
-                renderer.render(world);
+                world.registerSystem(() => renderer.render(world));
+                world.step();
             })();
         </script>
     </body>

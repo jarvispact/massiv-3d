@@ -8,6 +8,16 @@ const types = {
     TRANSFORM_3D: 'TRANSFORM_3D',
     PERSPECTIVE_CAMERA: 'PERSPECTIVE_CAMERA',
     ORTHOGRAPHIC_CAMERA: 'ORTHOGRAPHIC_CAMERA',
+    ORBIT_CAMERA_CONTROL: 'ORBIT_CAMERA_CONTROL',
+    EULER_ROTATION: 'EULER_ROTATION',
+};
+
+const create = (data) => {
+    if (!data || !data.type) throw new Error('a component needs a type property');
+    return {
+        entityId: null,
+        ...data,
+    };
 };
 
 const createGeometry = (data = {}) => ({
@@ -53,12 +63,15 @@ const createTransform3D = (data = {}) => ({
     quaternion: data.quaternion ? quat.fromValues(...data.quaternion) : quat.fromValues(0, 0, 0, 1),
     scale: data.scale ? vec3.fromValues(...data.scale) : vec3.fromValues(1, 1, 1),
     modelMatrix: data.modelMatrix ? mat4.fromValues(...data.modelMatrix) : mat4.fromValues(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1),
+
+    matrixAutoUpdate: data.matrixAutoUpdate || true,
 });
 
 const createPerspectiveCamera = (data = {}) => ({
     type: types.PERSPECTIVE_CAMERA,
     entityId: null,
 
+    lookAt: data.lookAt ? vec3.fromValues(...data.lookAt) : vec3.fromValues(0, 0, 0),
     upVector: data.upVector ? vec3.fromValues(...data.upVector) : vec3.fromValues(0, 1, 0),
     viewMatrix: data.viewMatrix ? mat4.fromValues(...data.viewMatrix) : mat4.fromValues(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1),
     projectionMatrix: data.projectionMatrix ? mat4.fromValues(...data.projectionMatrix) : mat4.fromValues(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1),
@@ -73,6 +86,7 @@ const createOrthographicCamera = (data = {}) => ({
     type: types.ORTHOGRAPHIC_CAMERA,
     entityId: null,
 
+    lookAt: data.lookAt ? vec3.fromValues(...data.lookAt) : vec3.fromValues(0, 0, 0),
     upVector: data.upVector ? vec3.fromValues(...data.upVector) : vec3.fromValues(0, 1, 0),
     viewMatrix: data.viewMatrix ? mat4.fromValues(...data.viewMatrix) : mat4.fromValues(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1),
     projectionMatrix: data.projectionMatrix ? mat4.fromValues(...data.projectionMatrix) : mat4.fromValues(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1),
@@ -85,14 +99,23 @@ const createOrthographicCamera = (data = {}) => ({
     far: data.far,
 });
 
+const createOrbitCameraControl = (data = {}) => ({
+    type: types.ORBIT_CAMERA_CONTROL,
+    entityId: null,
+
+    speed: data.speed || 1,
+});
+
 const Component = {
     types,
+    create,
     createGeometry,
     createDirectionalLight,
     createStandardMaterial,
     createTransform3D,
     createPerspectiveCamera,
     createOrthographicCamera,
+    createOrbitCameraControl,
 };
 
 export default Component;
