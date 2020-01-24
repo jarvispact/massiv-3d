@@ -12,13 +12,7 @@ const getRenderables = (componentsByType, componentsByEntityId) => componentsByT
     transform: componentsByEntityId[m.entityId].find(c => c.type === 'TRANSFORM_3D'),
 }));
 
-const getActiveCamera = (componentsByType, componentsByEntityId) => {
-    const camera = componentsByType.PERSPECTIVE_CAMERA[0];
-    return {
-        camera,
-        transform: componentsByEntityId[camera.entityId].find(c => c.type === 'TRANSFORM_3D'),
-    };
-};
+const getActiveCamera = (componentsByType) => componentsByType.PERSPECTIVE_CAMERA[0];
 
 const getDirectionalLights = (componentsByType) => componentsByType.DIRECTIONAL_LIGHT;
 
@@ -100,7 +94,7 @@ class WebGL2Renderer {
         this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT);
 
         const renderables = getRenderables(world.componentsByType, world.componentsByEntityId);
-        const activeCamera = getActiveCamera(world.componentsByType, world.componentsByEntityId);
+        const activeCamera = getActiveCamera(world.componentsByType);
         const directionalLights = getDirectionalLights(world.componentsByType);
 
         for (let i = 0; i < renderables.length; i++) {
@@ -110,8 +104,8 @@ class WebGL2Renderer {
             this.gl.bindVertexArray(cachedRenderable.vao);
             this.gl.useProgram(cachedRenderable.shader);
 
-            const mv = mat4.multiply(mat4.create(), activeCamera.camera.viewMatrix, renderable.transform.modelMatrix);
-            const mvp = mat4.multiply(mat4.create(), activeCamera.camera.projectionMatrix, mv);
+            const mv = mat4.multiply(mat4.create(), activeCamera.viewMatrix, renderable.transform.modelMatrix);
+            const mvp = mat4.multiply(mat4.create(), activeCamera.projectionMatrix, mv);
             const normalMatrix = mat3.normalFromMat4(mat3.create(), mv);
 
             const uniformValueLookupTable = {
@@ -124,7 +118,7 @@ class WebGL2Renderer {
                 ambientIntensity: renderable.material.ambientIntensity,
                 specularExponent: renderable.material.specularExponent,
                 specularShininess: renderable.material.specularShininess,
-                cameraPosition: activeCamera.transform.position,
+                cameraPosition: activeCamera.position,
                 'dirLightDirection[0]': getLightValuesAsFlatArray(directionalLights, 'direction'),
                 'dirLightAmbientColor[0]': getLightValuesAsFlatArray(directionalLights, 'ambientColor'),
                 'dirLightDiffuseColor[0]': getLightValuesAsFlatArray(directionalLights, 'diffuseColor'),

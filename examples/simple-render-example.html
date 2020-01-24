@@ -21,30 +21,31 @@
         <script src="./assets/massiv-3d.umd.js"></script>
         <script type="text/javascript">
             (async () => {
+                const { World, Component, System, WebGL2Renderer, ObjLoader } = MASSIV;
+
+                const [{vertices, normals, uvs, materials}] = await MASSIV.ObjLoader.load('./assets/demo-cube/cube.obj');
+
                 const canvas = document.getElementById('canvas');
-                const renderer = new MASSIV.WebGL2Renderer(canvas);
-                const world = new MASSIV.World();
+                const renderer = new WebGL2Renderer(canvas);
+                const world = new World();
 
-                world.registerEntity([
-                    MASSIV.Component.createTransform3D({ position: [3, 3, 5] }),
-                    MASSIV.Component.createPerspectiveCamera({ aspect: canvas.clientWidth / canvas.clientHeight }),
-                ]);
+                const perspectiveCamera = Component.createPerspectiveCamera({ position: [3, 3, 5], aspect: canvas.clientWidth / canvas.clientHeight });
+                const directionalLight = Component.createDirectionalLight({ direction: [5, 5, 5] });
 
-                world.registerEntity([
-                    MASSIV.Component.createDirectionalLight({ direction: [5, 5, 5] }),
-                ]);
+                const cubeTransform = Component.createTransform3D();
+                const cubeGeometry = Component.createGeometry({ vertices, normals, uvs });
+                const cubeMaterial = Component.createStandardMaterial({ indices: materials[0].indices });
 
-                const objData = await MASSIV.ObjLoader.load('./assets/demo-cube/cube.obj');
-                const [{vertices, normals, uvs, materials}] = MASSIV.ObjParser.parse(objData);                
+                world.registerEntity([perspectiveCamera]);
+                world.registerEntity([directionalLight]);
+                world.registerEntity([cubeTransform, cubeGeometry, cubeMaterial]);
 
-                world.registerEntity([
-                    MASSIV.Component.createTransform3D(),
-                    MASSIV.Component.createGeometry({ vertices, normals, uvs }),
-                    MASSIV.Component.createStandardMaterial({ indices: materials[0].indices }),
-                ]);
+                System.updateModelMatrix(cubeTransform);
+                System.updateViewMatrix(perspectiveCamera);
+                System.updatePerspectiveProjectionMatrix(perspectiveCamera);
 
-                world.registerSystem(() => renderer.render(world));
                 world.step();
+                renderer.render(world);
             })();
         </script>
     </body>

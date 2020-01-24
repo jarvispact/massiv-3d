@@ -19,42 +19,44 @@
     <body>
         <canvas id="canvas"></canvas>
         <script src="./assets/massiv-3d.umd.js"></script>
+        <script src="./assets/helpers.js"></script>
         <script type="text/javascript">
             (async () => {
+                const { World, Component, System, WebGL2Renderer, ObjLoader, quat } = MASSIV;
+
+                const [{vertices, normals, uvs, materials}] = await MASSIV.ObjLoader.load('./assets/demo-cube/cube.obj');
+
                 const canvas = document.getElementById('canvas');
-                const renderer = new MASSIV.WebGL2Renderer(canvas);
-                const world = new MASSIV.World();
+                const renderer = new WebGL2Renderer(canvas);
+                const fpsDebugger = createFPSDebugger();
+                const world = new World();
 
-                world.registerEntity([
-                    MASSIV.Component.createTransform3D({ position: [3, 3, 5] }),
-                    MASSIV.Component.createPerspectiveCamera({ aspect: canvas.clientWidth / canvas.clientHeight }),
-                ]);
+                const perspectiveCamera = Component.createPerspectiveCamera({ position: [3, 3, 5], aspect: canvas.clientWidth / canvas.clientHeight });
+                const directionalLight = Component.createDirectionalLight({ direction: [5, 5, 5] });
 
-                world.registerEntity([
-                    MASSIV.Component.createDirectionalLight({ direction: [5, 5, 5] }),
-                ]);
+                const cubeTransform = Component.createTransform3D();
+                const cubeGeometry = Component.createGeometry({ vertices, normals, uvs });
+                const cubeMaterial = Component.createStandardMaterial({ indices: materials[0].indices });
+                const cubeRotation = Component.create({ type: 'ROTATION', rotation: [0, 0, 0], speed: 20 });
 
-                const objData = await MASSIV.ObjLoader.load('./assets/demo-cube/cube.obj');
-                const [{vertices, normals, uvs, materials}] = MASSIV.ObjParser.parse(objData);
+                world.registerEntity([perspectiveCamera]);
+                world.registerEntity([directionalLight]);
+                world.registerEntity([cubeTransform, cubeGeometry, cubeMaterial]);
 
-                const demoCubeEntity = world.registerEntity([
-                    MASSIV.Component.createTransform3D(),
-                    MASSIV.Component.createGeometry({ vertices, normals, uvs }),
-                    MASSIV.Component.createStandardMaterial({ indices: materials[0].indices }),
-                    MASSIV.Component.create({ type: 'EULER', rotation: [0, 0, 0], speed: 20 }),
-                ]);
-
-                const updateRotationSystem = (world, delta) => {
-                    const euler = world.findComponentByEntityId(demoCubeEntity.id, ['EULER']);
-                    const transform = world.findComponentByEntityId(demoCubeEntity.id, [MASSIV.Component.types.TRANSFORM_3D]);
-                    euler.rotation[0] += euler.speed * delta;
-                    euler.rotation[1] += euler.speed * delta;
-                    MASSIV.quat.fromEuler(transform.quaternion, ...euler.rotation);
+                const updateRotationSystem = (delta) => {
+                    cubeRotation.rotation[0] += cubeRotation.speed * delta;
+                    cubeRotation.rotation[1] += cubeRotation.speed * delta;
+                    quat.fromEuler(cubeTransform.quaternion, ...cubeRotation.rotation);
                 };
 
+                System.updateModelMatrix(cubeTransform);
+                System.updateViewMatrix(perspectiveCamera);
+                System.updatePerspectiveProjectionMatrix(perspectiveCamera);
+
                 world.registerSystem(updateRotationSystem);
-                world.registerSystem(MASSIV.System.updateTransform);
-                world.registerSystem(() => renderer.render(world))
+                world.registerSystem(() => System.updateModelMatrix(cubeTransform));
+                world.registerSystem(() => renderer.render(world));
+                world.registerSystem(fpsDebugger.update);
                 world.run();
             })();
         </script>

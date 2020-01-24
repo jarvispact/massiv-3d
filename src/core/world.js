@@ -1,8 +1,5 @@
-import { mat4 } from 'gl-matrix';
-import Entity from './entity';
 import Component from './component';
-import InputManager from './input-manager';
-import System from './system';
+import uuid from '../utils/uuid';
 
 const createGetDelta = (then = 0) => (now) => {
     now *= 0.001;
@@ -14,43 +11,32 @@ const createGetDelta = (then = 0) => (now) => {
 class World {
     constructor() {
         this.systems = [];
+        this.componentsByEntityId = {};
 
         this.componentsByType = Object.values(Component.types).reduce((accum, type) => {
             accum[type] = [];
             return accum;
         }, {});
-
-        this.componentsByEntityId = {};
-        this.inputManager = null;
     }
 
     registerEntity(components) {
-        const entity = Entity.create(this);
+        const entityId = uuid();
 
         for (let i = 0; i < components.length; i++) {
             const component = components[i];
-            component.entityId = entity.id;
+            component.entityId = entityId;
             if (!this.componentsByType[component.type]) this.componentsByType[component.type] = [];
             this.componentsByType[component.type].push(component);
 
-            if (!Array.isArray(this.componentsByEntityId[entity.id])) this.componentsByEntityId[entity.id] = [];
-            this.componentsByEntityId[entity.id].push(component);
+            if (!Array.isArray(this.componentsByEntityId[entityId])) this.componentsByEntityId[entityId] = [];
+            this.componentsByEntityId[entityId].push(component);
         }
 
-        return entity;
+        return entityId;
     }
 
     registerSystem(system) {
         this.systems.push(system);
-    }
-
-    registerInputManager(canvas) {
-        this.inputManager = new InputManager(canvas);
-        return this.inputManager;
-    }
-
-    getInputManager() {
-        return this.inputManager;
     }
 
     findComponentsByEntityId(entityId, typeFilters) {
@@ -66,31 +52,20 @@ class World {
         return this.componentsByType[type];
     }
 
-    createDefaultCamera({ canvas, position = [0, 3, 5], lookAt = [0, 0, 0] } = {}) {
-        const c = Component.createPerspectiveCamera({ aspect: canvas.clientWidth / canvas.clientHeight });
-        const t = Component.createTransform3D({ position });
-        const camera = this.registerEntity([c, t]);
-
-        mat4.lookAt(c.viewMatrix, t.position, lookAt, c.upVector);
-        mat4.perspective(c.projectionMatrix, c.fov, c.aspect, c.near, c.far);
-
-        return camera;
-    }
-
     step() {
-        System.updateTransform(this);
-        System.updatePerspectiveCamera(this);
-        for (let i = 0; i < this.systems.length; i++) this.systems[i](this);
+        for (let i = 0; i < this.systems.length; i++) {
+            this.systems[i](0, this);
+        }
     }
 
     run() {
         const getDelta = createGetDelta();
 
-        System.updateTransform(this);
-        System.updatePerspectiveCamera(this);
-
         const tick = (now) => {
-            for (let i = 0; i < this.systems.length; i++) this.systems[i](this, getDelta(now));
+            for (let i = 0; i < this.systems.length; i++) {
+                this.systems[i](getDelta(now), this);
+            }
+
             requestAnimationFrame(tick);
         };
 

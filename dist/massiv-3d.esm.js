@@ -7652,6 +7652,7 @@ const createPerspectiveCamera = (data = {}) => ({
     type: types.PERSPECTIVE_CAMERA,
     entityId: null,
 
+    position: data.position ? fromValues$4(...data.position) : fromValues$4(0, 0, 0),
     lookAt: data.lookAt ? fromValues$4(...data.lookAt) : fromValues$4(0, 0, 0),
     upVector: data.upVector ? fromValues$4(...data.upVector) : fromValues$4(0, 1, 0),
     viewMatrix: data.viewMatrix ? fromValues$3(...data.viewMatrix) : fromValues$3(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1),
@@ -7667,6 +7668,7 @@ const createOrthographicCamera = (data = {}) => ({
     type: types.ORTHOGRAPHIC_CAMERA,
     entityId: null,
 
+    position: data.position ? fromValues$4(...data.position) : fromValues$4(0, 0, 0),
     lookAt: data.lookAt ? fromValues$4(...data.lookAt) : fromValues$4(0, 0, 0),
     upVector: data.upVector ? fromValues$4(...data.upVector) : fromValues$4(0, 1, 0),
     viewMatrix: data.viewMatrix ? fromValues$3(...data.viewMatrix) : fromValues$3(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1),
@@ -7699,48 +7701,6 @@ const Component = {
     createOrbitCameraControl,
 };
 
-/* eslint-disable no-bitwise, no-nested-ternary, no-mixed-operators */
-
-// https://gist.github.com/jcxplorer/823878
-
-var uuid = () => {
-    let uuid = '';
-    let i = 0;
-
-    for (i; i < 32; i++) {
-        const random = Math.random() * 16 | 0;
-
-        if (i === 8 || i === 12 || i === 16 || i === 20) {
-            uuid += '-';
-        }
-
-        uuid += (i === 12 ? 4 : (i === 16 ? (random & 3 | 8) : random)).toString(16);
-    }
-
-    return uuid;
-};
-
-const create$a = (world) => {
-    const id = uuid();
-
-    const getComponents = (type) => {
-        const types = Array.isArray(type) ? type : [type];
-        return world.componentsByEntityId[id].filter(c => types.includes(c.type));
-    };
-
-    const getComponent = (type) => getComponents(type)[0];
-
-    return {
-        id,
-        getComponents,
-        getComponent,
-    };
-};
-
-const Entity = {
-    create: create$a,
-};
-
 const ImageLoader = {
     load: async (imageSrcUrl) => new Promise((resolve, reject) => {
         const img = new Image();
@@ -7750,9 +7710,24 @@ const ImageLoader = {
     }),
 };
 
-const ObjLoader = {
-    load: async (objFilePath) => fetch(objFilePath).then(response => response.text()),
-};
+class InputManager {
+    constructor(canvas) {
+        this.canvas = canvas;
+        this.canvas.setAttribute('tabIndex', '1');
+        this.canvas.focus();
+        this.keyDownMap = {};
+
+        const keyDownHandler = (event) => { this.keyDownMap[event.key] = true; };
+        const keyUpHandler = (event) => { this.keyDownMap[event.key] = false; };
+
+        this.canvas.addEventListener('keydown', keyDownHandler);
+        this.canvas.addEventListener('keyup', keyUpHandler);
+    }
+
+    isKeyDown(key) {
+        return this.keyDownMap[key] || false;
+    }
+}
 
 const objectRegex = /^o\s(.*)$/;
 const materialRegex = /^usemtl\s(.*)$/;
@@ -7896,72 +7871,48 @@ const ObjParser = {
     },
 };
 
-const updateTransform = (world) => {
-    const transforms = world.findComponentsByType(Component.types.TRANSFORM_3D);
-    for (let i = 0; i < transforms.length; i++) {
-        const t = transforms[i];
-        fromRotationTranslationScale(t.modelMatrix, t.quaternion, t.position, t.scale);
-    }
+const ObjLoader = {
+    load: async (objFilePath) => fetch(objFilePath).then(response => response.text()).then(ObjParser.parse),
 };
 
-const updatePerspectiveCamera = (world) => {
-    const cameras = world.findComponentsByType(Component.types.PERSPECTIVE_CAMERA);
-    for (let i = 0; i < cameras.length; i++) {
-        const c = cameras[i];
-        const t = world.findComponentByEntityId(c.entityId, [Component.types.TRANSFORM_3D]);
-        lookAt(c.viewMatrix, t.position, c.lookAt, c.upVector);
-        perspective(c.projectionMatrix, c.fov, c.aspect, c.near, c.far);
-    }
+const updateModelMatrix = (transform3D) => {
+    fromRotationTranslationScale(transform3D.modelMatrix, transform3D.quaternion, transform3D.position, transform3D.scale);
 };
 
-const updateOrbitControlSystem = (world, delta) => {
-    const inputManager = world.getInputManager();
-    const orbitControls = world.findComponentsByType(Component.types.ORBIT_CAMERA_CONTROL);
-    for (let i = 0; i < orbitControls.length; i++) {
-        const orbitControl = orbitControls[i];
-        const c = world.findComponentByEntityId(orbitControl.entityId, [Component.types.PERSPECTIVE_CAMERA]);
-        const t = world.findComponentByEntityId(orbitControl.entityId, [Component.types.TRANSFORM_3D]);
+const updateViewMatrix = (camera) => {
+    lookAt(camera.viewMatrix, camera.position, camera.lookAt, camera.upVector);
+};
 
-        const x = t.position[0];
-        const z = t.position[2];
-
-        if (inputManager.isKeyDown('ArrowLeft')) {
-            t.position[0] = x * Math.cos(orbitControl.speed * delta) + z * Math.sin(orbitControl.speed * delta);
-            t.position[2] = z * Math.cos(orbitControl.speed * delta) - x * Math.sin(orbitControl.speed * delta);
-        }
-
-        if (inputManager.isKeyDown('ArrowRight')) {
-            t.position[0] = x * Math.cos(orbitControl.speed * delta) - z * Math.sin(orbitControl.speed * delta);
-            t.position[2] = z * Math.cos(orbitControl.speed * delta) + x * Math.sin(orbitControl.speed * delta);
-        }
-
-        lookAt(c.viewMatrix, t.position, [0, 0, 0], c.upVector);
-    }
+const updatePerspectiveProjectionMatrix = (camera) => {
+    perspective(camera.projectionMatrix, camera.fov, camera.aspect, camera.near, camera.far);
 };
 
 const System = {
-    updateTransform,
-    updatePerspectiveCamera,
-    updateOrbitControlSystem,
+    updateModelMatrix,
+    updateViewMatrix,
+    updatePerspectiveProjectionMatrix,
 };
 
-class InputManager {
-    constructor(canvas) {
-        this.canvas = canvas;
-        this.canvas.focus();
-        this.keyDownMap = {};
+/* eslint-disable no-bitwise, no-nested-ternary, no-mixed-operators */
 
-        const keyDownHandler = (event) => { this.keyDownMap[event.key] = true; };
-        const keyUpHandler = (event) => { this.keyDownMap[event.key] = false; };
+// https://gist.github.com/jcxplorer/823878
 
-        this.canvas.addEventListener('keydown', keyDownHandler);
-        this.canvas.addEventListener('keyup', keyUpHandler);
+var uuid = () => {
+    let uuid = '';
+    let i = 0;
+
+    for (i; i < 32; i++) {
+        const random = Math.random() * 16 | 0;
+
+        if (i === 8 || i === 12 || i === 16 || i === 20) {
+            uuid += '-';
+        }
+
+        uuid += (i === 12 ? 4 : (i === 16 ? (random & 3 | 8) : random)).toString(16);
     }
 
-    isKeyDown(key) {
-        return this.keyDownMap[key] || false;
-    }
-}
+    return uuid;
+};
 
 const createGetDelta = (then = 0) => (now) => {
     now *= 0.001;
@@ -7973,43 +7924,32 @@ const createGetDelta = (then = 0) => (now) => {
 class World {
     constructor() {
         this.systems = [];
+        this.componentsByEntityId = {};
 
         this.componentsByType = Object.values(Component.types).reduce((accum, type) => {
             accum[type] = [];
             return accum;
         }, {});
-
-        this.componentsByEntityId = {};
-        this.inputManager = null;
     }
 
     registerEntity(components) {
-        const entity = Entity.create(this);
+        const entityId = uuid();
 
         for (let i = 0; i < components.length; i++) {
             const component = components[i];
-            component.entityId = entity.id;
+            component.entityId = entityId;
             if (!this.componentsByType[component.type]) this.componentsByType[component.type] = [];
             this.componentsByType[component.type].push(component);
 
-            if (!Array.isArray(this.componentsByEntityId[entity.id])) this.componentsByEntityId[entity.id] = [];
-            this.componentsByEntityId[entity.id].push(component);
+            if (!Array.isArray(this.componentsByEntityId[entityId])) this.componentsByEntityId[entityId] = [];
+            this.componentsByEntityId[entityId].push(component);
         }
 
-        return entity;
+        return entityId;
     }
 
     registerSystem(system) {
         this.systems.push(system);
-    }
-
-    registerInputManager(canvas) {
-        this.inputManager = new InputManager(canvas);
-        return this.inputManager;
-    }
-
-    getInputManager() {
-        return this.inputManager;
     }
 
     findComponentsByEntityId(entityId, typeFilters) {
@@ -8025,31 +7965,20 @@ class World {
         return this.componentsByType[type];
     }
 
-    createDefaultCamera({ canvas, position = [0, 3, 5], lookAt: lookAt$1 = [0, 0, 0] } = {}) {
-        const c = Component.createPerspectiveCamera({ aspect: canvas.clientWidth / canvas.clientHeight });
-        const t = Component.createTransform3D({ position });
-        const camera = this.registerEntity([c, t]);
-
-        lookAt(c.viewMatrix, t.position, lookAt$1, c.upVector);
-        perspective(c.projectionMatrix, c.fov, c.aspect, c.near, c.far);
-
-        return camera;
-    }
-
     step() {
-        System.updateTransform(this);
-        System.updatePerspectiveCamera(this);
-        for (let i = 0; i < this.systems.length; i++) this.systems[i](this);
+        for (let i = 0; i < this.systems.length; i++) {
+            this.systems[i](0, this);
+        }
     }
 
     run() {
         const getDelta = createGetDelta();
 
-        System.updateTransform(this);
-        System.updatePerspectiveCamera(this);
-
         const tick = (now) => {
-            for (let i = 0; i < this.systems.length; i++) this.systems[i](this, getDelta(now));
+            for (let i = 0; i < this.systems.length; i++) {
+                this.systems[i](getDelta(now), this);
+            }
+
             requestAnimationFrame(tick);
         };
 
@@ -8325,13 +8254,7 @@ const getRenderables = (componentsByType, componentsByEntityId) => componentsByT
     transform: componentsByEntityId[m.entityId].find(c => c.type === 'TRANSFORM_3D'),
 }));
 
-const getActiveCamera = (componentsByType, componentsByEntityId) => {
-    const camera = componentsByType.PERSPECTIVE_CAMERA[0];
-    return {
-        camera,
-        transform: componentsByEntityId[camera.entityId].find(c => c.type === 'TRANSFORM_3D'),
-    };
-};
+const getActiveCamera = (componentsByType) => componentsByType.PERSPECTIVE_CAMERA[0];
 
 const getDirectionalLights = (componentsByType) => componentsByType.DIRECTIONAL_LIGHT;
 
@@ -8413,7 +8336,7 @@ class WebGL2Renderer {
         this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT);
 
         const renderables = getRenderables(world.componentsByType, world.componentsByEntityId);
-        const activeCamera = getActiveCamera(world.componentsByType, world.componentsByEntityId);
+        const activeCamera = getActiveCamera(world.componentsByType);
         const directionalLights = getDirectionalLights(world.componentsByType);
 
         for (let i = 0; i < renderables.length; i++) {
@@ -8423,8 +8346,8 @@ class WebGL2Renderer {
             this.gl.bindVertexArray(cachedRenderable.vao);
             this.gl.useProgram(cachedRenderable.shader);
 
-            const mv = multiply$3(create$3(), activeCamera.camera.viewMatrix, renderable.transform.modelMatrix);
-            const mvp = multiply$3(create$3(), activeCamera.camera.projectionMatrix, mv);
+            const mv = multiply$3(create$3(), activeCamera.viewMatrix, renderable.transform.modelMatrix);
+            const mvp = multiply$3(create$3(), activeCamera.projectionMatrix, mv);
             const normalMatrix = normalFromMat4(create$2(), mv);
 
             const uniformValueLookupTable = {
@@ -8437,7 +8360,7 @@ class WebGL2Renderer {
                 ambientIntensity: renderable.material.ambientIntensity,
                 specularExponent: renderable.material.specularExponent,
                 specularShininess: renderable.material.specularShininess,
-                cameraPosition: activeCamera.transform.position,
+                cameraPosition: activeCamera.position,
                 'dirLightDirection[0]': getLightValuesAsFlatArray(directionalLights, 'direction'),
                 'dirLightAmbientColor[0]': getLightValuesAsFlatArray(directionalLights, 'ambientColor'),
                 'dirLightDiffuseColor[0]': getLightValuesAsFlatArray(directionalLights, 'diffuseColor'),
@@ -8474,4 +8397,4 @@ const Utils = {
     uuid,
 };
 
-export { Component, Entity, ImageLoader, ObjLoader, ObjParser, System, Utils, WebGL2Renderer, WebGLUtils, World, common as glMatrix, mat2, mat2d, mat3, mat4, quat, quat2, vec2, vec3, vec4 };
+export { Component, ImageLoader, InputManager, ObjLoader, System, Utils, WebGL2Renderer, WebGLUtils, World, common as glMatrix, mat2, mat2d, mat3, mat4, quat, quat2, vec2, vec3, vec4 };

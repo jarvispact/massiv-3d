@@ -1,6 +1,7 @@
 class InputManager {
     constructor(canvas) {
         this.canvas = canvas;
+        this.canvas.setAttribute('tabIndex', '1');
         this.canvas.focus();
         this.keyDownMap = {};
 

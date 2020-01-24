@@ -71,6 +71,7 @@ const createPerspectiveCamera = (data = {}) => ({
     type: types.PERSPECTIVE_CAMERA,
     entityId: null,
 
+    position: data.position ? vec3.fromValues(...data.position) : vec3.fromValues(0, 0, 0),
     lookAt: data.lookAt ? vec3.fromValues(...data.lookAt) : vec3.fromValues(0, 0, 0),
     upVector: data.upVector ? vec3.fromValues(...data.upVector) : vec3.fromValues(0, 1, 0),
     viewMatrix: data.viewMatrix ? mat4.fromValues(...data.viewMatrix) : mat4.fromValues(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1),
@@ -86,6 +87,7 @@ const createOrthographicCamera = (data = {}) => ({
     type: types.ORTHOGRAPHIC_CAMERA,
     entityId: null,
 
+    position: data.position ? vec3.fromValues(...data.position) : vec3.fromValues(0, 0, 0),
     lookAt: data.lookAt ? vec3.fromValues(...data.lookAt) : vec3.fromValues(0, 0, 0),
     upVector: data.upVector ? vec3.fromValues(...data.upVector) : vec3.fromValues(0, 1, 0),
     viewMatrix: data.viewMatrix ? mat4.fromValues(...data.viewMatrix) : mat4.fromValues(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1),
