@@ -29,7 +29,7 @@
                 const canvas = document.getElementById('canvas');
                 const renderer = new WebGL2Renderer(canvas);
                 const inputManager = new InputManager(canvas);
-                const fpsDebugger = createFPSDebugger();
+                const fpsDebugger = Helpers.createFPSDebugger();
                 const world = new World();
 
                 const perspectiveCamera = Component.createPerspectiveCamera({ position: [0, 5, 8], aspect: canvas.clientWidth / canvas.clientHeight });
@@ -45,6 +45,8 @@
                     world.registerEntity([transform, geometry, material]);
                     cubeTransforms.push(transform);
                 });
+
+                window.addEventListener('resize', Helpers.resizeHandler(canvas, perspectiveCamera, System, renderer, world));
 
                 const updateOrbitControlSystem = (delta, orbitControl, camera) => {
                     const x = camera.position[0];

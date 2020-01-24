@@ -28,7 +28,7 @@
 
                 const canvas = document.getElementById('canvas');
                 const renderer = new WebGL2Renderer(canvas);
-                const fpsDebugger = createFPSDebugger();
+                const fpsDebugger = Helpers.createFPSDebugger();
                 const world = new World();
 
                 const perspectiveCamera = Component.createPerspectiveCamera({ position: [3, 3, 5], aspect: canvas.clientWidth / canvas.clientHeight });
@@ -42,6 +42,8 @@
                 world.registerEntity([perspectiveCamera]);
                 world.registerEntity([directionalLight]);
                 world.registerEntity([cubeTransform, cubeGeometry, cubeMaterial]);
+
+                window.addEventListener('resize', Helpers.resizeHandler(canvas, perspectiveCamera, System, renderer, world));
 
                 const updateRotationSystem = (delta) => {
                     cubeRotation.rotation[0] += cubeRotation.speed * delta;

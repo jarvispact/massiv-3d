@@ -2,7 +2,7 @@ class InputManager {
     constructor(canvas) {
         this.canvas = canvas;
         this.canvas.setAttribute('tabIndex', '1');
-        this.canvas.focus();
+        if (document.activeElement !== canvas) canvas.focus();
         this.keyDownMap = {};
 
         const keyDownHandler = (event) => { this.keyDownMap[event.key] = true; };

@@ -90,7 +90,6 @@ class WebGL2Renderer {
     }
 
     render(world) {
-        this.resize();
         this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT);
 
         const renderables = getRenderables(world.componentsByType, world.componentsByEntityId);

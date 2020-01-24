@@ -22,3 +22,15 @@ const createFPSDebugger = () => {
         },
     };
 };
+
+const resizeHandler = (canvas, perspectiveCamera, System, renderer, world) => () => {
+    perspectiveCamera.aspect = canvas.clientWidth / canvas.clientHeight;
+    System.updatePerspectiveProjectionMatrix(perspectiveCamera);
+    renderer.resize();
+    renderer.render(world);
+};
+
+const Helpers = {
+    createFPSDebugger,
+    resizeHandler,
+};

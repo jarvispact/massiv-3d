@@ -19,6 +19,7 @@
     <body>
         <canvas id="canvas"></canvas>
         <script src="./assets/massiv-3d.umd.js"></script>
+        <script src="./assets/helpers.js"></script>
         <script type="text/javascript">
             (async () => {
                 const { World, Component, System, WebGL2Renderer, ObjLoader } = MASSIV;
@@ -35,6 +36,8 @@
                 const cubeTransform = Component.createTransform3D();
                 const cubeGeometry = Component.createGeometry({ vertices, normals, uvs });
                 const cubeMaterial = Component.createStandardMaterial({ indices: materials[0].indices });
+
+                window.addEventListener('resize', Helpers.resizeHandler(canvas, perspectiveCamera, System, renderer, world));
 
                 world.registerEntity([perspectiveCamera]);
                 world.registerEntity([directionalLight]);

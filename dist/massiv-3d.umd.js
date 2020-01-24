@@ -7720,7 +7720,7 @@
       constructor(canvas) {
           this.canvas = canvas;
           this.canvas.setAttribute('tabIndex', '1');
-          this.canvas.focus();
+          if (document.activeElement !== canvas) canvas.focus();
           this.keyDownMap = {};
 
           const keyDownHandler = (event) => { this.keyDownMap[event.key] = true; };
@@ -8338,7 +8338,6 @@
       }
 
       render(world) {
-          this.resize();
           this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT);
 
           const renderables = getRenderables(world.componentsByType, world.componentsByEntityId);
