@@ -1,6 +1,6 @@
 # TODO
 
-- update camera projectionMatrix on resize automatically
+- uniform handling sucks. try a separate class for lights and material to better cache update uniform calls
 - add support for multiple viewports
 - add normal mapping
 - check performance

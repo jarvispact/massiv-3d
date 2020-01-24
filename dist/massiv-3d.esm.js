@@ -7952,19 +7952,6 @@ class World {
         this.systems.push(system);
     }
 
-    findComponentsByEntityId(entityId, typeFilters) {
-        if (!typeFilters) return this.componentsByEntityId[entityId];
-        return this.componentsByEntityId[entityId].filter(c => typeFilters.includes(c.type));
-    }
-
-    findComponentByEntityId(entityId, typeFilters) {
-        return this.findComponentsByEntityId(entityId, typeFilters)[0];
-    }
-
-    findComponentsByType(type) {
-        return this.componentsByType[type];
-    }
-
     step() {
         for (let i = 0; i < this.systems.length; i++) {
             this.systems[i](0, this);
