@@ -7956,6 +7956,14 @@ class World {
         this.systems.push(system);
     }
 
+    getComponentsByType(type) {
+        return this.componentsByType[type];
+    }
+
+    getComponentsByEntityId(entityId) {
+        return this.componentsByEntityId[entityId];
+    }
+
     step() {
         for (let i = 0; i < this.systems.length; i++) {
             this.systems[i](0, this);
