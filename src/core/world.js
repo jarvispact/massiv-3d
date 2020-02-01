@@ -1,5 +1,4 @@
-import Component from './component';
-import uuid from '../utils/uuid';
+import ComponentTypes from '../components/component-types';
 
 const createGetDelta = (then = 0) => (now) => {
     now *= 0.001;
@@ -10,33 +9,55 @@ const createGetDelta = (then = 0) => (now) => {
 
 class World {
     constructor() {
-        this.systems = [];
+        this.subscribers = [];
         this.componentsByEntityId = {};
 
-        this.componentsByType = Object.values(Component.types).reduce((accum, type) => {
+        this.componentsByType = Object.values(ComponentTypes).reduce((accum, type) => {
             accum[type] = [];
             return accum;
         }, {});
     }
 
-    registerEntity(components) {
-        const entityId = uuid();
-
-        for (let i = 0; i < components.length; i++) {
-            const component = components[i];
-            component.entityId = entityId;
-            if (!this.componentsByType[component.type]) this.componentsByType[component.type] = [];
-            this.componentsByType[component.type].push(component);
-
-            if (!Array.isArray(this.componentsByEntityId[entityId])) this.componentsByEntityId[entityId] = [];
-            this.componentsByEntityId[entityId].push(component);
-        }
-
-        return entityId;
+    static get PHASE() {
+        return {
+            UPDATE: 'update',
+            RENDER: 'render',
+        };
     }
 
-    registerSystem(system) {
-        this.systems.push(system);
+    on(event, handler) {
+        this.subscribers.push({ event, handler });
+    }
+
+    emit(event, ...data) {
+        for (let s = 0; s < this.subscribers.length; s++) {
+            const subscriber = this.subscribers[s];
+            if (subscriber.event === event) subscriber.handler(...data);
+        }
+    }
+
+    registerEntity(entity) {
+        if (!this.componentsByEntityId[entity.id]) this.componentsByEntityId[entity.id] = [];
+
+        const allComponents = entity.getComponents();
+        for (let c = 0; c < allComponents.length; c++) {
+            this.componentsByEntityId[entity.id].push(allComponents[c]);
+        }
+
+        const types = Object.values(ComponentTypes);
+        for (let t = 0; t < types.length; t++) {
+            const type = types[t];
+            if (!this.componentsByType[type]) this.componentsByType[type] = [];
+
+            const components = entity.getComponents(type);
+            this.componentsByType[type].push(...components);
+        }
+    }
+
+    registerEntities(entities) {
+        for (let e = 0; e < entities.length; e++) {
+            this.registerEntity(entities[e]);
+        }
     }
 
     getComponentsByType(type) {
@@ -48,19 +69,16 @@ class World {
     }
 
     step() {
-        for (let i = 0; i < this.systems.length; i++) {
-            this.systems[i](0, this);
-        }
+        this.emit(World.PHASE.UPDATE, 0, this);
+        this.emit(World.PHASE.RENDER, this);
     }
 
     run() {
         const getDelta = createGetDelta();
 
         const tick = (now) => {
-            for (let i = 0; i < this.systems.length; i++) {
-                this.systems[i](getDelta(now), this);
-            }
-
+            this.emit(World.PHASE.UPDATE, getDelta(now), this);
+            this.emit(World.PHASE.RENDER, this);
             requestAnimationFrame(tick);
         };
 

@@ -7586,126 +7586,255 @@
     forEach: forEach$2
   });
 
-  /* eslint-disable max-len */
-
-  const types = {
+  const ComponentTypes = {
       GEOMETRY: 'GEOMETRY',
       DIRECTIONAL_LIGHT: 'DIRECTIONAL_LIGHT',
       STANDARD_MATERIAL: 'STANDARD_MATERIAL',
       TRANSFORM_3D: 'TRANSFORM_3D',
       PERSPECTIVE_CAMERA: 'PERSPECTIVE_CAMERA',
       ORTHOGRAPHIC_CAMERA: 'ORTHOGRAPHIC_CAMERA',
-      ORBIT_CAMERA_CONTROL: 'ORBIT_CAMERA_CONTROL',
-      EULER_ROTATION: 'EULER_ROTATION',
   };
 
-  const create$9 = (data) => {
-      if (!data || !data.type) throw new Error('a component needs a type property');
-      return {
-          entityId: null,
-          ...data,
-      };
+  class Component {
+      constructor(type) {
+          this.type = type;
+          this.entityId = null;
+      }
+
+      getType() {
+          return this.type;
+      }
+
+      getEntityId() {
+          return this.entityId;
+      }
+
+      setEntityId(entityId) {
+          this.entityId = entityId;
+      }
+  }
+
+  class DirectionalLight extends Component {
+      constructor(options = {}) {
+          super(ComponentTypes.DIRECTIONAL_LIGHT);
+          this.direction = options.direction ? fromValues$4(...options.direction) : fromValues$4(5, 5, 5);
+          this.ambientColor = options.ambientColor ? fromValues$4(...options.ambientColor) : fromValues$4(1, 1, 1);
+          this.diffuseColor = options.diffuseColor ? fromValues$4(...options.diffuseColor) : fromValues$4(1, 1, 1);
+          this.specularColor = options.specularColor ? fromValues$4(...options.specularColor) : fromValues$4(1, 1, 1);
+          this.dirty = true;
+      }
+
+      update() {
+          const wasDirty = this.dirty;
+          this.dirty = false;
+          return wasDirty;
+      }
+  }
+
+  class Geometry extends Component {
+      constructor(options = {}) {
+          super(ComponentTypes.GEOMETRY);
+          this.vertices = Float32Array.from(options.vertices || []);
+          this.normals = Float32Array.from(options.normals || []);
+          this.uvs = Float32Array.from(options.uvs || []);
+          this.vertexColors = Float32Array.from(options.vertexColors || []);
+      }
+  }
+
+  const mat4Identity = () => fromValues$3(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1);
+
+  class OrthographicCamera extends Component {
+      constructor(options = {}) {
+          super(ComponentTypes.ORTHOGRAPHIC_CAMERA);
+          this.position = options.position ? fromValues$4(...options.position) : fromValues$4(0, 0, 0);
+          this.lookAt = options.lookAt ? fromValues$4(...options.lookAt) : fromValues$4(0, 0, 0);
+          this.upVector = options.upVector ? fromValues$4(...options.upVector) : fromValues$4(0, 1, 0);
+          this.viewMatrix = options.viewMatrix ? fromValues$3(...options.viewMatrix) : mat4Identity();
+          this.projectionMatrix = options.projectionMatrix ? fromValues$3(...options.projectionMatrix) : mat4Identity();
+          this.left = options.left;
+          this.right = options.right;
+          this.bottom = options.bottom;
+          this.top = options.top;
+          this.near = options.near;
+          this.far = options.far;
+          this.dirty = true;
+
+          this.updateViewMatrix();
+          this.updateProjectionMatrix();
+      }
+
+      updateViewMatrix() {
+          lookAt(this.viewMatrix, this.position, this.lookAt, this.upVector);
+      }
+
+      updateProjectionMatrix() {
+          ortho(this.projectionMatrix, this.left, this.right, this.bottom, this.top, this.near, this.far);
+      }
+
+      update() {
+          if (this.dirty) {
+              this.updateViewMatrix();
+              this.updateProjectionMatrix();
+              this.dirty = false;
+              return true;
+          }
+
+          return false;
+      }
+  }
+
+  const mat4Identity$1 = () => fromValues$3(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1);
+
+  class PerspectiveCamera extends Component {
+      constructor(options = {}) {
+          super(ComponentTypes.PERSPECTIVE_CAMERA);
+          this.position = options.position ? fromValues$4(...options.position) : fromValues$4(0, 0, 0);
+          this.lookAt = options.lookAt ? fromValues$4(...options.lookAt) : fromValues$4(0, 0, 0);
+          this.upVector = options.upVector ? fromValues$4(...options.upVector) : fromValues$4(0, 1, 0);
+          this.viewMatrix = options.viewMatrix ? fromValues$3(...options.viewMatrix) : mat4Identity$1();
+          this.projectionMatrix = options.projectionMatrix ? fromValues$3(...options.projectionMatrix) : mat4Identity$1();
+          this.fov = options.fov || 45;
+          this.aspect = options.aspect;
+          this.near = options.near || 1;
+          this.far = options.far || 1000;
+          this.dirty = true;
+
+          this.updateViewMatrix();
+          this.updateProjectionMatrix();
+      }
+
+      updateViewMatrix() {
+          lookAt(this.viewMatrix, this.position, this.lookAt, this.upVector);
+      }
+
+      updateProjectionMatrix() {
+          perspective(this.projectionMatrix, this.fov, this.aspect, this.near, this.far);
+          this.dirty = true;
+      }
+
+      update() {
+          if (this.dirty) {
+              this.updateViewMatrix();
+              this.updateProjectionMatrix();
+              this.dirty = false;
+              return true;
+          }
+
+          return false;
+      }
+  }
+
+  class StandardMaterial extends Component {
+      constructor(options = {}) {
+          super(ComponentTypes.STANDARD_MATERIAL);
+          this.indices = Uint32Array.from(options.indices || []);
+          this.diffuseColor = options.diffuseColor ? fromValues$4(...options.diffuseColor) : fromValues$4(0.74, 0.38, 0.41);
+          this.specularColor = options.specularColor ? fromValues$4(...options.specularColor) : fromValues$4(1, 1, 1);
+          this.ambientIntensity = options.ambientIntensity || 0.1;
+          this.specularExponent = options.specularExponent || 0.5;
+          this.specularShininess = options.specularShininess || 256;
+          this.diffuseMap = options.diffuseMap || null;
+          this.specularMap = options.specularMap || null;
+          this.dirty = true;
+      }
+
+      setDiffuseColor(r, g, b) {
+          this.diffuseColor[0] = r;
+          this.diffuseColor[1] = g;
+          this.diffuseColor[2] = b;
+          this.dirty = true;
+      }
+
+      update() {
+          const wasDirty = this.dirty;
+          this.dirty = false;
+          return wasDirty;
+      }
+  }
+
+  const mat4Identity$2 = () => fromValues$3(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1);
+  const mat3Identity = () => fromValues$2(1, 0, 0, 0, 1, 0, 0, 0, 1);
+
+  class Transform3D extends Component {
+      constructor(options = {}) {
+          super(ComponentTypes.TRANSFORM_3D);
+          this.position = options.position ? fromValues$4(...options.position) : fromValues$4(0, 0, 0);
+          this.quaternion = options.quaternion ? fromValues$6(...options.quaternion) : fromValues$6(0, 0, 0, 1);
+          this.scale = options.scale ? fromValues$4(...options.scale) : fromValues$4(1, 1, 1);
+          this.modelMatrix = options.modelMatrix ? fromValues$3(...options.modelMatrix) : mat4Identity$2();
+          this.modelViewMatrix = options.modelMatrix ? fromValues$3(...options.modelMatrix) : mat4Identity$2();
+          this.normalMatrix = options.modelMatrix ? fromValues$2(...options.modelMatrix) : mat3Identity();
+          this.matrixAutoUpdate = options.matrixAutoUpdate !== undefined ? options.matrixAutoUpdate : true;
+          this.dirty = options.position || options.quaternion || options.scale;
+      }
+
+      rotate(x, y, z) {
+          fromEuler(this.quaternion, x, y, z);
+          this.dirty = true;
+      }
+
+      update(camera) {
+          const needsUpdate = (this.matrixAutoUpdate && this.dirty) || camera.dirty;
+          if (needsUpdate) {
+              fromRotationTranslationScale(this.modelMatrix, this.quaternion, this.position, this.scale);
+              multiply$3(this.modelViewMatrix, camera.viewMatrix, this.modelMatrix);
+              normalFromMat4(this.normalMatrix, this.modelViewMatrix);
+              this.dirty = false;
+              return true;
+          }
+
+          return false;
+      }
+  }
+
+  /* eslint-disable no-bitwise, no-nested-ternary, no-mixed-operators */
+
+  // https://gist.github.com/jcxplorer/823878
+
+  var uuid = () => {
+      let uuid = '';
+      let i = 0;
+
+      for (i; i < 32; i++) {
+          const random = Math.random() * 16 | 0;
+
+          if (i === 8 || i === 12 || i === 16 || i === 20) {
+              uuid += '-';
+          }
+
+          uuid += (i === 12 ? 4 : (i === 16 ? (random & 3 | 8) : random)).toString(16);
+      }
+
+      return uuid;
   };
 
-  const createGeometry = (data = {}) => ({
-      type: types.GEOMETRY,
-      entityId: null,
+  class Entity {
+      constructor(components) {
+          this.id = uuid();
+          this.components = components || [];
+          this.components.forEach(c => c.setEntityId(this.id));
+      }
 
-      vertices: Float32Array.from(data.vertices || []),
-      normals: Float32Array.from(data.normals || []),
-      uvs: Float32Array.from(data.uvs || []),
-      vertexColors: Float32Array.from(data.vertexColors || []),
-  });
+      getComponents(type) {
+          return type ? this.components.filter(c => c.type === type) : this.components;
+      }
 
-  const createDirectionalLight = (data = {}) => ({
-      type: types.DIRECTIONAL_LIGHT,
-      entityId: null,
+      getComponent(type) {
+          return this.getComponents(type)[0];
+      }
 
-      direction: Float32Array.from(data.direction || []),
-      ambientColor: data.ambientColor ? fromValues$4(...data.ambientColor) : fromValues$4(1, 1, 1),
-      diffuseColor: data.diffuseColor ? fromValues$4(...data.diffuseColor) : fromValues$4(1, 1, 1),
-      specularColor: data.specularColor ? fromValues$4(...data.specularColor) : fromValues$4(1, 1, 1),
-  });
+      addComponent(component) {
+          component.setEntityId(this.id);
+          this.components.push(component);
+          return this;
+      }
 
-  const createStandardMaterial = (data = {}) => ({
-      type: types.STANDARD_MATERIAL,
-      entityId: null,
-
-      indices: Uint32Array.from(data.indices || []),
-
-      diffuseColor: data.diffuseColor ? fromValues$4(...data.diffuseColor) : fromValues$4(0.74, 0.38, 0.41),
-      specularColor: data.specularColor ? fromValues$4(...data.specularColor) : fromValues$4(1, 1, 1),
-      ambientIntensity: data.ambientIntensity || 0.1,
-      specularExponent: data.specularExponent || 0.5,
-      specularShininess: data.specularShininess || 256,
-      diffuseMap: data.diffuseMap || null,
-      specularMap: data.specularMap || null,
-  });
-
-  const createTransform3D = (data = {}) => ({
-      type: types.TRANSFORM_3D,
-      entityId: null,
-
-      position: data.position ? fromValues$4(...data.position) : fromValues$4(0, 0, 0),
-      quaternion: data.quaternion ? fromValues$6(...data.quaternion) : fromValues$6(0, 0, 0, 1),
-      scale: data.scale ? fromValues$4(...data.scale) : fromValues$4(1, 1, 1),
-      modelMatrix: data.modelMatrix ? fromValues$3(...data.modelMatrix) : fromValues$3(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1),
-
-      matrixAutoUpdate: data.matrixAutoUpdate || true,
-  });
-
-  const createPerspectiveCamera = (data = {}) => ({
-      type: types.PERSPECTIVE_CAMERA,
-      entityId: null,
-
-      position: data.position ? fromValues$4(...data.position) : fromValues$4(0, 0, 0),
-      lookAt: data.lookAt ? fromValues$4(...data.lookAt) : fromValues$4(0, 0, 0),
-      upVector: data.upVector ? fromValues$4(...data.upVector) : fromValues$4(0, 1, 0),
-      viewMatrix: data.viewMatrix ? fromValues$3(...data.viewMatrix) : fromValues$3(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1),
-      projectionMatrix: data.projectionMatrix ? fromValues$3(...data.projectionMatrix) : fromValues$3(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1),
-
-      fov: data.fov || 45,
-      aspect: data.aspect,
-      near: data.near || 1,
-      far: data.far || 1000,
-  });
-
-  const createOrthographicCamera = (data = {}) => ({
-      type: types.ORTHOGRAPHIC_CAMERA,
-      entityId: null,
-
-      position: data.position ? fromValues$4(...data.position) : fromValues$4(0, 0, 0),
-      lookAt: data.lookAt ? fromValues$4(...data.lookAt) : fromValues$4(0, 0, 0),
-      upVector: data.upVector ? fromValues$4(...data.upVector) : fromValues$4(0, 1, 0),
-      viewMatrix: data.viewMatrix ? fromValues$3(...data.viewMatrix) : fromValues$3(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1),
-      projectionMatrix: data.projectionMatrix ? fromValues$3(...data.projectionMatrix) : fromValues$3(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1),
-
-      left: data.left,
-      right: data.right,
-      bottom: data.bottom,
-      top: data.top,
-      near: data.near,
-      far: data.far,
-  });
-
-  const createOrbitCameraControl = (data = {}) => ({
-      type: types.ORBIT_CAMERA_CONTROL,
-      entityId: null,
-
-      speed: data.speed || 1,
-  });
-
-  const Component = {
-      types,
-      create: create$9,
-      createGeometry,
-      createDirectionalLight,
-      createStandardMaterial,
-      createTransform3D,
-      createPerspectiveCamera,
-      createOrthographicCamera,
-      createOrbitCameraControl,
-  };
+      removeComponent(component) {
+          component.setEntityId(null);
+          this.components.filter(c => c !== component);
+          return this;
+      }
+  }
 
   const ImageLoader = {
       load: async (imageSrcUrl) => new Promise((resolve, reject) => {
@@ -7881,45 +8010,6 @@
       load: async (objFilePath) => fetch(objFilePath).then(response => response.text()).then(ObjParser.parse),
   };
 
-  const updateModelMatrix = (transform3D) => {
-      fromRotationTranslationScale(transform3D.modelMatrix, transform3D.quaternion, transform3D.position, transform3D.scale);
-  };
-
-  const updateViewMatrix = (camera) => {
-      lookAt(camera.viewMatrix, camera.position, camera.lookAt, camera.upVector);
-  };
-
-  const updatePerspectiveProjectionMatrix = (camera) => {
-      perspective(camera.projectionMatrix, camera.fov, camera.aspect, camera.near, camera.far);
-  };
-
-  const System = {
-      updateModelMatrix,
-      updateViewMatrix,
-      updatePerspectiveProjectionMatrix,
-  };
-
-  /* eslint-disable no-bitwise, no-nested-ternary, no-mixed-operators */
-
-  // https://gist.github.com/jcxplorer/823878
-
-  var uuid = () => {
-      let uuid = '';
-      let i = 0;
-
-      for (i; i < 32; i++) {
-          const random = Math.random() * 16 | 0;
-
-          if (i === 8 || i === 12 || i === 16 || i === 20) {
-              uuid += '-';
-          }
-
-          uuid += (i === 12 ? 4 : (i === 16 ? (random & 3 | 8) : random)).toString(16);
-      }
-
-      return uuid;
-  };
-
   const createGetDelta = (then = 0) => (now) => {
       now *= 0.001;
       const delta = now - then;
@@ -7929,33 +8019,55 @@
 
   class World {
       constructor() {
-          this.systems = [];
+          this.subscribers = [];
           this.componentsByEntityId = {};
 
-          this.componentsByType = Object.values(Component.types).reduce((accum, type) => {
+          this.componentsByType = Object.values(ComponentTypes).reduce((accum, type) => {
               accum[type] = [];
               return accum;
           }, {});
       }
 
-      registerEntity(components) {
-          const entityId = uuid();
-
-          for (let i = 0; i < components.length; i++) {
-              const component = components[i];
-              component.entityId = entityId;
-              if (!this.componentsByType[component.type]) this.componentsByType[component.type] = [];
-              this.componentsByType[component.type].push(component);
-
-              if (!Array.isArray(this.componentsByEntityId[entityId])) this.componentsByEntityId[entityId] = [];
-              this.componentsByEntityId[entityId].push(component);
-          }
-
-          return entityId;
+      static get PHASE() {
+          return {
+              UPDATE: 'update',
+              RENDER: 'render',
+          };
       }
 
-      registerSystem(system) {
-          this.systems.push(system);
+      on(event, handler) {
+          this.subscribers.push({ event, handler });
+      }
+
+      emit(event, ...data) {
+          for (let s = 0; s < this.subscribers.length; s++) {
+              const subscriber = this.subscribers[s];
+              if (subscriber.event === event) subscriber.handler(...data);
+          }
+      }
+
+      registerEntity(entity) {
+          if (!this.componentsByEntityId[entity.id]) this.componentsByEntityId[entity.id] = [];
+
+          const allComponents = entity.getComponents();
+          for (let c = 0; c < allComponents.length; c++) {
+              this.componentsByEntityId[entity.id].push(allComponents[c]);
+          }
+
+          const types = Object.values(ComponentTypes);
+          for (let t = 0; t < types.length; t++) {
+              const type = types[t];
+              if (!this.componentsByType[type]) this.componentsByType[type] = [];
+
+              const components = entity.getComponents(type);
+              this.componentsByType[type].push(...components);
+          }
+      }
+
+      registerEntities(entities) {
+          for (let e = 0; e < entities.length; e++) {
+              this.registerEntity(entities[e]);
+          }
       }
 
       getComponentsByType(type) {
@@ -7967,19 +8079,16 @@
       }
 
       step() {
-          for (let i = 0; i < this.systems.length; i++) {
-              this.systems[i](0, this);
-          }
+          this.emit(World.PHASE.UPDATE, 0, this);
+          this.emit(World.PHASE.RENDER, this);
       }
 
       run() {
           const getDelta = createGetDelta();
 
           const tick = (now) => {
-              for (let i = 0; i < this.systems.length; i++) {
-                  this.systems[i](getDelta(now), this);
-              }
-
+              this.emit(World.PHASE.UPDATE, getDelta(now), this);
+              this.emit(World.PHASE.RENDER, this);
               requestAnimationFrame(tick);
           };
 
@@ -8140,19 +8249,21 @@
                 layout(location = ${WebGLUtils.SHADER_LAYOUT_LOCATIONS.NORMAL}) in vec3 normal;
                 layout(location = ${WebGLUtils.SHADER_LAYOUT_LOCATIONS.UV}) in vec2 uv;
     
-                uniform mat4 modelMatrix;
-                uniform mat4 mvp;
-                uniform mat3 normalMatrix;
+                uniform mat4 transformModelMatrix;
+                uniform mat4 transformModelViewMatrix;
+                uniform mat3 transformNormalMatrix;
+
+                uniform mat4 cameraProjectionMatrix;
     
                 out vec3 vPosition;
                 out vec3 vNormal;
                 out vec2 vUv;
     
                 void main() {
-                    vNormal = normalMatrix * normal;
-                    vPosition = vec3(modelMatrix * vec4(position, 1.0));
+                    vNormal = transformNormalMatrix * normal;
+                    vPosition = vec3(transformModelMatrix * vec4(position, 1.0));
                     vUv = uv;
-                    gl_Position = mvp * vec4(position, 1.0);
+                    gl_Position = cameraProjectionMatrix * transformModelViewMatrix * vec4(position, 1.0);
                 }
             `;
 
@@ -8171,41 +8282,42 @@
                 in vec3 vNormal;
                 in vec2 vUv;
 
-                uniform vec3 diffuseColor;
-                uniform vec3 specularColor;
-                uniform float ambientIntensity;
-                uniform float specularExponent;
-                uniform float specularShininess;
+                uniform vec3 materialDiffuseColor;
+                uniform vec3 materialSpecularColor;
+                uniform float materialAmbientIntensity;
+                uniform float materialSpecularExponent;
+                uniform float materialSpecularShininess;
 
-                uniform sampler2D diffuseMap;
-                uniform sampler2D specularMap;
+                uniform sampler2D materialDiffuseMap;
+                uniform sampler2D materialSpecularMap;
 
                 uniform vec3 cameraPosition;
+
                 uniform vec3 dirLightDirection[MAX_DIRECTIONAL_LIGHTS];
                 uniform vec3 dirLightAmbientColor[MAX_DIRECTIONAL_LIGHTS];
                 uniform vec3 dirLightDiffuseColor[MAX_DIRECTIONAL_LIGHTS];
                 uniform vec3 dirLightSpecularColor[MAX_DIRECTIONAL_LIGHTS];
-                uniform int numDirLights;
+                uniform int dirLightCount;
     
                 out vec4 fragmentColor;
     
                 vec3 CalcDirLight(vec3 dirLightDirection, vec3 dirLightAmbientColor, vec3 dirLightDiffuseColor, vec3 dirLightSpecularColor, vec3 normal, vec3 viewDir)
                 {
                     #ifdef USE_DIFFUSE_MAP
-                    vec3 diffuseColor = texture(diffuseMap, vUv).xyz;
+                    vec3 materialDiffuseColor = texture(materialDiffuseMap, vUv).xyz;
                     #endif
 
                     #ifdef USE_SPECULAR_MAP
-                    vec3 specularColor = texture(specularMap, vUv).xyz;
+                    vec3 materialSpecularColor = texture(materialSpecularMap, vUv).xyz;
                     #endif
 
                     vec3 lightDir = normalize(dirLightDirection);
                     float diff = max(dot(normal, lightDir), 0.0);
                     vec3 reflectDir = reflect(-lightDir, normal);
-                    float spec = pow(max(dot(viewDir, reflectDir), 0.0), specularShininess);
-                    vec3 ambient  = (dirLightAmbientColor * diffuseColor) * ambientIntensity;
-                    vec3 diffuse  = dirLightDiffuseColor * diff * diffuseColor;
-                    vec3 specular = dirLightSpecularColor * spec * specularColor;
+                    float spec = pow(max(dot(viewDir, reflectDir), 0.0), materialSpecularShininess);
+                    vec3 ambient  = (dirLightAmbientColor * materialDiffuseColor) * materialAmbientIntensity;
+                    vec3 diffuse  = dirLightDiffuseColor * diff * materialDiffuseColor;
+                    vec3 specular = dirLightSpecularColor * spec * materialSpecularColor;
                     return ambient + diffuse + specular;
                 }
     
@@ -8214,7 +8326,7 @@
                     vec3 viewDir = normalize(cameraPosition - vPosition);
                     vec3 result = vec3(0.0, 0.0, 0.0);
     
-                    for(int i = 0; i < numDirLights; i++) {
+                    for(int i = 0; i < dirLightCount; i++) {
                         result += CalcDirLight(dirLightDirection[i], dirLightAmbientColor[i], dirLightDiffuseColor[i], dirLightSpecularColor[i], normal, viewDir);
                     }
     
@@ -8240,32 +8352,263 @@
       }
 
       update(newValue) {
-          if (newValue === this.value) return;
           this.value = newValue;
           WebGLUtils.uniformTypeToUpdateUniformFunction[this.type](this.gl, this.location, this.value);
       }
   }
 
-  /* eslint-disable no-console, no-bitwise, prefer-destructuring */
+  const isTransformUniform = name => name.startsWith('transform');
+  const isMaterialUniform = name => name.startsWith('material');
+  const isCameraUniform = name => name.startsWith('camera');
+  const isDirLightUniform = name => name.startsWith('dirLight');
 
-  const getRenderables = (componentsByType, componentsByEntityId) => componentsByType.STANDARD_MATERIAL.map(m => ({
-      id: m.entityId,
-      material: m,
-      geometry: componentsByEntityId[m.entityId].find(c => c.type === 'GEOMETRY'),
-      transform: componentsByEntityId[m.entityId].find(c => c.type === 'TRANSFORM_3D'),
-  }));
-
-  const getActiveCamera = (componentsByType) => componentsByType.PERSPECTIVE_CAMERA[0];
-
-  const getDirectionalLights = (componentsByType) => componentsByType.DIRECTIONAL_LIGHT;
-
-  const getLightValuesAsFlatArray = (lights, propertyName) => {
-      const flatValues = [];
-      for (let i = 0; i < lights.length; i++) flatValues.push(...lights[i][propertyName]);
-      return flatValues;
+  const transformPropertyNameMap = {
+      transformModelMatrix: 'modelMatrix',
+      transformModelViewMatrix: 'modelViewMatrix',
+      transformNormalMatrix: 'normalMatrix',
   };
 
-  class WebGL2Renderer {
+  const materialPropertyNameMap = {
+      materialDiffuseColor: 'diffuseColor',
+      materialSpecularColor: 'specularColor',
+      materialAmbientIntensity: 'ambientIntensity',
+      materialSpecularExponent: 'specularExponent',
+      materialSpecularShininess: 'specularShininess',
+  };
+
+  const cameraPropertyNameMap = {
+      cameraPosition: 'position',
+      cameraProjectionMatrix: 'projectionMatrix',
+  };
+
+  const dirLightPropertyNameMap = {
+      'dirLightDirection[0]': 'direction',
+      'dirLightAmbientColor[0]': 'ambientColor',
+      'dirLightDiffuseColor[0]': 'diffuseColor',
+      'dirLightSpecularColor[0]': 'specularColor',
+      dirLightCount: 'length',
+  };
+
+  const vec3Cache = {
+      direction: [],
+      ambientColor: [],
+      diffuseColor: [],
+      specularColor: [],
+  };
+
+  // const getLightValuesAsFlatArray = (lights, propertyName) => {
+  //     const flatValues = [];
+  //     for (let i = 0; i < lights.length; i++) flatValues.push(...lights[i][propertyName]);
+  //     return flatValues;
+  // };
+
+  /* eslint-disable prefer-destructuring */
+  const getLightValuesAsFlatArray = (lights, propertyName) => {
+      let idx = 0;
+      for (let i = 0; i < lights.length; i++) {
+          vec3Cache[propertyName][idx] = lights[i][propertyName][0];
+          vec3Cache[propertyName][idx + 1] = lights[i][propertyName][1];
+          vec3Cache[propertyName][idx + 2] = lights[i][propertyName][2];
+          idx += 3;
+      }
+
+      return vec3Cache[propertyName];
+  };
+  /* eslint-enable prefer-destructuring */
+
+  // const matrixCache = {
+  //     mv: mat4.create(),
+  //     mvp: mat4.create(),
+  //     normalMatrix: mat3.create(),
+  // };
+
+  const cameraUpdatedForRenderable = {
+      0: false,
+  };
+
+  const lightsUpdatedForRenderable = {
+      0: false,
+  };
+
+  class CachedRenderable {
+      constructor(gl, renderable) {
+          this.gl = gl;
+          this.renderable = renderable;
+          this.vao = WebGLUtils.createVertexArray(gl, renderable.geometry);
+          this.indices = WebGLUtils.createElementArrayBuffer(gl, renderable.material);
+          this.materialIndicesLength = renderable.material.indices.length;
+          this.webglUniformTypeToUniformType = WebGLUtils.createUniformTypeLookupTable(this.gl);
+          this.shader = this.setupShader();
+          this.uniforms = this.setupUniforms();
+      }
+
+      setupShader() {
+          const shaderData = ShaderBuilder[this.renderable.material.type].buildShader(this.renderable.material);
+          const vertexShader = WebGLUtils.createShader(this.gl, this.gl.VERTEX_SHADER, shaderData.vertexShaderSourceCode);
+          const fragmentShader = WebGLUtils.createShader(this.gl, this.gl.FRAGMENT_SHADER, shaderData.fragmentShaderSourceCode);
+          return WebGLUtils.createProgram(this.gl, vertexShader, fragmentShader);
+      }
+
+      setupUniforms() {
+          const transform = [];
+          const material = [];
+          const camera = [];
+          const dirLight = [];
+
+          const activeUniformsCount = this.gl.getProgramParameter(this.shader, this.gl.ACTIVE_UNIFORMS);
+          for (let i = 0; i < activeUniformsCount; i++) {
+              const uniformInfo = this.gl.getActiveUniform(this.shader, i);
+              const type = this.webglUniformTypeToUniformType[uniformInfo.type];
+              const location = this.gl.getUniformLocation(this.shader, uniformInfo.name);
+
+              if (isTransformUniform(uniformInfo.name)) {
+                  transform.push(new Uniform(this.gl, location, uniformInfo.name, type));
+              }
+
+              if (isMaterialUniform(uniformInfo.name)) {
+                  material.push(new Uniform(this.gl, location, uniformInfo.name, type));
+              }
+
+              if (isCameraUniform(uniformInfo.name)) {
+                  camera.push(new Uniform(this.gl, location, uniformInfo.name, type));
+              }
+
+              if (isDirLightUniform(uniformInfo.name)) {
+                  dirLight.push(new Uniform(this.gl, location, uniformInfo.name, type));
+              }
+          }
+
+          return { transform, material, camera, dirLight };
+      }
+
+      use() {
+          this.gl.useProgram(this.shader);
+          this.gl.bindVertexArray(this.vao);
+      }
+
+      draw() {
+          this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, this.indices);
+          this.gl.drawElements(this.gl.TRIANGLES, this.materialIndicesLength, this.gl.UNSIGNED_INT, 0);
+      }
+
+      update(renderable, camera, dirLights) {
+          const transformUniformsNeedUpdate = renderable.transform.update(camera);
+          const materialUniformsNeedUpdate = renderable.material.update();
+          const allLightsUpdateFlag = dirLights.map(l => l.update());
+          const lightNeedsUpdate = allLightsUpdateFlag.some(d => d);
+          const cameraNeedsUpdate = camera.update();
+
+          const cameraUpdateForRenderable = cameraUpdatedForRenderable[renderable.id] ? cameraNeedsUpdate : true;
+          const lightUpdateForRenderable = lightsUpdatedForRenderable[renderable.id] ? lightNeedsUpdate : true;
+
+          if (transformUniformsNeedUpdate) {
+              // console.log('transformUniformsNeedUpdate');
+              for (let i = 0; i < this.uniforms.transform.length; i++) {
+                  const uniform = this.uniforms.transform[i];
+                  const propertyName = transformPropertyNameMap[uniform.name];
+                  uniform.update(renderable.transform[propertyName]);
+              }
+          }
+
+          if (materialUniformsNeedUpdate) {
+              // console.log('materialUniformsNeedUpdate');
+              for (let i = 0; i < this.uniforms.material.length; i++) {
+                  const uniform = this.uniforms.material[i];
+                  const propertyName = materialPropertyNameMap[uniform.name];
+                  uniform.update(renderable.material[propertyName]);
+              }
+          }
+
+          if (cameraUpdateForRenderable) {
+              // console.log('cameraNeedsUpdate');
+              for (let i = 0; i < this.uniforms.camera.length; i++) {
+                  const uniform = this.uniforms.camera[i];
+                  const propertyName = cameraPropertyNameMap[uniform.name];
+                  uniform.update(camera[propertyName]);
+              }
+              cameraUpdatedForRenderable[renderable.id] = true;
+          }
+
+          if (lightUpdateForRenderable) {
+              // console.log('lightNeedsUpdate');
+              for (let i = 0; i < this.uniforms.dirLight.length; i++) {
+                  const uniform = this.uniforms.dirLight[i];
+                  if (uniform.name === 'dirLightCount') {
+                      uniform.update(dirLights.length);
+                  } else {
+                      const propertyName = dirLightPropertyNameMap[uniform.name];
+                      uniform.update(getLightValuesAsFlatArray(dirLights, propertyName));
+                  }
+              }
+              lightsUpdatedForRenderable[renderable.id] = true;
+          }
+      }
+  }
+
+  /* eslint-disable no-console, no-bitwise, prefer-destructuring */
+
+  const {
+      STANDARD_MATERIAL,
+      TRANSFORM_3D,
+      GEOMETRY,
+      PERSPECTIVE_CAMERA,
+      ORTHOGRAPHIC_CAMERA,
+      DIRECTIONAL_LIGHT,
+  } = ComponentTypes;
+
+  const getRenderablesForStandardMaterial = (world) => {
+      const materials = world.getComponentsByType(STANDARD_MATERIAL);
+
+      let i = 0;
+      const iMax = materials.length;
+      const result = [];
+
+      for (; i < iMax; i++) {
+          const material = materials[i];
+          result.push({
+              id: material.entityId,
+              material,
+              transform: world.getComponentsByEntityId(material.entityId).find(c => c.type === TRANSFORM_3D),
+              geometry: world.getComponentsByEntityId(material.entityId).find(c => c.type === GEOMETRY),
+          });
+      }
+
+      return result;
+  };
+
+  const getActiveCamera = (world) => {
+      const perspectiveCamera = world.getComponentsByType(PERSPECTIVE_CAMERA)[0];
+      const orthographicCamera = world.getComponentsByType(ORTHOGRAPHIC_CAMERA)[0];
+      return perspectiveCamera || orthographicCamera;
+  };
+
+  const getDirectionalLights = (world) => {
+      const dirLights = world.getComponentsByType(DIRECTIONAL_LIGHT);
+      return dirLights;
+  };
+
+  const renderableNeedsCacheUpdate = (cachedRenderable, newRenderable) => {
+      if (!cachedRenderable) return true;
+      if (cachedRenderable.renderable.material !== newRenderable.material) return true;
+      if (cachedRenderable.renderable.transform !== newRenderable.transform) return true;
+      if (cachedRenderable.renderable.geometry !== newRenderable.geometry) return true;
+      return false;
+  };
+
+  const cache = {};
+
+  const getCachedRenderable = (gl, renderable) => {
+      const cachedRenderable = cache[renderable.id];
+      if (cachedRenderable === undefined || renderableNeedsCacheUpdate(cachedRenderable, renderable)) {
+          console.log('renderable cache update');
+          const newCachedRenderable = new CachedRenderable(gl, renderable);
+          cache[renderable.id] = newCachedRenderable;
+          return newCachedRenderable;
+      }
+      return cachedRenderable;
+  };
+
+  class TestRenderer {
       constructor(canvas) {
           this.canvas = canvas;
           this.canvas.width = this.canvas.clientWidth;
@@ -8275,9 +8618,6 @@
           this.gl.enable(this.gl.DEPTH_TEST);
           this.gl.depthFunc(this.gl.LEQUAL);
           this.gl.clearColor(0, 0, 0, 1);
-
-          this.webglUniformTypeToUniformType = WebGLUtils.createUniformTypeLookupTable(this.gl);
-          this.renderableCache = {};
       }
 
       resize() {
@@ -8292,100 +8632,22 @@
           }
       }
 
-      cacheRenderable(renderable) {
-          const gl = this.gl;
-          const shaderData = ShaderBuilder[renderable.material.type].buildShader(renderable.material);
-
-          const vertexShader = WebGLUtils.createShader(gl, gl.VERTEX_SHADER, shaderData.vertexShaderSourceCode);
-          const fragmentShader = WebGLUtils.createShader(gl, gl.FRAGMENT_SHADER, shaderData.fragmentShaderSourceCode);
-          const shader = WebGLUtils.createProgram(gl, vertexShader, fragmentShader);
-
-          const activeUniformsCount = gl.getProgramParameter(shader, gl.ACTIVE_UNIFORMS);
-          const uniforms = [];
-          const textures = {};
-
-          const textureLookupTable = {
-              diffuseMap: renderable.material.diffuseMap,
-              specularMap: renderable.material.specularMap,
-          };
-
-          for (let u = 0; u < activeUniformsCount; u++) {
-              const uniformInfo = gl.getActiveUniform(shader, u);
-              const uniformLocation = gl.getUniformLocation(shader, uniformInfo.name);
-              const uniformType = this.webglUniformTypeToUniformType[uniformInfo.type];
-              uniforms.push(new Uniform(gl, uniformLocation, uniformInfo.name, uniformType));
-
-              if (this.webglUniformTypeToUniformType[uniformInfo.type] === 'sampler2D') {
-                  textures[uniformInfo.name] = WebGLUtils.createTexture(gl, textureLookupTable[uniformInfo.name]);
-              }
-          }
-
-          const cachedRenderable = {
-              vao: WebGLUtils.createVertexArray(gl, renderable.geometry),
-              indices: WebGLUtils.createElementArrayBuffer(gl, renderable.material),
-              shader,
-              uniforms,
-              textures,
-          };
-
-          this.renderableCache[renderable.id] = cachedRenderable;
-          return cachedRenderable;
-      }
-
       render(world) {
           this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT);
 
-          const renderables = getRenderables(world.componentsByType, world.componentsByEntityId);
-          const activeCamera = getActiveCamera(world.componentsByType);
-          const directionalLights = getDirectionalLights(world.componentsByType);
+          const renderables = getRenderablesForStandardMaterial(world);
+          const activeCamera = getActiveCamera(world);
+          const directionalLights = getDirectionalLights(world);
 
-          for (let i = 0; i < renderables.length; i++) {
+          let i = 0;
+          const iMax = renderables.length;
+
+          for (; i < iMax; i++) {
               const renderable = renderables[i];
-              const cachedRenderable = this.renderableCache[renderable.id] || this.cacheRenderable(renderable);
-
-              this.gl.bindVertexArray(cachedRenderable.vao);
-              this.gl.useProgram(cachedRenderable.shader);
-
-              const mv = multiply$3(create$3(), activeCamera.viewMatrix, renderable.transform.modelMatrix);
-              const mvp = multiply$3(create$3(), activeCamera.projectionMatrix, mv);
-              const normalMatrix = normalFromMat4(create$2(), mv);
-
-              const uniformValueLookupTable = {
-                  modelMatrix: renderable.transform.modelMatrix,
-                  normalMatrix,
-                  mv,
-                  mvp,
-                  diffuseColor: renderable.material.diffuseColor,
-                  specularColor: renderable.material.specularColor,
-                  ambientIntensity: renderable.material.ambientIntensity,
-                  specularExponent: renderable.material.specularExponent,
-                  specularShininess: renderable.material.specularShininess,
-                  cameraPosition: activeCamera.position,
-                  'dirLightDirection[0]': getLightValuesAsFlatArray(directionalLights, 'direction'),
-                  'dirLightAmbientColor[0]': getLightValuesAsFlatArray(directionalLights, 'ambientColor'),
-                  'dirLightDiffuseColor[0]': getLightValuesAsFlatArray(directionalLights, 'diffuseColor'),
-                  'dirLightSpecularColor[0]': getLightValuesAsFlatArray(directionalLights, 'specularColor'),
-                  numDirLights: directionalLights.length,
-              };
-
-              let textureIndex = 0;
-              for (let u = 0; u < cachedRenderable.uniforms.length; u++) {
-                  const uniform = cachedRenderable.uniforms[u];
-                  const uniformValue = uniformValueLookupTable[uniform.name];
-
-                  // TODO: do we need to call it every frame or only when texture changes ?
-                  if (uniform.type === 'sampler2D') {
-                      this.gl.activeTexture(this.gl.TEXTURE0 + textureIndex);
-                      this.gl.bindTexture(this.gl.TEXTURE_2D, cachedRenderable.textures[uniform.name]);
-                      uniform.update(textureIndex);
-                      textureIndex++;
-                  } else {
-                      uniform.update(uniformValue);
-                  }
-              }
-
-              this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, cachedRenderable.indices);
-              this.gl.drawElements(this.gl.TRIANGLES, renderable.material.indices.length, this.gl.UNSIGNED_INT, 0);
+              const cachedRenderable = getCachedRenderable(this.gl, renderable);
+              cachedRenderable.use();
+              cachedRenderable.update(renderable, activeCamera, directionalLights);
+              cachedRenderable.draw();
           }
       }
   }
@@ -8397,15 +8659,22 @@
       uuid,
   };
 
-  exports.Component = Component;
+  exports.ComponentTypes = ComponentTypes;
+  exports.DirectionalLight = DirectionalLight;
+  exports.Entity = Entity;
+  exports.Geometry = Geometry;
   exports.ImageLoader = ImageLoader;
   exports.InputManager = InputManager;
   exports.ObjLoader = ObjLoader;
-  exports.System = System;
+  exports.OrthographicCamera = OrthographicCamera;
+  exports.PerspectiveCamera = PerspectiveCamera;
+  exports.StandardMaterial = StandardMaterial;
+  exports.Transform3D = Transform3D;
   exports.Utils = Utils;
-  exports.WebGL2Renderer = WebGL2Renderer;
+  exports.WebGL2Renderer = TestRenderer;
   exports.WebGLUtils = WebGLUtils;
   exports.World = World;
+  exports.component = Component;
   exports.glMatrix = common;
   exports.mat2 = mat2;
   exports.mat2d = mat2d;

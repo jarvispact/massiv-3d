@@ -22,44 +22,43 @@
         <script src="./assets/helpers.js"></script>
         <script type="text/javascript">
             (async () => {
-                const { World, Component, System, WebGL2Renderer, ObjLoader, quat } = MASSIV;
-
+                const { TRANSFORM_3D } = MASSIV.ComponentTypes;
                 const [{vertices, normals, uvs, materials}] = await MASSIV.ObjLoader.load('./assets/demo-cube/cube.obj');
 
                 const canvas = document.getElementById('canvas');
-                const renderer = new WebGL2Renderer(canvas);
+                const aspect = canvas.clientWidth / canvas.clientHeight;
+                const renderer = new MASSIV.WebGL2Renderer(canvas);
                 const fpsDebugger = Helpers.createFPSDebugger();
-                const world = new World();
 
-                const perspectiveCamera = Component.createPerspectiveCamera({ position: [3, 3, 5], aspect: canvas.clientWidth / canvas.clientHeight });
-                const directionalLight = Component.createDirectionalLight({ direction: [5, 5, 5] });
+                const camera = new MASSIV.Entity([
+                    new MASSIV.PerspectiveCamera({ position: [3, 3, 5], aspect }),
+                ])
+                
+                const dirLight = new MASSIV.Entity([
+                    new MASSIV.DirectionalLight(),
+                ]);
+                
+                const cube = new MASSIV.Entity([
+                    new MASSIV.Transform3D(),
+                    new MASSIV.Geometry({ vertices, normals, uvs }),
+                    new MASSIV.StandardMaterial({ indices: materials[0].indices }),
+                ]);
 
-                const cubeTransform = Component.createTransform3D();
-                const cubeGeometry = Component.createGeometry({ vertices, normals, uvs });
-                const cubeMaterial = Component.createStandardMaterial({ indices: materials[0].indices });
-                const cubeRotation = Component.create({ type: 'ROTATION', rotation: [0, 0, 0], speed: 20 });
+                const world = new MASSIV.World();
+                world.registerEntities([camera, dirLight, cube]);
 
-                world.registerEntity([perspectiveCamera]);
-                world.registerEntity([directionalLight]);
-                world.registerEntity([cubeTransform, cubeGeometry, cubeMaterial]);
+                let x = 0, y = 0;
+                world.on('update', (delta) => {
+                    cube.getComponent(TRANSFORM_3D).rotate(x, y, 0)
+                    x += 15 * delta;
+                    y += 15 * delta;
+                });
 
-                window.addEventListener('resize', Helpers.resizeHandler(canvas, perspectiveCamera, System, renderer, world));
-
-                const updateRotationSystem = (delta) => {
-                    cubeRotation.rotation[0] += cubeRotation.speed * delta;
-                    cubeRotation.rotation[1] += cubeRotation.speed * delta;
-                    quat.fromEuler(cubeTransform.quaternion, ...cubeRotation.rotation);
-                };
-
-                System.updateModelMatrix(cubeTransform);
-                System.updateViewMatrix(perspectiveCamera);
-                System.updatePerspectiveProjectionMatrix(perspectiveCamera);
-
-                world.registerSystem(updateRotationSystem);
-                world.registerSystem(() => System.updateModelMatrix(cubeTransform));
-                world.registerSystem(() => renderer.render(world));
-                world.registerSystem(fpsDebugger.update);
+                world.on('render', () => renderer.render(world));
+                world.on('render', () => fpsDebugger.update());
                 world.run();
+
+                window.addEventListener('resize', Helpers.resizeHandler(canvas, camera, renderer, world));
             })();
         </script>
     </body>

@@ -22,67 +22,74 @@
         <script src="./assets/helpers.js"></script>
         <script type="text/javascript">
             (async () => {
-                const { World, Component, System, WebGL2Renderer, InputManager, ObjLoader, mat4, vec3 } = MASSIV;
+                const { TRANSFORM_3D, STANDARD_MATERIAL } = MASSIV.ComponentTypes;
                 const [{vertices, normals, uvs, materials}] = await MASSIV.ObjLoader.load('./assets/barrel/barrel.obj');
 
                 const canvas = document.getElementById('canvas');
-                const renderer = new WebGL2Renderer(canvas);
-                const inputManager = new InputManager(canvas);
+                const renderer = new MASSIV.TestRenderer(canvas);
                 const fpsDebugger = Helpers.createFPSDebugger();
-                const world = new World();
 
-                const perspectiveCamera = Component.createPerspectiveCamera({ position: [0, 20, 80], aspect: canvas.clientWidth / canvas.clientHeight });
-                const cameraOrbitControl = Component.createOrbitCameraControl({ speed: 0.2 });
-                const directionalLight = Component.createDirectionalLight({ direction: [5, 5, 5] });
+                const aspect = canvas.clientWidth / canvas.clientHeight;
 
+                const camera = new MASSIV.Entity()
+                    .addComponent(new MASSIV.PerspectiveCamera({ position: [0, 40, 140], aspect }));
+                
+                const dirLight = new MASSIV.Entity()
+                    .addComponent(new MASSIV.DirectionalLight());
+                
+                const dirLight2 = new MASSIV.Entity()
+                    .addComponent(new MASSIV.DirectionalLight({ direction: [-5, 5, 5] }));
+                
+            
                 const barrelTransforms = [];
-                let barrelCount = 0;
-
-                for (x = -36; x < 36; x += 3) {
-                    for (z = -36; z < 36; z += 3) {
+                const barrelEntities = [];
+                // 42 => max 35 fps
+                // 48 => max 15 fps
+                let count = 72;
+                let objCounter = 0;
+                for (let x = -count; x < count; x += 3) {
+                    for (let z = -count; z < count; z += 3) {
+                        objCounter++;
                         const position = [x, 0, z];
-                        barrelCount++;
-                        const transform = Component.createTransform3D({ position });
-                        const geometry = Component.createGeometry({ vertices, normals, uvs });
-                        const material = Component.createStandardMaterial({ indices: materials[0].indices });
-                        world.registerEntity([transform, geometry, material]);
-                        barrelTransforms.push(transform);
+                        const t = new MASSIV.Transform3D({ position });
+                        barrelTransforms.push(t);
+                        barrelEntities.push(new MASSIV.Entity()
+                            .addComponent(t)
+                            .addComponent(new MASSIV.Geometry({ vertices, normals, uvs }))
+                            .addComponent(new MASSIV.StandardMaterial({ indices: materials[0].indices }))
+                        );
                     }
                 }
 
-                window.addEventListener('resize', Helpers.resizeHandler(canvas, perspectiveCamera, System, renderer, world));
+                console.log(`vertices per barrel: ${vertices.length}`);
+                console.log(`triangles per barrel: ${vertices.length / 3}`);
+                console.log(`barrels in scene: ${objCounter}`);
+                console.log(`vertices in scene: ${objCounter * vertices.length}`);
+                console.log(`triangles in scene: ${objCounter * (vertices.length / 3)}`);
+                
 
-                const updateOrbitControlSystem = (delta, orbitControl, camera) => {
-                    const x = camera.position[0];
-                    const z = camera.position[2];
+                const world = new MASSIV.World();
+                world.registerEntities([camera, dirLight, dirLight2, ...barrelEntities]);
 
-                    if (inputManager.isKeyDown('ArrowLeft')) {
-                        camera.position[0] = x * Math.cos(orbitControl.speed * delta) + z * Math.sin(orbitControl.speed * delta);
-                        camera.position[2] = z * Math.cos(orbitControl.speed * delta) - x * Math.sin(orbitControl.speed * delta);
-                    }
+                const rand = (max = 1) => Math.round(Math.random() * max);
 
-                    if (inputManager.isKeyDown('ArrowRight')) {
-                        camera.position[0] = x * Math.cos(orbitControl.speed * delta) - z * Math.sin(orbitControl.speed * delta);
-                        camera.position[2] = z * Math.cos(orbitControl.speed * delta) + x * Math.sin(orbitControl.speed * delta);
-                    }
+                let x = 0, y = 0;
+                world.registerSystem(delta => {
+                    barrelTransforms[rand(barrelTransforms.length - 1)].rotate(x, y, 0)
+                    x += 15 * delta;
+                    y += 15 * delta;
+                });
 
-                    if (inputManager.isKeyDown('a')) {
-                        console.log('a down');
-                        directionalLight.direction = vec3.fromValues(directionalLight.direction[0] - 0.1, 5, 5);
-                    }
+                world.registerSystem((_, world) => {
+                    const allMaterials = world.getComponentsByType(STANDARD_MATERIAL);
+                    allMaterials[rand(allMaterials.length - 1)].setDiffuseColor(Math.random(), Math.random(), Math.random());
+                });
 
-                    mat4.lookAt(camera.viewMatrix, camera.position, [0, 0, 0], camera.upVector);
-                };
-
-                world.registerEntity([perspectiveCamera, cameraOrbitControl]);
-                world.registerEntity([directionalLight]);
-
-                System.updatePerspectiveProjectionMatrix(perspectiveCamera);
-                world.registerSystem((delta) => updateOrbitControlSystem(delta, cameraOrbitControl, perspectiveCamera));
-                world.registerSystem(() => barrelTransforms.forEach(t => System.updateModelMatrix(t)));
                 world.registerSystem(() => renderer.render(world));
                 world.registerSystem(fpsDebugger.update);
                 world.run();
+
+                window.addEventListener('resize', Helpers.resizeHandler(canvas, camera, renderer, world));
             })();
         </script>
     </body>

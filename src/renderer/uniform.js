@@ -10,7 +10,6 @@ class Uniform {
     }
 
     update(newValue) {
-        if (newValue === this.value) return;
         this.value = newValue;
         WebGLUtils.uniformTypeToUpdateUniformFunction[this.type](this.gl, this.location, this.value);
     }

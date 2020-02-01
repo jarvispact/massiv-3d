@@ -23,9 +23,10 @@ const createFPSDebugger = () => {
     };
 };
 
-const resizeHandler = (canvas, perspectiveCamera, System, renderer, world) => () => {
+const resizeHandler = (canvas, cameraEntity, renderer, world) => () => {
+    const perspectiveCamera = cameraEntity.getComponent(MASSIV.ComponentTypes.PERSPECTIVE_CAMERA);
     perspectiveCamera.aspect = canvas.clientWidth / canvas.clientHeight;
-    System.updatePerspectiveProjectionMatrix(perspectiveCamera);
+    perspectiveCamera.updateProjectionMatrix();
     renderer.resize();
     renderer.render(world);
 };
