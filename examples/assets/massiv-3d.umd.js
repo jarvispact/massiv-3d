@@ -1,1 +1,0 @@
-../../dist/massiv-3d.umd.js

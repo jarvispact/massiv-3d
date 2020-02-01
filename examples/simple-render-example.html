@@ -18,37 +18,37 @@
 
     <body>
         <canvas id="canvas"></canvas>
-        <script src="./assets/massiv-3d.umd.js"></script>
-        <script src="./assets/helpers.js"></script>
-        <script type="text/javascript">
+        <script type="module">
+            import * as MASSIV from './massiv-3d.esm.mjs';
             (async () => {
-                const [{vertices, normals, uvs, materials}] = await MASSIV.ObjLoader.load('./assets/demo-cube/cube.obj');
-
                 const canvas = document.getElementById('canvas');
                 const aspect = canvas.clientWidth / canvas.clientHeight;
                 const renderer = new MASSIV.WebGL2Renderer(canvas);
 
-                const camera = new MASSIV.Entity([
-                    new MASSIV.PerspectiveCamera({ position: [3, 3, 5], aspect }),
+                const cameraEntity = new MASSIV.Entity([
+                    new MASSIV.PerspectiveCamera({ position: [3, 3, 5], aspect })
                 ])
                 
-                const dirLight = new MASSIV.Entity([
-                    new MASSIV.DirectionalLight(),
-                ]);
-                
-                const cube = new MASSIV.Entity([
-                    new MASSIV.Transform3D(),
-                    new MASSIV.Geometry({ vertices, normals, uvs }),
-                    new MASSIV.StandardMaterial({ indices: materials[0].indices }),
+                const dirLightEntity = new MASSIV.Entity([
+                    new MASSIV.DirectionalLight()
                 ]);
 
-                const world = new MASSIV.World();
-                world.registerEntities([camera, dirLight, cube]);
+                const cubeEntity = await MASSIV.ObjLoader.load('./assets/cube.obj').then(([cubeData]) => {                    
+                    return new MASSIV.Entity([
+                        new MASSIV.Transform3D(),
+                        new MASSIV.Geometry(cubeData),
+                        new MASSIV.StandardMaterial(cubeData.materials[0])
+                    ]);
+                });
 
-                world.on('render', () => renderer.render(world));
-                world.step();
+                const world = new MASSIV.World()
+                    .registerEntities([cameraEntity, dirLightEntity, cubeEntity])
+                    .on('render', world => renderer.render(world))
+                    .step();
 
-                window.addEventListener('resize', Helpers.resizeHandler(canvas, camera, renderer, world));
+                window.addEventListener('resize', () => {
+                    MASSIV.Utils.resizeHelper(canvas, renderer, cameraEntity, world);
+                });
             })();
         </script>
     </body>

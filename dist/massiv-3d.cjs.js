@@ -8035,6 +8035,7 @@ class World {
 
     on(event, handler) {
         this.subscribers.push({ event, handler });
+        return this;
     }
 
     emit(event, ...data) {
@@ -8042,6 +8043,7 @@ class World {
             const subscriber = this.subscribers[s];
             if (subscriber.event === event) subscriber.handler(...data);
         }
+        return this;
     }
 
     registerEntity(entity) {
@@ -8060,12 +8062,15 @@ class World {
             const components = entity.getComponents(type);
             this.componentsByType[type].push(...components);
         }
+
+        return this;
     }
 
     registerEntities(entities) {
         for (let e = 0; e < entities.length; e++) {
             this.registerEntity(entities[e]);
         }
+        return this;
     }
 
     getComponentsByType(type) {
@@ -8079,6 +8084,7 @@ class World {
     step() {
         this.emit(World.PHASE.UPDATE, 0, this);
         this.emit(World.PHASE.RENDER, this);
+        return this;
     }
 
     run() {
@@ -8091,6 +8097,7 @@ class World {
         };
 
         requestAnimationFrame(tick);
+        return this;
     }
 }
 
@@ -8650,10 +8657,53 @@ class TestRenderer {
     }
 }
 
+const createFPSDebugger = (options = {}) => {
+    const fpsDisplay = document.createElement('p');
+    fpsDisplay.style.position = options.position || 'fixed';
+    fpsDisplay.style.top = options.top || '10px';
+    fpsDisplay.style.left = options.left || '10px';
+    fpsDisplay.style.color = options.color || '#FFFFFF';
+    fpsDisplay.style.zIndex = options.zIndex || '10';
+    (options.parentElement || document.body).appendChild(fpsDisplay);
+
+    let oneSecond = Date.now() + 1000;
+    let fps = 0;
+
+    return {
+        update: () => {
+            fps++;
+            const currentTime = Date.now();
+            if (currentTime >= oneSecond) {
+                fpsDisplay.textContent = `FPS: ${fps}`;
+                fps = 0;
+                oneSecond = currentTime + 1000;
+            }
+        },
+    };
+};
+
 const rangeMap = (value, inMin, inMax, outMin, outMax) => ((value - inMin) * (outMax - outMin)) / ((inMax - inMin) + outMin);
 
+const resizeHelper = (canvas, renderer, camera, world) => {
+    const perspectiveCamera = camera.getComponent(ComponentTypes.PERSPECTIVE_CAMERA);
+    if (perspectiveCamera) {
+        perspectiveCamera.aspect = canvas.clientWidth / canvas.clientHeight;
+        perspectiveCamera.updateProjectionMatrix();
+    }
+
+    const orthographicCamera = camera.getComponent(ComponentTypes.ORTHOGRAPHIC_CAMERA);
+    if (orthographicCamera) {
+        orthographicCamera.updateProjectionMatrix();
+    }
+
+    renderer.resize();
+    renderer.render(world);
+};
+
 const Utils = {
+    createFPSDebugger,
     rangeMap,
+    resizeHelper,
     uuid,
 };
 

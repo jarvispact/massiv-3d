@@ -27,6 +27,7 @@ class World {
 
     on(event, handler) {
         this.subscribers.push({ event, handler });
+        return this;
     }
 
     emit(event, ...data) {
@@ -34,6 +35,7 @@ class World {
             const subscriber = this.subscribers[s];
             if (subscriber.event === event) subscriber.handler(...data);
         }
+        return this;
     }
 
     registerEntity(entity) {
@@ -52,12 +54,15 @@ class World {
             const components = entity.getComponents(type);
             this.componentsByType[type].push(...components);
         }
+
+        return this;
     }
 
     registerEntities(entities) {
         for (let e = 0; e < entities.length; e++) {
             this.registerEntity(entities[e]);
         }
+        return this;
     }
 
     getComponentsByType(type) {
@@ -71,6 +76,7 @@ class World {
     step() {
         this.emit(World.PHASE.UPDATE, 0, this);
         this.emit(World.PHASE.RENDER, this);
+        return this;
     }
 
     run() {
@@ -83,6 +89,7 @@ class World {
         };
 
         requestAnimationFrame(tick);
+        return this;
     }
 }
 
