@@ -7825,11 +7825,9 @@
   };
 
   const World = class {
-      constructor(state) {
-          this.state = state || null;
+      constructor() {
           this.entities = [];
           this.subscribers = [];
-          this.inputDevices = [];
 
           this.componentCache = {
               byEntityId: {},
@@ -7914,11 +7912,6 @@
 
       getComponentsByEntityId(entityId) {
           return this.componentCache.byEntityId[entityId];
-      }
-
-      registerInputDevice(device) {
-          this.inputDevices.push(device);
-          return this;
       }
 
       on(phase, handler) {

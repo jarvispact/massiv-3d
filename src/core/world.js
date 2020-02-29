@@ -2,20 +2,12 @@ import Transform from '../components/transform';
 import Camera from '../components/camera';
 import Renderable from '../components/renderable';
 import DirectionalLight from '../components/directional-light';
-
-const createGetDelta = (then = 0) => (now) => {
-    now *= 0.001;
-    const delta = now - then;
-    then = now;
-    return delta;
-};
+import createGetDelta from '../utils/create-get-delta';
 
 const World = class {
-    constructor(state) {
-        this.state = state || null;
+    constructor() {
         this.entities = [];
         this.subscribers = [];
-        this.inputDevices = [];
 
         this.componentCache = {
             byEntityId: {},
@@ -100,11 +92,6 @@ const World = class {
 
     getComponentsByEntityId(entityId) {
         return this.componentCache.byEntityId[entityId];
-    }
-
-    registerInputDevice(device) {
-        this.inputDevices.push(device);
-        return this;
     }
 
     on(phase, handler) {
