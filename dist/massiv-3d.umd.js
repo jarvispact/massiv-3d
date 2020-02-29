@@ -8995,6 +8995,9 @@
           this.gl = this.canvas.getContext('webgl2', {
               premultipliedAlpha: false,
               alpha: false,
+              powerPreference: 'high-performance',
+              antialias: true,
+              desynchronized: true,
           });
 
           this.gl.clearColor(0, 0, 0, 1);

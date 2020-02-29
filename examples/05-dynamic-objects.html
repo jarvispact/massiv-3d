@@ -106,7 +106,7 @@
                 };
 
                 const rotateCubesSystem = (delta, world) => {
-                    const activeCubeTransforms = world.getComponentsByType('transform');
+                    const activeCubeTransforms = world.getComponentsByType('Transform');
                     activeCubeTransforms.forEach(t => t.rotate(5 * delta, 15 * delta, 0))
                 };
 
