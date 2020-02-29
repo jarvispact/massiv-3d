@@ -47,7 +47,7 @@
                     ),
                 ]);
 
-                const cubeTransform = cubeEntity.getComponentByClass(MASSIV.Transform);
+                const cubeTransform = cubeEntity.getComponentByType('Transform');
 
                 const world = new MASSIV.World()
                     .registerEntities([cameraEntity, dirLightEntity, cubeEntity])

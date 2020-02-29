@@ -45,7 +45,7 @@
                 ]);
             });
 
-            const transparentCubeTransform = cubeEntities[1].getComponentByClass(MASSIV.Transform);
+            const transparentCubeTransform = cubeEntities[1].getComponentByType('Transform');
 
             const world = new MASSIV.World()
                 .registerEntities([cameraEntity, dirLightEntity, ...cubeEntities])

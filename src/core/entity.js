@@ -7,8 +7,8 @@ const Entity = class {
         this.components.forEach(component => component.setEntityId(this.id));
     }
 
-    getComponentByClass(klass) {
-        return this.components.find(c => c instanceof klass);
+    getComponentByType(type) {
+        return this.components.find(c => c.constructor.name === type);
     }
 };
 

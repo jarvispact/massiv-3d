@@ -50,7 +50,7 @@
                     ),
                 ]);
 
-                const cubeTransform = cubeEntity.getComponentByClass(MASSIV.Transform);
+                const cubeTransform = cubeEntity.getComponentByType('Transform');
 
                 const toggleLightsSystem = (delta, world) => {
                     if (keyboardInput.keyPressed(MASSIV.KeyboardInput.KEY.NUM_1)) {

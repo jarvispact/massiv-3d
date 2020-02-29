@@ -1,50 +1,6 @@
-/* eslint-disable max-classes-per-file */
-
 import CachedRenderable from './cached-renderable';
-import Transform from '../components/transform';
 import WebGL2Utils from './webgl-2-utils';
-
-const GlobalWebGLState = class {
-    constructor(gl) {
-        this.gl = gl;
-        this.depthTestEnabled = true;
-        this.depthFunc = gl.LEQUAL;
-
-        this.blendEnabled = false;
-        this.blendEquation = gl.FUNC_ADD;
-        this.blendFuncSFactor = gl.SRC_ALPHA;
-        this.blendFuncDFactor = gl.ONE_MINUS_SRC_ALPHA;
-
-        gl.depthFunc(this.depthFunc);
-        gl.blendEquation(this.blendEquation);
-        gl.blendFunc(this.blendFuncSFactor, this.blendFuncDFactor);
-
-        gl.enable(gl.DEPTH_TEST);
-        gl.disable(gl.BLEND);
-    }
-
-    setDepthTestEnabled(flag) {
-        if (this.depthTestEnabled === flag) return;
-        this.depthTestEnabled = flag;
-        console.log('setDepthTestEnabled', flag);
-        if (flag) {
-            this.gl.enable(this.gl.DEPTH_TEST);
-        } else {
-            this.gl.disable(this.gl.DEPTH_TEST);
-        }
-    }
-
-    setBlendEnabled(flag) {
-        if (this.blendEnabled === flag) return;
-        this.blendEnabled = flag;
-        console.log('setBlendEnabled', flag);
-        if (flag) {
-            this.gl.enable(this.gl.BLEND);
-        } else {
-            this.gl.disable(this.gl.BLEND);
-        }
-    }
-};
+import GlobalWebGL2State from './global-webgl-2-state';
 
 const WebGL2Renderer = class {
     constructor(canvas) {
@@ -60,7 +16,7 @@ const WebGL2Renderer = class {
         this.gl.clearColor(0, 0, 0, 1);
         this.gl.colorMask(true, true, true, false);
 
-        this.globalWebglState = new GlobalWebGLState(this.gl);
+        this.globalWebglState = new GlobalWebGL2State(this.gl);
         this.webglUniformTypeToUniformType = WebGL2Utils.createUniformTypeLookupTable(this.gl);
         this.renderableCache = {};
 
@@ -98,17 +54,14 @@ const WebGL2Renderer = class {
     render(world) {
         this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT);
 
-        const camera = world.getComponentByType('camera');
-        camera.update();
+        const camera = world.getComponentByType('Camera');
+        const dirLights = world.getComponentsByType('DirectionalLight');
 
-        const dirLights = world.getComponentsByType('dirLight');
-
-        const renderables = world.getComponentsByType('renderable');
+        const renderables = world.getComponentsByType('Renderable');
         for (let i = 0; i < renderables.length; i++) {
             const renderable = renderables[i];
-            const transform = world.getComponentsByEntityId(renderable.entityId).find(c => c instanceof Transform);
+            const transform = world.getComponentsByEntityId(renderable.entityId).find(c => c.constructor.name === 'Transform');
             const cachedRenderable = this.renderableCache[renderable.entityId] || this.cacheRenderable2D(camera, dirLights, transform, renderable);
-            transform.update();
             cachedRenderable.draw(dirLights);
         }
 
