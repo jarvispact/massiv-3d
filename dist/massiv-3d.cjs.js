@@ -7815,259 +7815,6 @@ const Entity = class {
     }
 };
 
-const ImageLoader = {
-    load: async (imageSrcUrl) => new Promise((resolve, reject) => {
-        const img = new Image();
-        img.onload = () => resolve(img);
-        img.onerror = () => reject(new Error(`error loading image from url: "${imageSrcUrl}"`));
-        img.src = imageSrcUrl;
-    }),
-};
-
-class InputManager {
-    constructor(canvas) {
-        this.canvas = canvas;
-        this.canvas.setAttribute('tabIndex', '1');
-        if (document.activeElement !== canvas) canvas.focus();
-        this.keyDownMap = {};
-
-        const keyDownHandler = (event) => { this.keyDownMap[event.key] = true; };
-        const keyUpHandler = (event) => { this.keyDownMap[event.key] = false; };
-
-        this.canvas.addEventListener('keydown', keyDownHandler);
-        this.canvas.addEventListener('keyup', keyUpHandler);
-    }
-
-    isKeyDown(key) {
-        return this.keyDownMap[key] || false;
-    }
-}
-
-class MouseInput {
-    constructor(canvas, options = {}) {
-        this.canvas = canvas;
-        this.options = options;
-
-        this.canvas.setAttribute('tabIndex', '1');
-        if (document.activeElement !== canvas) canvas.focus();
-
-        this.leftMouseButtonDown = false;
-        this.middleMouseButtonDown = false;
-        this.rightMouseButtonDown = false;
-
-        this.mouseX = 0;
-        this.mouseY = 0;
-        this.movementX = 0;
-        this.movementY = 0;
-
-        const mouseDownHandler = (event) => {
-            switch (event.button) {
-            case MouseInput.BUTTONS.LEFT:
-                this.leftMouseButtonDown = true;
-                break;
-            case MouseInput.BUTTONS.MIDDLE:
-                this.middleMouseButtonDown = true;
-                break;
-            case MouseInput.BUTTONS.RIGHT:
-                this.rightMouseButtonDown = true;
-                break;
-            }
-        };
-
-        const mouseMoveHandler = (event) => {
-            this.mouseX = event.offsetX;
-            this.mouseY = event.offsetY;
-            this.movementX = event.movementX;
-            this.movementY = event.movementY;
-        };
-
-        const mouseUpHandler = (event) => {
-            switch (event.button) {
-            case MouseInput.BUTTONS.LEFT:
-                this.leftMouseButtonDown = false;
-                break;
-            case MouseInput.BUTTONS.MIDDLE:
-                this.middleMouseButtonDown = false;
-                break;
-            case MouseInput.BUTTONS.RIGHT:
-                this.rightMouseButtonDown = false;
-                break;
-            }
-        };
-
-        this.canvas.addEventListener('mousedown', mouseDownHandler);
-        this.canvas.addEventListener('mousemove', mouseMoveHandler);
-        this.canvas.addEventListener('mouseup', mouseUpHandler);
-    }
-
-    static get BUTTONS() {
-        return {
-            LEFT: 0,
-            MIDDLE: 0,
-            RIGHT: 0,
-        };
-    }
-
-    isButtonDown(button) {
-        switch (button) {
-        case MouseInput.BUTTONS.LEFT:
-            return this.leftMouseButtonDown;
-        case MouseInput.BUTTONS.MIDDLE:
-            return this.middleMouseButtonDown;
-        case MouseInput.BUTTONS.RIGHT:
-            return this.rightMouseButtonDown;
-        default:
-            return false;
-        }
-    }
-}
-
-const objectRegex = /^o\s(.*)$/;
-const materialRegex = /^usemtl\s(.*)$/;
-const vertexPositionRegex = /^v\s(\S+)\s(\S+)\s(\S+)$/;
-const vertexUvRegex = /^vt\s(\S+)\s(\S+)$/;
-const vertexNormalRegex = /^vn\s(\S+)\s(\S+)\s(\S+)$/;
-const faceRegex = /^f\s(\S+)\s(\S+)\s(\S+)$/;
-const vnuRegex = /^(\d{1,})\/(\d{1,})\/(\d{1,})$/;
-const vnRegex = /^(\d{1,})\/\/(\d{1,})$/;
-
-const toFloat = val => Number.parseFloat(val);
-const toInt = val => Number.parseInt(val, 10);
-const correctIndex = idx => idx - 1;
-
-const ObjParser = {
-    parse: (objData) => {
-        const objDataLines = objData.trim().split('\n');
-
-        const objects = [];
-        let indexCounter = 0;
-
-        for (let lineIndex = 0; lineIndex < objDataLines.length; lineIndex++) {
-            const line = objDataLines[lineIndex].trim();
-
-            const objectMatch = line.match(objectRegex);
-            if (objectMatch) {
-                const [, objectName] = objectMatch;
-                objects.push({
-                    name: objectName,
-                    allPositions: [],
-                    allUvs: [],
-                    allNormals: [],
-                    positions: [],
-                    uvs: [],
-                    normals: [],
-                    materials: [],
-                });
-            }
-
-            const vertexPositionMatch = line.match(vertexPositionRegex);
-            if (vertexPositionMatch) {
-                const currentObject = objects[objects.length - 1];
-                const [, x, y, z] = vertexPositionMatch;
-                currentObject.allPositions.push([toFloat(x), toFloat(y), toFloat(z)]);
-            }
-
-            const vertexUvMatch = line.match(vertexUvRegex);
-            if (vertexUvMatch) {
-                const currentObject = objects[objects.length - 1];
-                const [, x, y] = vertexUvMatch;
-                currentObject.allUvs.push([toFloat(x), toFloat(y)]);
-            }
-
-            const vertexNormalMatch = line.match(vertexNormalRegex);
-            if (vertexNormalMatch) {
-                const currentObject = objects[objects.length - 1];
-                const [, x, y, z] = vertexNormalMatch;
-                currentObject.allNormals.push([toFloat(x), toFloat(y), toFloat(z)]);
-            }
-
-            const materialMatch = line.match(materialRegex);
-            if (materialMatch) {
-                const currentObject = objects[objects.length - 1];
-                const [, materialName] = materialMatch;
-                currentObject.materials.push({
-                    name: materialName,
-                    indices: [],
-                });
-            }
-
-            const faceMatch = line.match(faceRegex);
-            if (faceMatch) {
-                const currentObject = objects[objects.length - 1];
-                const currentMaterial = currentObject.materials[currentObject.materials.length - 1];
-                const [, firstVertex, secondVertex, thirdVertex] = faceMatch;
-
-                // VERTEX/UV/NORMAL
-                const firstVertexVnuMatch = firstVertex.match(vnuRegex);
-                const secondVertexVnuMatch = secondVertex.match(vnuRegex);
-                const thirdVertexVnuMatch = thirdVertex.match(vnuRegex);
-                if (firstVertexVnuMatch && secondVertexVnuMatch && thirdVertexVnuMatch) {
-                    const [, firstPositionIndex, firstUvIndex, firstNormalIndex] = firstVertexVnuMatch;
-                    const [, secondPositionIndex, secondUvIndex, secondNormalIndex] = secondVertexVnuMatch;
-                    const [, thirdPositionIndex, thirdUvIndex, thirdNormalIndex] = thirdVertexVnuMatch;
-
-                    const positions = [
-                        ...currentObject.allPositions[correctIndex(toInt(firstPositionIndex))],
-                        ...currentObject.allPositions[correctIndex(toInt(secondPositionIndex))],
-                        ...currentObject.allPositions[correctIndex(toInt(thirdPositionIndex))],
-                    ];
-
-                    const uvs = [
-                        ...currentObject.allUvs[correctIndex(toInt(firstUvIndex))],
-                        ...currentObject.allUvs[correctIndex(toInt(secondUvIndex))],
-                        ...currentObject.allUvs[correctIndex(toInt(thirdUvIndex))],
-                    ];
-
-                    const normals = [
-                        ...currentObject.allNormals[correctIndex(toInt(firstNormalIndex))],
-                        ...currentObject.allNormals[correctIndex(toInt(secondNormalIndex))],
-                        ...currentObject.allNormals[correctIndex(toInt(thirdNormalIndex))],
-                    ];
-
-                    currentObject.positions.push(...positions);
-                    currentObject.uvs.push(...uvs);
-                    currentObject.normals.push(...normals);
-                    currentMaterial.indices.push(indexCounter, indexCounter + 1, indexCounter + 2);
-                    indexCounter += 3;
-                }
-
-                // VERTEX//NORMAL
-                const firstVertexVnMatch = firstVertex.match(vnRegex);
-                const secondVertexVnMatch = secondVertex.match(vnRegex);
-                const thirdVertexVnMatch = thirdVertex.match(vnRegex);
-                if (firstVertexVnMatch && secondVertexVnMatch && thirdVertexVnMatch) {
-                    const [, firstPositionIndex, firstNormalIndex] = firstVertexVnMatch;
-                    const [, secondPositionIndex, secondNormalIndex] = secondVertexVnMatch;
-                    const [, thirdPositionIndex, thirdNormalIndex] = thirdVertexVnMatch;
-
-                    const positions = [
-                        ...currentObject.allPositions[correctIndex(toInt(firstPositionIndex))],
-                        ...currentObject.allPositions[correctIndex(toInt(secondPositionIndex))],
-                        ...currentObject.allPositions[correctIndex(toInt(thirdPositionIndex))],
-                    ];
-
-                    const normals = [
-                        ...currentObject.allNormals[correctIndex(toInt(firstNormalIndex))],
-                        ...currentObject.allNormals[correctIndex(toInt(secondNormalIndex))],
-                        ...currentObject.allNormals[correctIndex(toInt(thirdNormalIndex))],
-                    ];
-
-                    currentObject.positions.push(...positions);
-                    currentObject.normals.push(...normals);
-                    currentMaterial.indices.push(indexCounter, indexCounter + 1, indexCounter + 2);
-                    indexCounter += 3;
-                }
-            }
-        }
-
-        return objects;
-    },
-};
-
-const ObjLoader = {
-    load: async (objFilePath) => fetch(objFilePath).then(response => response.text()).then(ObjParser.parse),
-};
-
 const createGetDelta = (then = 0) => (now) => {
     now *= 0.001;
     const delta = now - then;
@@ -8414,6 +8161,240 @@ const KeyboardInput = class {
         this.keyPressedMap[key] = false;
         return val;
     }
+};
+
+class MouseInput {
+    constructor(canvas, options = {}) {
+        this.canvas = canvas;
+        this.options = options;
+
+        this.canvas.setAttribute('tabIndex', '1');
+        if (document.activeElement !== canvas) canvas.focus();
+
+        this.leftMouseButtonDown = false;
+        this.middleMouseButtonDown = false;
+        this.rightMouseButtonDown = false;
+
+        this.mouseX = 0;
+        this.mouseY = 0;
+        this.movementX = 0;
+        this.movementY = 0;
+
+        const mouseDownHandler = (event) => {
+            switch (event.button) {
+            case MouseInput.BUTTONS.LEFT:
+                this.leftMouseButtonDown = true;
+                break;
+            case MouseInput.BUTTONS.MIDDLE:
+                this.middleMouseButtonDown = true;
+                break;
+            case MouseInput.BUTTONS.RIGHT:
+                this.rightMouseButtonDown = true;
+                break;
+            }
+        };
+
+        const mouseMoveHandler = (event) => {
+            this.mouseX = event.offsetX;
+            this.mouseY = event.offsetY;
+            this.movementX = event.movementX;
+            this.movementY = event.movementY;
+        };
+
+        const mouseUpHandler = (event) => {
+            switch (event.button) {
+            case MouseInput.BUTTONS.LEFT:
+                this.leftMouseButtonDown = false;
+                break;
+            case MouseInput.BUTTONS.MIDDLE:
+                this.middleMouseButtonDown = false;
+                break;
+            case MouseInput.BUTTONS.RIGHT:
+                this.rightMouseButtonDown = false;
+                break;
+            }
+        };
+
+        this.canvas.addEventListener('mousedown', mouseDownHandler);
+        this.canvas.addEventListener('mousemove', mouseMoveHandler);
+        this.canvas.addEventListener('mouseup', mouseUpHandler);
+    }
+
+    static get BUTTONS() {
+        return {
+            LEFT: 0,
+            MIDDLE: 0,
+            RIGHT: 0,
+        };
+    }
+
+    isButtonDown(button) {
+        switch (button) {
+        case MouseInput.BUTTONS.LEFT:
+            return this.leftMouseButtonDown;
+        case MouseInput.BUTTONS.MIDDLE:
+            return this.middleMouseButtonDown;
+        case MouseInput.BUTTONS.RIGHT:
+            return this.rightMouseButtonDown;
+        default:
+            return false;
+        }
+    }
+}
+
+const ImageLoader = {
+    load: async (imageSrcUrl) => new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => resolve(img);
+        img.onerror = () => reject(new Error(`error loading image from url: "${imageSrcUrl}"`));
+        img.src = imageSrcUrl;
+    }),
+};
+
+const objectRegex = /^o\s(.*)$/;
+const materialRegex = /^usemtl\s(.*)$/;
+const vertexPositionRegex = /^v\s(\S+)\s(\S+)\s(\S+)$/;
+const vertexUvRegex = /^vt\s(\S+)\s(\S+)$/;
+const vertexNormalRegex = /^vn\s(\S+)\s(\S+)\s(\S+)$/;
+const faceRegex = /^f\s(\S+)\s(\S+)\s(\S+)$/;
+const vnuRegex = /^(\d{1,})\/(\d{1,})\/(\d{1,})$/;
+const vnRegex = /^(\d{1,})\/\/(\d{1,})$/;
+
+const toFloat = val => Number.parseFloat(val);
+const toInt = val => Number.parseInt(val, 10);
+const correctIndex = idx => idx - 1;
+
+const ObjParser = {
+    parse: (objData) => {
+        const objDataLines = objData.trim().split('\n');
+
+        const objects = [];
+        let indexCounter = 0;
+
+        for (let lineIndex = 0; lineIndex < objDataLines.length; lineIndex++) {
+            const line = objDataLines[lineIndex].trim();
+
+            const objectMatch = line.match(objectRegex);
+            if (objectMatch) {
+                const [, objectName] = objectMatch;
+                objects.push({
+                    name: objectName,
+                    allPositions: [],
+                    allUvs: [],
+                    allNormals: [],
+                    positions: [],
+                    uvs: [],
+                    normals: [],
+                    materials: [],
+                });
+            }
+
+            const vertexPositionMatch = line.match(vertexPositionRegex);
+            if (vertexPositionMatch) {
+                const currentObject = objects[objects.length - 1];
+                const [, x, y, z] = vertexPositionMatch;
+                currentObject.allPositions.push([toFloat(x), toFloat(y), toFloat(z)]);
+            }
+
+            const vertexUvMatch = line.match(vertexUvRegex);
+            if (vertexUvMatch) {
+                const currentObject = objects[objects.length - 1];
+                const [, x, y] = vertexUvMatch;
+                currentObject.allUvs.push([toFloat(x), toFloat(y)]);
+            }
+
+            const vertexNormalMatch = line.match(vertexNormalRegex);
+            if (vertexNormalMatch) {
+                const currentObject = objects[objects.length - 1];
+                const [, x, y, z] = vertexNormalMatch;
+                currentObject.allNormals.push([toFloat(x), toFloat(y), toFloat(z)]);
+            }
+
+            const materialMatch = line.match(materialRegex);
+            if (materialMatch) {
+                const currentObject = objects[objects.length - 1];
+                const [, materialName] = materialMatch;
+                currentObject.materials.push({
+                    name: materialName,
+                    indices: [],
+                });
+            }
+
+            const faceMatch = line.match(faceRegex);
+            if (faceMatch) {
+                const currentObject = objects[objects.length - 1];
+                const currentMaterial = currentObject.materials[currentObject.materials.length - 1];
+                const [, firstVertex, secondVertex, thirdVertex] = faceMatch;
+
+                // VERTEX/UV/NORMAL
+                const firstVertexVnuMatch = firstVertex.match(vnuRegex);
+                const secondVertexVnuMatch = secondVertex.match(vnuRegex);
+                const thirdVertexVnuMatch = thirdVertex.match(vnuRegex);
+                if (firstVertexVnuMatch && secondVertexVnuMatch && thirdVertexVnuMatch) {
+                    const [, firstPositionIndex, firstUvIndex, firstNormalIndex] = firstVertexVnuMatch;
+                    const [, secondPositionIndex, secondUvIndex, secondNormalIndex] = secondVertexVnuMatch;
+                    const [, thirdPositionIndex, thirdUvIndex, thirdNormalIndex] = thirdVertexVnuMatch;
+
+                    const positions = [
+                        ...currentObject.allPositions[correctIndex(toInt(firstPositionIndex))],
+                        ...currentObject.allPositions[correctIndex(toInt(secondPositionIndex))],
+                        ...currentObject.allPositions[correctIndex(toInt(thirdPositionIndex))],
+                    ];
+
+                    const uvs = [
+                        ...currentObject.allUvs[correctIndex(toInt(firstUvIndex))],
+                        ...currentObject.allUvs[correctIndex(toInt(secondUvIndex))],
+                        ...currentObject.allUvs[correctIndex(toInt(thirdUvIndex))],
+                    ];
+
+                    const normals = [
+                        ...currentObject.allNormals[correctIndex(toInt(firstNormalIndex))],
+                        ...currentObject.allNormals[correctIndex(toInt(secondNormalIndex))],
+                        ...currentObject.allNormals[correctIndex(toInt(thirdNormalIndex))],
+                    ];
+
+                    currentObject.positions.push(...positions);
+                    currentObject.uvs.push(...uvs);
+                    currentObject.normals.push(...normals);
+                    currentMaterial.indices.push(indexCounter, indexCounter + 1, indexCounter + 2);
+                    indexCounter += 3;
+                }
+
+                // VERTEX//NORMAL
+                const firstVertexVnMatch = firstVertex.match(vnRegex);
+                const secondVertexVnMatch = secondVertex.match(vnRegex);
+                const thirdVertexVnMatch = thirdVertex.match(vnRegex);
+                if (firstVertexVnMatch && secondVertexVnMatch && thirdVertexVnMatch) {
+                    const [, firstPositionIndex, firstNormalIndex] = firstVertexVnMatch;
+                    const [, secondPositionIndex, secondNormalIndex] = secondVertexVnMatch;
+                    const [, thirdPositionIndex, thirdNormalIndex] = thirdVertexVnMatch;
+
+                    const positions = [
+                        ...currentObject.allPositions[correctIndex(toInt(firstPositionIndex))],
+                        ...currentObject.allPositions[correctIndex(toInt(secondPositionIndex))],
+                        ...currentObject.allPositions[correctIndex(toInt(thirdPositionIndex))],
+                    ];
+
+                    const normals = [
+                        ...currentObject.allNormals[correctIndex(toInt(firstNormalIndex))],
+                        ...currentObject.allNormals[correctIndex(toInt(secondNormalIndex))],
+                        ...currentObject.allNormals[correctIndex(toInt(thirdNormalIndex))],
+                    ];
+
+                    currentObject.positions.push(...positions);
+                    currentObject.normals.push(...normals);
+                    currentMaterial.indices.push(indexCounter, indexCounter + 1, indexCounter + 2);
+                    indexCounter += 3;
+                }
+            }
+        }
+
+        return objects;
+    },
+};
+
+const ObjLoader = {
+    load: async (objFilePath) => fetch(objFilePath).then(response => response.text()).then(ObjParser.parse),
 };
 
 class StandardMaterial {
@@ -9090,7 +9071,6 @@ exports.Entity = Entity;
 exports.Geometry = Geometry;
 exports.GeometryUtils = GeometryUtils;
 exports.ImageLoader = ImageLoader;
-exports.InputManager = InputManager;
 exports.KeyboardInput = KeyboardInput;
 exports.MouseInput = MouseInput;
 exports.ObjLoader = ObjLoader;
