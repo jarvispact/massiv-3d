@@ -8,10 +8,13 @@
   "rules": {
     "indent": ["error", 4],
     "max-len": ["error", 150],
-    "arrow-body-style": ["error", "as-needed"],
+    "arrow-body-style": "off",
     "arrow-parens": "off",
     "no-param-reassign": "off",
+    "no-return-assign": "off",
+    "prefer-destructuring": "off",
     "no-plusplus": "off",
+    "no-bitwise": "off",
     "object-curly-newline": "off",
     "import/prefer-default-export": "off",
     "import/no-extraneous-dependencies": ["error", {"devDependencies": ["**/*.specs.js", "rollup.config.js"]}]

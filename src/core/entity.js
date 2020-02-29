@@ -1,31 +1,15 @@
 import uuid from '../utils/uuid';
 
-class Entity {
+const Entity = class {
     constructor(components) {
         this.id = uuid();
         this.components = components || [];
-        this.components.forEach(c => c.setEntityId(this.id));
+        this.components.forEach(component => component.setEntityId(this.id));
     }
 
-    getComponents(type) {
-        return type ? this.components.filter(c => c.type === type) : this.components;
+    getComponentByClass(klass) {
+        return this.components.find(c => c instanceof klass);
     }
-
-    getComponent(type) {
-        return this.getComponents(type)[0];
-    }
-
-    addComponent(component) {
-        component.setEntityId(this.id);
-        this.components.push(component);
-        return this;
-    }
-
-    removeComponent(component) {
-        component.setEntityId(null);
-        this.components.filter(c => c !== component);
-        return this;
-    }
-}
+};
 
 export default Entity;

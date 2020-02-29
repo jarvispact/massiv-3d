@@ -26,10 +26,10 @@ const ObjParser = {
                 const [, objectName] = objectMatch;
                 objects.push({
                     name: objectName,
-                    allVertices: [],
+                    allPositions: [],
                     allUvs: [],
                     allNormals: [],
-                    vertices: [],
+                    positions: [],
                     uvs: [],
                     normals: [],
                     materials: [],
@@ -40,7 +40,7 @@ const ObjParser = {
             if (vertexPositionMatch) {
                 const currentObject = objects[objects.length - 1];
                 const [, x, y, z] = vertexPositionMatch;
-                currentObject.allVertices.push([toFloat(x), toFloat(y), toFloat(z)]);
+                currentObject.allPositions.push([toFloat(x), toFloat(y), toFloat(z)]);
             }
 
             const vertexUvMatch = line.match(vertexUvRegex);
@@ -82,10 +82,10 @@ const ObjParser = {
                     const [, secondPositionIndex, secondUvIndex, secondNormalIndex] = secondVertexVnuMatch;
                     const [, thirdPositionIndex, thirdUvIndex, thirdNormalIndex] = thirdVertexVnuMatch;
 
-                    const vertices = [
-                        ...currentObject.allVertices[correctIndex(toInt(firstPositionIndex))],
-                        ...currentObject.allVertices[correctIndex(toInt(secondPositionIndex))],
-                        ...currentObject.allVertices[correctIndex(toInt(thirdPositionIndex))],
+                    const positions = [
+                        ...currentObject.allPositions[correctIndex(toInt(firstPositionIndex))],
+                        ...currentObject.allPositions[correctIndex(toInt(secondPositionIndex))],
+                        ...currentObject.allPositions[correctIndex(toInt(thirdPositionIndex))],
                     ];
 
                     const uvs = [
@@ -100,7 +100,7 @@ const ObjParser = {
                         ...currentObject.allNormals[correctIndex(toInt(thirdNormalIndex))],
                     ];
 
-                    currentObject.vertices.push(...vertices);
+                    currentObject.positions.push(...positions);
                     currentObject.uvs.push(...uvs);
                     currentObject.normals.push(...normals);
                     currentMaterial.indices.push(indexCounter, indexCounter + 1, indexCounter + 2);
@@ -116,10 +116,10 @@ const ObjParser = {
                     const [, secondPositionIndex, secondNormalIndex] = secondVertexVnMatch;
                     const [, thirdPositionIndex, thirdNormalIndex] = thirdVertexVnMatch;
 
-                    const vertices = [
-                        ...currentObject.allVertices[correctIndex(toInt(firstPositionIndex))],
-                        ...currentObject.allVertices[correctIndex(toInt(secondPositionIndex))],
-                        ...currentObject.allVertices[correctIndex(toInt(thirdPositionIndex))],
+                    const positions = [
+                        ...currentObject.allPositions[correctIndex(toInt(firstPositionIndex))],
+                        ...currentObject.allPositions[correctIndex(toInt(secondPositionIndex))],
+                        ...currentObject.allPositions[correctIndex(toInt(thirdPositionIndex))],
                     ];
 
                     const normals = [
@@ -128,7 +128,7 @@ const ObjParser = {
                         ...currentObject.allNormals[correctIndex(toInt(thirdNormalIndex))],
                     ];
 
-                    currentObject.vertices.push(...vertices);
+                    currentObject.positions.push(...positions);
                     currentObject.normals.push(...normals);
                     currentMaterial.indices.push(indexCounter, indexCounter + 1, indexCounter + 2);
                     indexCounter += 3;

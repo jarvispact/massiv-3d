@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="de">
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="initial-scale=1, maximum-scale=1, user-scalable=no">
+        <title>dynamic-objects</title>
+        <style type="text/css">
+            #canvas {
+                position: fixed;
+                top: 0px;
+                left: 0px;
+                width: 100%;
+                height: 100%;
+                overflow: hidden;
+            }
+        </style>
+    </head>
+
+    <body>
+        <canvas id="canvas"></canvas>
+        <script type="module">
+            import * as MASSIV from './massiv-3d.esm.mjs';
+            (async () => {
+                const [
+                    crateDiffuseMap,
+                    crateSpecularMap,
+                    brickDiffuseMap,
+                    brickSpecularMap,
+                    techDiffuseMap,
+                    techSpecularMap,
+                    woodDiffuseMap,
+                    woodSpecularMap,
+                ] = await Promise.all([
+                    MASSIV.ImageLoader.load('./assets/crate-diffuse-map.jpg'),
+                    MASSIV.ImageLoader.load('./assets/crate-specular-map.jpg'),
+                    MASSIV.ImageLoader.load('./assets/brick-diffuse-map.jpg'),
+                    MASSIV.ImageLoader.load('./assets/brick-specular-map.jpg'),
+                    MASSIV.ImageLoader.load('./assets/tech-diffuse-map.jpg'),
+                    MASSIV.ImageLoader.load('./assets/tech-specular-map.jpg'),
+                    MASSIV.ImageLoader.load('./assets/wood-diffuse-map.jpg'),
+                    MASSIV.ImageLoader.load('./assets/wood-specular-map.jpg'),
+                ]);
+
+                const canvas = document.getElementById('canvas');
+                const aspect = canvas.clientWidth / canvas.clientHeight;
+                const renderer = new MASSIV.WebGL2Renderer(canvas);
+                const keyboardInput = new MASSIV.KeyboardInput(canvas);
+                const fpsDebugger = MASSIV.createFPSDebugger();
+
+                const cameraEntity = new MASSIV.Entity([
+                    new MASSIV.PerspectiveCamera({ position: [0, 5, 10], aspect })
+                ])
+                
+                const dirLightEntity = new MASSIV.Entity([
+                    new MASSIV.DirectionalLight()
+                ]);
+
+                const cubeEntities = [
+                    { position: [-3, 0, 3], diffuseMap: crateDiffuseMap, specularMap: crateSpecularMap },
+                    { position: [3, 0, 3], diffuseMap: brickDiffuseMap, specularMap: brickSpecularMap },
+                    { position: [-3, 0, -3], diffuseMap: techDiffuseMap, specularMap: techSpecularMap },
+                    { position: [3, 0, -3], diffuseMap: woodDiffuseMap, specularMap: woodSpecularMap },
+                ].map(({ position, diffuseMap, specularMap }) => {                    
+                    return new MASSIV.Entity([
+                        new MASSIV.Transform({ position }),
+                        new MASSIV.Renderable(
+                            new MASSIV.CubeGeometry(),
+                            new MASSIV.StandardMaterial({ diffuseMap, specularMap })
+                        ),
+                    ]);
+                });
+
+                const toggleCubesSystem = (delta, world) => {
+                    if (keyboardInput.keyPressed(MASSIV.KeyboardInput.KEY.NUM_1)) {
+                        const hasEntity = world.hasEntity(cubeEntities[0]);
+                        if (hasEntity) {
+                            world.removeEntity(cubeEntities[0]);
+                        } else {
+                            world.registerEntity(cubeEntities[0]);
+                        }
+                    }
+                    if (keyboardInput.keyPressed(MASSIV.KeyboardInput.KEY.NUM_2)) {
+                        const hasEntity = world.hasEntity(cubeEntities[1]);
+                        if (hasEntity) {
+                            world.removeEntity(cubeEntities[1]);
+                        } else {
+                            world.registerEntity(cubeEntities[1]);
+                        }
+                    }
+                    if (keyboardInput.keyPressed(MASSIV.KeyboardInput.KEY.NUM_3)) {
+                        const hasEntity = world.hasEntity(cubeEntities[2]);
+                        if (hasEntity) {
+                            world.removeEntity(cubeEntities[2]);
+                        } else {
+                            world.registerEntity(cubeEntities[2]);
+                        }
+                    }
+                    if (keyboardInput.keyPressed(MASSIV.KeyboardInput.KEY.NUM_4)) {
+                        const hasEntity = world.hasEntity(cubeEntities[3]);
+                        if (hasEntity) {
+                            world.removeEntity(cubeEntities[3]);
+                        } else {
+                            world.registerEntity(cubeEntities[3]);
+                        }
+                    }
+                };
+
+                const rotateCubesSystem = (delta, world) => {
+                    const activeCubeTransforms = world.getComponentsByType('transform');
+                    activeCubeTransforms.forEach(t => t.rotate(5 * delta, 15 * delta, 0))
+                };
+
+                const world = new MASSIV.World()
+                    .registerEntities([cameraEntity, dirLightEntity])
+                    .on('update', toggleCubesSystem)
+                    .on('update', rotateCubesSystem)
+                    .on('update', fpsDebugger.update)
+                    .on('render', world => renderer.render(world))
+                    .run();
+            })();
+        </script>
+    </body>
+</html>

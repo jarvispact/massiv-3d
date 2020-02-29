@@ -1,4 +1,7 @@
-import ComponentTypes from '../components/component-types';
+import Transform from '../components/transform';
+import Camera from '../components/camera';
+import Renderable from '../components/renderable';
+import DirectionalLight from '../components/directional-light';
 
 const createGetDelta = (then = 0) => (now) => {
     now *= 0.001;
@@ -7,15 +10,22 @@ const createGetDelta = (then = 0) => (now) => {
     return delta;
 };
 
-class World {
-    constructor() {
+const World = class {
+    constructor(state) {
+        this.state = state || null;
+        this.entities = [];
         this.subscribers = [];
-        this.componentsByEntityId = {};
+        this.inputDevices = [];
 
-        this.componentsByType = Object.values(ComponentTypes).reduce((accum, type) => {
-            accum[type] = [];
-            return accum;
-        }, {});
+        this.componentCache = {
+            byEntityId: {},
+            byType: {
+                transform: [],
+                camera: [],
+                renderable: [],
+                dirLight: [],
+            },
+        };
     }
 
     static get PHASE() {
@@ -25,56 +35,93 @@ class World {
         };
     }
 
-    on(event, handler) {
-        this.subscribers.push({ event, handler });
-        return this;
-    }
-
-    emit(event, ...data) {
-        for (let s = 0; s < this.subscribers.length; s++) {
-            const subscriber = this.subscribers[s];
-            if (subscriber.event === event) subscriber.handler(...data);
-        }
-        return this;
-    }
-
     registerEntity(entity) {
-        if (!this.componentsByEntityId[entity.id]) this.componentsByEntityId[entity.id] = [];
+        this.entities.push(entity);
 
-        const allComponents = entity.getComponents();
-        for (let c = 0; c < allComponents.length; c++) {
-            this.componentsByEntityId[entity.id].push(allComponents[c]);
+        if (!Array.isArray(this.componentCache.byEntityId[entity.id])) {
+            this.componentCache.byEntityId[entity.id] = [];
         }
 
-        const types = Object.values(ComponentTypes);
-        for (let t = 0; t < types.length; t++) {
-            const type = types[t];
-            if (!this.componentsByType[type]) this.componentsByType[type] = [];
+        for (let i = 0; i < entity.components.length; i++) {
+            const component = entity.components[i];
 
-            const components = entity.getComponents(type);
-            this.componentsByType[type].push(...components);
+            this.componentCache.byEntityId[entity.id].push(component);
+
+            if (component instanceof Transform) {
+                this.componentCache.byType.transform.push(component);
+            }
+
+            if (component instanceof Camera) {
+                this.componentCache.byType.camera.push(component);
+            }
+
+            if (component instanceof Renderable) {
+                this.componentCache.byType.renderable.push(component);
+            }
+
+            if (component instanceof DirectionalLight) {
+                this.componentCache.byType.dirLight.push(component);
+            }
         }
 
         return this;
+    }
+
+    removeEntity(entity) {
+        this.entities = this.entities.filter(e => e !== entity);
+        this.componentCache.byEntityId[entity.id] = [];
+        this.componentCache.byType.transform = this.componentCache.byType.transform.filter(c => c.entityId !== entity.id);
+        this.componentCache.byType.camera = this.componentCache.byType.camera.filter(c => c.entityId !== entity.id);
+        this.componentCache.byType.renderable = this.componentCache.byType.renderable.filter(c => c.entityId !== entity.id);
+        this.componentCache.byType.dirLight = this.componentCache.byType.dirLight.filter(c => c.entityId !== entity.id);
+    }
+
+    removeEntityById(entityId) {
+        const entity = this.entities.find(e => e.id === entityId);
+        if (entity) this.removeEntity(entity);
+    }
+
+    hasEntity(entity) {
+        return !!this.entities.find(e => e === entity);
     }
 
     registerEntities(entities) {
-        for (let e = 0; e < entities.length; e++) {
-            this.registerEntity(entities[e]);
-        }
+        entities.forEach(e => this.registerEntity(e));
         return this;
     }
 
     getComponentsByType(type) {
-        return this.componentsByType[type];
+        return this.componentCache.byType[type];
+    }
+
+    getComponentByType(type) {
+        return this.getComponentsByType(type)[0];
     }
 
     getComponentsByEntityId(entityId) {
-        return this.componentsByEntityId[entityId];
+        return this.componentCache.byEntityId[entityId];
+    }
+
+    registerInputDevice(device) {
+        this.inputDevices.push(device);
+        return this;
+    }
+
+    on(phase, handler) {
+        this.subscribers.push({ phase, handler });
+        return this;
+    }
+
+    emit(phase, ...data) {
+        for (let s = 0; s < this.subscribers.length; s++) {
+            const subscriber = this.subscribers[s];
+            if (subscriber.phase === phase) subscriber.handler(...data);
+        }
+        return this;
     }
 
     step() {
-        this.emit(World.PHASE.UPDATE, 0, this);
+        this.emit(World.PHASE.UPDATE, 0.016, this);
         this.emit(World.PHASE.RENDER, this);
         return this;
     }
@@ -83,14 +130,14 @@ class World {
         const getDelta = createGetDelta();
 
         const tick = (now) => {
+            requestAnimationFrame(tick);
             this.emit(World.PHASE.UPDATE, getDelta(now), this);
             this.emit(World.PHASE.RENDER, this);
-            requestAnimationFrame(tick);
         };
 
         requestAnimationFrame(tick);
         return this;
     }
-}
+};
 
 export default World;

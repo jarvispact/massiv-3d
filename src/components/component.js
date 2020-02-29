@@ -1,11 +1,7 @@
-class Component {
-    constructor(type) {
-        this.type = type;
+const Component = class {
+    constructor(data) {
         this.entityId = null;
-    }
-
-    getType() {
-        return this.type;
+        if (data) Object.keys(data).forEach(key => this[key] = data[key]);
     }
 
     getEntityId() {
@@ -14,7 +10,8 @@ class Component {
 
     setEntityId(entityId) {
         this.entityId = entityId;
+        return this;
     }
-}
+};
 
 export default Component;
