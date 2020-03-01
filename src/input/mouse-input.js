@@ -17,13 +17,13 @@ class MouseInput {
 
         const mouseDownHandler = (event) => {
             switch (event.button) {
-            case MouseInput.BUTTONS.LEFT:
+            case MouseInput.BUTTONS.PRIMARY:
                 this.leftMouseButtonDown = true;
                 break;
-            case MouseInput.BUTTONS.MIDDLE:
+            case MouseInput.BUTTONS.AUXILIARY:
                 this.middleMouseButtonDown = true;
                 break;
-            case MouseInput.BUTTONS.RIGHT:
+            case MouseInput.BUTTONS.SECONDARY:
                 this.rightMouseButtonDown = true;
                 break;
             default:
@@ -40,13 +40,13 @@ class MouseInput {
 
         const mouseUpHandler = (event) => {
             switch (event.button) {
-            case MouseInput.BUTTONS.LEFT:
+            case MouseInput.BUTTONS.PRIMARY:
                 this.leftMouseButtonDown = false;
                 break;
-            case MouseInput.BUTTONS.MIDDLE:
+            case MouseInput.BUTTONS.AUXILIARY:
                 this.middleMouseButtonDown = false;
                 break;
-            case MouseInput.BUTTONS.RIGHT:
+            case MouseInput.BUTTONS.SECONDARY:
                 this.rightMouseButtonDown = false;
                 break;
             default:
@@ -61,19 +61,19 @@ class MouseInput {
 
     static get BUTTONS() {
         return {
-            LEFT: 0,
-            MIDDLE: 0,
-            RIGHT: 0,
+            PRIMARY: 0,
+            AUXILIARY: 1,
+            SECONDARY: 2,
         };
     }
 
     isButtonDown(button) {
         switch (button) {
-        case MouseInput.BUTTONS.LEFT:
+        case MouseInput.BUTTONS.PRIMARY:
             return this.leftMouseButtonDown;
-        case MouseInput.BUTTONS.MIDDLE:
+        case MouseInput.BUTTONS.AUXILIARY:
             return this.middleMouseButtonDown;
-        case MouseInput.BUTTONS.RIGHT:
+        case MouseInput.BUTTONS.SECONDARY:
             return this.rightMouseButtonDown;
         default:
             return false;
