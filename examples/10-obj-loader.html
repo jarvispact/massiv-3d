@@ -21,12 +21,7 @@
         <script type="module">
             import * as MASSIV from './massiv-3d.esm.mjs';
             (async () => {
-                const [objects, diffuseMap, specularMap] = await Promise.all([
-                    MASSIV.ObjLoader.load('./assets/quad-triangulated.obj'),
-                    MASSIV.ImageLoader.load('./assets/crate-diffuse-map.jpg'),
-                    MASSIV.ImageLoader.load('./assets/crate-specular-map.jpg'),
-                ]);
-                console.log({objects});
+                const objects = await MASSIV.ObjLoader.load('./assets/obj-models/different-objects-smooth.obj');
 
                 const canvas = document.getElementById('canvas');
                 const aspect = canvas.clientWidth / canvas.clientHeight;
@@ -34,11 +29,11 @@
                 const fpsDebugger = MASSIV.createFPSDebugger();
 
                 const cameraEntity = new MASSIV.Entity([
-                    new MASSIV.PerspectiveCamera({ position: [3, 5, 8], aspect })
+                    new MASSIV.PerspectiveCamera({ position: [3, 3, 8], aspect })
                 ])
                 
                 const dirLightEntity = new MASSIV.Entity([
-                    new MASSIV.DirectionalLight()
+                    new MASSIV.DirectionalLight({ direction: [0, 3, 3] })
                 ]);
 
                 const r = () => Math.random();
@@ -63,7 +58,7 @@
                     .on('update', rotationSystem)
                     .on('update', () => fpsDebugger.update())
                     .on('render', world => renderer.render(world))
-                    .step();
+                    .run();
             })();
         </script>
     </body>

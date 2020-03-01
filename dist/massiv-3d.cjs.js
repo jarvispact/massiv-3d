@@ -8277,11 +8277,14 @@ const ImageLoader = {
     }),
 };
 
+/* eslint-disable max-len */
+
 const objectRegex = /^o\s(.*)$/;
 const vertexPositionRegex = /^v\s(\S+)\s(\S+)\s(\S+)$/;
 const vertexUvRegex = /^vt\s(\S+)\s(\S+)$/;
 const vertexNormalRegex = /^vn\s(\S+)\s(\S+)\s(\S+)$/;
-const faceRegex = /^f\s(\S+)\s(\S+)\s(\S+)$/;
+const triangleFaceRegex = /^f\s(\S+)\s(\S+)\s(\S+)$/;
+const quadFaceRegex = /^f\s(\S+)\s(\S+)\s(\S+)\s(\S+)$/;
 const vnuRegex = /^(\d{1,})\/(\d{1,})\/(\d{1,})$/;
 const vnRegex = /^(\d{1,})\/\/(\d{1,})$/;
 
@@ -8327,10 +8330,10 @@ const ObjParser = {
                 allNormals.push([toFloat(x), toFloat(y), toFloat(z)]);
             }
 
-            const faceMatch = line.match(faceRegex);
-            if (faceMatch) {
+            const triangleFaceMatch = line.match(triangleFaceRegex);
+            if (triangleFaceMatch) {
                 const currentObject = objects[objects.length - 1];
-                const [, firstVertex, secondVertex, thirdVertex] = faceMatch;
+                const [, firstVertex, secondVertex, thirdVertex] = triangleFaceMatch;
 
                 // VERTEX/UV/NORMAL
                 const firstVertexVnuMatch = firstVertex.match(vnuRegex);
@@ -8391,6 +8394,98 @@ const ObjParser = {
                     currentObject.normals.push(...normals);
                     currentObject.indices.push(indexCounter, indexCounter + 1, indexCounter + 2);
                     indexCounter += 3;
+                }
+            }
+
+            // 0, 1, 2, 0, 2, 3
+            const quadFaceMatch = line.match(quadFaceRegex);
+            if (quadFaceMatch) {
+                const currentObject = objects[objects.length - 1];
+                const [, firstVertex, secondVertex, thirdVertex, fourthVertex] = quadFaceMatch;
+
+                // VERTEX/UV/NORMAL
+                const firstVertexVnuMatch = firstVertex.match(vnuRegex);
+                const secondVertexVnuMatch = secondVertex.match(vnuRegex);
+                const thirdVertexVnuMatch = thirdVertex.match(vnuRegex);
+                const fourthVertexVnuMatch = fourthVertex.match(vnuRegex);
+                if (firstVertexVnuMatch && secondVertexVnuMatch && thirdVertexVnuMatch && fourthVertexVnuMatch) {
+                    const [, firstPositionIndex, firstUvIndex, firstNormalIndex] = firstVertexVnuMatch;
+                    const [, secondPositionIndex, secondUvIndex, secondNormalIndex] = secondVertexVnuMatch;
+                    const [, thirdPositionIndex, thirdUvIndex, thirdNormalIndex] = thirdVertexVnuMatch;
+                    const [, fourthPositionIndex, fourthUvIndex, fourthNormalIndex] = fourthVertexVnuMatch;
+
+                    const positions = [
+                        ...allPositions[correctIndex(toInt(firstPositionIndex))],
+                        ...allPositions[correctIndex(toInt(secondPositionIndex))],
+                        ...allPositions[correctIndex(toInt(thirdPositionIndex))],
+
+                        ...allPositions[correctIndex(toInt(firstPositionIndex))],
+                        ...allPositions[correctIndex(toInt(thirdPositionIndex))],
+                        ...allPositions[correctIndex(toInt(fourthPositionIndex))],
+                    ];
+
+                    const uvs = [
+                        ...allUvs[correctIndex(toInt(firstUvIndex))],
+                        ...allUvs[correctIndex(toInt(secondUvIndex))],
+                        ...allUvs[correctIndex(toInt(thirdUvIndex))],
+
+                        ...allUvs[correctIndex(toInt(firstUvIndex))],
+                        ...allUvs[correctIndex(toInt(thirdUvIndex))],
+                        ...allUvs[correctIndex(toInt(fourthUvIndex))],
+                    ];
+
+                    const normals = [
+                        ...allNormals[correctIndex(toInt(firstNormalIndex))],
+                        ...allNormals[correctIndex(toInt(secondNormalIndex))],
+                        ...allNormals[correctIndex(toInt(thirdNormalIndex))],
+
+                        ...allNormals[correctIndex(toInt(firstNormalIndex))],
+                        ...allNormals[correctIndex(toInt(thirdNormalIndex))],
+                        ...allNormals[correctIndex(toInt(fourthNormalIndex))],
+                    ];
+
+                    currentObject.positions.push(...positions);
+                    currentObject.uvs.push(...uvs);
+                    currentObject.normals.push(...normals);
+                    currentObject.indices.push(indexCounter, indexCounter + 1, indexCounter + 2, indexCounter + 3, indexCounter + 4, indexCounter + 5);
+                    indexCounter += 6;
+                }
+
+                // VERTEX//NORMAL
+                const firstVertexVnMatch = firstVertex.match(vnRegex);
+                const secondVertexVnMatch = secondVertex.match(vnRegex);
+                const thirdVertexVnMatch = thirdVertex.match(vnRegex);
+                const fourthVertexVnMatch = fourthVertex.match(vnRegex);
+                if (firstVertexVnMatch && secondVertexVnMatch && thirdVertexVnMatch && fourthVertexVnMatch) {
+                    const [, firstPositionIndex, firstNormalIndex] = firstVertexVnMatch;
+                    const [, secondPositionIndex, secondNormalIndex] = secondVertexVnMatch;
+                    const [, thirdPositionIndex, thirdNormalIndex] = thirdVertexVnMatch;
+                    const [, fourthPositionIndex, fourthNormalIndex] = fourthVertexVnMatch;
+
+                    const positions = [
+                        ...allPositions[correctIndex(toInt(firstPositionIndex))],
+                        ...allPositions[correctIndex(toInt(secondPositionIndex))],
+                        ...allPositions[correctIndex(toInt(thirdPositionIndex))],
+
+                        ...allPositions[correctIndex(toInt(firstPositionIndex))],
+                        ...allPositions[correctIndex(toInt(thirdPositionIndex))],
+                        ...allPositions[correctIndex(toInt(fourthPositionIndex))],
+                    ];
+
+                    const normals = [
+                        ...allNormals[correctIndex(toInt(firstNormalIndex))],
+                        ...allNormals[correctIndex(toInt(secondNormalIndex))],
+                        ...allNormals[correctIndex(toInt(thirdNormalIndex))],
+
+                        ...allNormals[correctIndex(toInt(firstNormalIndex))],
+                        ...allNormals[correctIndex(toInt(thirdNormalIndex))],
+                        ...allNormals[correctIndex(toInt(fourthNormalIndex))],
+                    ];
+
+                    currentObject.positions.push(...positions);
+                    currentObject.normals.push(...normals);
+                    currentObject.indices.push(indexCounter, indexCounter + 1, indexCounter + 2, indexCounter + 3, indexCounter + 4, indexCounter + 5);
+                    indexCounter += 6;
                 }
             }
         }

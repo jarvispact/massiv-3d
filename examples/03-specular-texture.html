@@ -22,8 +22,8 @@
             import * as MASSIV from './massiv-3d.esm.mjs';
             (async () => {
                 const [diffuseMap, specularMap] = await Promise.all([
-                    MASSIV.ImageLoader.load('./assets/crate-diffuse-map.jpg'),
-                    MASSIV.ImageLoader.load('./assets/crate-specular-map.jpg'),
+                    MASSIV.ImageLoader.load('./assets/textures/crate-diffuse-map.jpg'),
+                    MASSIV.ImageLoader.load('./assets/textures/crate-specular-map.jpg'),
                 ]);
 
                 const canvas = document.getElementById('canvas');
