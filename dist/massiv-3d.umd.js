@@ -7765,8 +7765,20 @@
           };
       }
 
-      rotate(x, y, z) {
-          fromEuler(eulerRotationCache, x, y, z);
+      translate(translation) {
+          add$4(this.position, this.position, translation);
+          this.dirty.modelMatrix = true;
+          this.uniformUpdate.modelMatrix = true;
+      }
+
+      scale(scaling) {
+          add$4(this.scaling, this.scaling, scaling);
+          this.dirty.modelMatrix = true;
+          this.uniformUpdate.modelMatrix = true;
+      }
+
+      rotate(eulerRotation) {
+          fromEuler(eulerRotationCache, ...eulerRotation);
           multiply$6(this.quaternion, this.quaternion, eulerRotationCache);
           this.dirty.modelMatrix = true;
           this.uniformUpdate.modelMatrix = true;

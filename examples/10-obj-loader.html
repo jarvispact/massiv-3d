@@ -50,7 +50,7 @@
 
                 const rotationSystem = (delta, world) => {
                     const transforms = world.getComponentsByType('Transform');
-                    transforms.forEach(t => t.rotate(0, 15 * delta, 0))
+                    transforms.forEach(t => t.rotate([0, 15 * delta, 0]))
                 };
 
                 const world = new MASSIV.World()

@@ -22,8 +22,20 @@ class Transform extends Component {
         };
     }
 
-    rotate(x, y, z) {
-        quat.fromEuler(eulerRotationCache, x, y, z);
+    translate(translation) {
+        vec3.add(this.position, this.position, translation);
+        this.dirty.modelMatrix = true;
+        this.uniformUpdate.modelMatrix = true;
+    }
+
+    scale(scaling) {
+        vec3.add(this.scaling, this.scaling, scaling);
+        this.dirty.modelMatrix = true;
+        this.uniformUpdate.modelMatrix = true;
+    }
+
+    rotate(eulerRotation) {
+        quat.fromEuler(eulerRotationCache, ...eulerRotation);
         quat.multiply(this.quaternion, this.quaternion, eulerRotationCache);
         this.dirty.modelMatrix = true;
         this.uniformUpdate.modelMatrix = true;

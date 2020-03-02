@@ -49,7 +49,6 @@
 
             const world = new MASSIV.World()
                 .registerEntities([cameraEntity, dirLightEntity, ...cubeEntities])
-                .on('update', delta => transparentCubeTransform.rotate(15 * delta, 20 * delta, 0))
                 .on('render', world => renderer.render(world))
                 .step();
         </script>

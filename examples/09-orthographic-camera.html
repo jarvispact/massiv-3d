@@ -55,7 +55,7 @@
 
             const world = new MASSIV.World()
                 .registerEntities([cameraEntity, dirLightEntity, cubeEntity])
-                .on('update', delta => cubeTransform.rotate(0, 10 * delta, 0))
+                .on('update', delta => cubeTransform.rotate([0, 10 * delta, 0]))
                 .on('update', () => fpsDebugger.update())
                 .on('render', world => renderer.render(world))
                 .run();

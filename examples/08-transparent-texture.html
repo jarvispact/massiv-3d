@@ -26,7 +26,6 @@
                 const canvas = document.getElementById('canvas');
                 const aspect = canvas.clientWidth / canvas.clientHeight;
                 const renderer = new MASSIV.WebGL2Renderer(canvas);
-                const fpsDebugger = MASSIV.createFPSDebugger();
 
                 const cameraEntity = new MASSIV.Entity([
                     new MASSIV.PerspectiveCamera({ position: [0, 2, 6], aspect })
@@ -51,7 +50,6 @@
 
                 const world = new MASSIV.World()
                     .registerEntities([cameraEntity, dirLightEntity, ...cubeEntities])
-                    .on('update', () => fpsDebugger.update())
                     .on('render', world => renderer.render(world))
                     .step();
             })();
