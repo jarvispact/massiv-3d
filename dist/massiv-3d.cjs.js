@@ -8967,12 +8967,13 @@ const CachedRenderable = class {
             const uniform = this.uniforms.material[i];
 
             if (uniform.type === 'sampler2D') {
+                // console.log(uniform);
                 gl.activeTexture(gl.TEXTURE0 + textureIndex);
                 gl.bindTexture(gl.TEXTURE_2D, this.textures[uniform.name]);
+                WebGL2Utils.uniformTypeToUpdateUniformFunction[uniform.type](gl, uniform.location, textureIndex);
+                this.renderable.material.setUniformUpdateFlag(uniform.name, false);
                 textureIndex++;
-            }
-
-            if (this.needsCacheBust || this.renderable.material.getUniformUpdateFlag(uniform.name)) {
+            } else if (this.needsCacheBust || this.renderable.material.getUniformUpdateFlag(uniform.name)) {
                 const value = this.renderable.material[uniform.name];
                 // console.log('material update', uniform.name, value);
                 WebGL2Utils.uniformTypeToUpdateUniformFunction[uniform.type](gl, uniform.location, value);
