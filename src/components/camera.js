@@ -45,6 +45,12 @@ const Camera = class extends Component {
     setUniformUpdateFlag(name, flag) {
         this.uniformUpdate[name] = flag;
     }
+
+    markUniformsAsUpdated() {
+        this.uniformUpdate.position = false;
+        this.uniformUpdate.viewMatrix = false;
+        this.uniformUpdate.projectionMatrix = false;
+    }
 };
 
 export default Camera;

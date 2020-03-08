@@ -35,6 +35,13 @@ class DirectionalLight extends Component {
     setUniformUpdateFlag(name, flag) {
         this.uniformUpdate[name] = flag;
     }
+
+    markUniformsAsUpdated() {
+        this.uniformUpdate.direction = false;
+        this.uniformUpdate.ambientColor = false;
+        this.uniformUpdate.diffuseColor = false;
+        this.uniformUpdate.specularColor = false;
+    }
 }
 
 export default DirectionalLight;

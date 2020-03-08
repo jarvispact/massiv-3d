@@ -20,9 +20,11 @@
         <canvas id="canvas"></canvas>
         <script type="module">
             import * as MASSIV from './massiv-3d.esm.mjs';
+
+            const world = new MASSIV.World();
             const canvas = document.getElementById('canvas');
             const aspect = canvas.clientWidth / canvas.clientHeight;
-            const renderer = new MASSIV.WebGL2Renderer(canvas);
+            const renderer = new MASSIV.WebGL2Renderer(canvas, world);
 
             const cameraEntity = new MASSIV.Entity([
                 new MASSIV.PerspectiveCamera({ position: [0, 2, 6], aspect })
@@ -47,10 +49,9 @@
 
             const transparentCubeTransform = cubeEntities[1].getComponentByType('Transform');
 
-            const world = new MASSIV.World()
-                .registerEntities([cameraEntity, dirLightEntity, ...cubeEntities])
-                .on('render', world => renderer.render(world))
-                .step();
+            world.registerEntities([cameraEntity, dirLightEntity, ...cubeEntities])
+            world.on('render', world => renderer.render(world))
+            world.step();
         </script>
     </body>
 </html>

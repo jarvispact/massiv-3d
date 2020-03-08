@@ -119,6 +119,7 @@ const createTexture = (gl, image) => {
 const createUniformTypeLookupTable = (gl) => ({
     [gl.FLOAT_MAT4]: 'mat4',
     [gl.FLOAT_MAT3]: 'mat3',
+    [gl.FLOAT_VEC2]: 'vec2',
     [gl.FLOAT_VEC3]: 'vec3',
     [gl.FLOAT_VEC4]: 'vec4',
     [gl.FLOAT]: 'float',

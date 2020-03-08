@@ -26,9 +26,10 @@
                     MASSIV.ImageLoader.load('./assets/textures/tech-specular-map.jpg'),
                 ]);
 
+                const world = new MASSIV.World();
                 const canvas = document.getElementById('canvas');
                 const aspect = canvas.clientWidth / canvas.clientHeight;
-                const renderer = new MASSIV.WebGL2Renderer(canvas);
+                const renderer = new MASSIV.WebGL2Renderer(canvas, world);
                 const keyboardInput = new MASSIV.KeyboardInput(canvas);
                 const fpsDebugger = MASSIV.createFPSDebugger();
 
@@ -79,13 +80,12 @@
                     }
                 };
 
-                const world = new MASSIV.World()
-                    .registerEntities([cameraEntity, cubeEntity])
-                    .on('update', delta => cubeTransform.rotate([5 * delta, 15 * delta, 0]))
-                    .on('update', toggleLightsSystem)
-                    .on('update', () => fpsDebugger.update())
-                    .on('render', world => renderer.render(world))
-                    .run();
+                world.registerEntities([cameraEntity, cubeEntity])
+                world.on('update', delta => cubeTransform.rotate([5 * delta, 15 * delta, 0]))
+                world.on('update', toggleLightsSystem)
+                world.on('update', fpsDebugger.update)
+                world.on('render', () => renderer.render())
+                world.run();
             })();
         </script>
     </body>

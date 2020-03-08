@@ -7630,6 +7630,13 @@ class DirectionalLight extends Component {
     setUniformUpdateFlag(name, flag) {
         this.uniformUpdate[name] = flag;
     }
+
+    markUniformsAsUpdated() {
+        this.uniformUpdate.direction = false;
+        this.uniformUpdate.ambientColor = false;
+        this.uniformUpdate.diffuseColor = false;
+        this.uniformUpdate.specularColor = false;
+    }
 }
 
 const mat4Identity = () => fromValues$3(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1);
@@ -7675,6 +7682,12 @@ const Camera = class extends Component {
 
     setUniformUpdateFlag(name, flag) {
         this.uniformUpdate[name] = flag;
+    }
+
+    markUniformsAsUpdated() {
+        this.uniformUpdate.position = false;
+        this.uniformUpdate.viewMatrix = false;
+        this.uniformUpdate.projectionMatrix = false;
     }
 };
 
@@ -7791,6 +7804,10 @@ class Transform extends Component {
 
     setUniformUpdateFlag(name, flag) {
         this.uniformUpdate[name] = flag;
+    }
+
+    markUniformsAsUpdated() {
+        this.uniformUpdate.modelMatrix = false;
     }
 }
 
@@ -8540,6 +8557,15 @@ class StandardMaterial {
     setUniformUpdateFlag(name, flag) {
         this.uniformUpdate[name] = flag;
     }
+
+    markUniformsAsUpdated() {
+        this.uniformUpdate.diffuseColor = false;
+        this.uniformUpdate.diffuseMap = false;
+        this.uniformUpdate.specularColor = false;
+        this.uniformUpdate.specularMap = false;
+        this.uniformUpdate.ambientIntensity = false;
+        this.uniformUpdate.specularShininess = false;
+    }
 }
 
 const getVertexShader = (renderable) => {
@@ -8770,6 +8796,7 @@ const createTexture = (gl, image) => {
 const createUniformTypeLookupTable = (gl) => ({
     [gl.FLOAT_MAT4]: 'mat4',
     [gl.FLOAT_MAT3]: 'mat3',
+    [gl.FLOAT_VEC2]: 'vec2',
     [gl.FLOAT_VEC3]: 'vec3',
     [gl.FLOAT_VEC4]: 'vec4',
     [gl.FLOAT]: 'float',
@@ -8798,6 +8825,43 @@ const WebGL2Utils = {
     createTexture,
 };
 
+const Uniform = class {
+    constructor(gl, name, type, location, lookupTable) {
+        this.gl = gl;
+        this.name = name;
+        this.type = type;
+        this.location = location;
+        this.lookupTable = lookupTable;
+    }
+
+    updateValue(renderable, transform, camera, dirLights) {
+        const value = this.lookupTable[this.name](renderable, transform, camera, dirLights);
+        if (value !== null) WebGL2Utils.uniformTypeToUpdateUniformFunction[this.type](this.gl, this.location, value);
+    }
+};
+
+Uniform.MODEL_MATRIX = 'modelMatrix';
+Uniform.MODEL_VIEW_MATRIX = 'modelViewMatrix';
+Uniform.NORMAL_MATRIX = 'normalMatrix';
+
+Uniform.DIFFUSE_COLOR = 'diffuseColor';
+Uniform.SPECULAR_COLOR = 'specularColor';
+Uniform.AMBIENT_INTENSITY = 'ambientIntensity';
+Uniform.SPECULAR_SHININESS = 'specularShininess';
+Uniform.OPACITY = 'opacity';
+
+Uniform.PROJECTION_MATRIX = 'projectionMatrix';
+Uniform.CAMERA_POSITION = 'cameraPosition';
+
+Uniform.DIR_LIGHT_DIRECTIONS = 'dirLightDirection[0]';
+Uniform.DIR_LIGHT_AMBIENT_COLORS = 'dirLightAmbientColor[0]';
+Uniform.DIR_LIGHT_DIFFUSE_COLORS = 'dirLightDiffuseColor[0]';
+Uniform.DIR_LIGHT_SPECULAR_COLORS = 'dirLightSpecularColor[0]';
+Uniform.DIR_LIGHT_COUNT = 'dirLightCount';
+
+const modelViewMatrixCache = create$3();
+const normalMatrixCache = create$2();
+
 const vec3Cache = {
     direction: [],
     ambientColor: [],
@@ -8817,53 +8881,137 @@ const getLightValuesAsFlatArray = (lights, propertyName) => {
     return vec3Cache[propertyName];
 };
 
-const propertyNameMappings = {
-    dirLight: {
-        'dirLightDirection[0]': 'direction',
-        'dirLightAmbientColor[0]': 'ambientColor',
-        'dirLightDiffuseColor[0]': 'diffuseColor',
-        'dirLightSpecularColor[0]': 'specularColor',
-        dirLightCount: 'length',
-    },
-    camera: {
-        cameraPosition: 'position',
-    },
+Uniform.createUniformUpdateLookupTable = () => {
+    let forceUniformUpdate = true;
+    let modelViewMatrixNeedsUpdate = true;
+    let normalMatrixNeedsUpdate = true;
+    let lastDirLightCount = 0;
+
+    return {
+        [Uniform.MODEL_MATRIX]: (_, transform) => {
+            if (!forceUniformUpdate && !transform.getUniformUpdateFlag('modelMatrix')) return null;
+            // console.log('modelMatrix');
+            modelViewMatrixNeedsUpdate = true;
+            return transform.modelMatrix;
+        },
+        [Uniform.MODEL_VIEW_MATRIX]: (_, transform, camera) => {
+            if (!forceUniformUpdate && !modelViewMatrixNeedsUpdate && !camera.getUniformUpdateFlag('viewMatrix')) return null;
+            // console.log('modelViewMatrix');
+            multiply$3(modelViewMatrixCache, camera.viewMatrix, transform.modelMatrix);
+            modelViewMatrixNeedsUpdate = false;
+            normalMatrixNeedsUpdate = true;
+            return modelViewMatrixCache;
+        },
+        [Uniform.NORMAL_MATRIX]: () => {
+            if (!forceUniformUpdate && !normalMatrixNeedsUpdate) return null;
+            // console.log('normalMatrix');
+            normalFromMat4(normalMatrixCache, modelViewMatrixCache);
+            normalMatrixNeedsUpdate = false;
+            return normalMatrixCache;
+        },
+        [Uniform.PROJECTION_MATRIX]: (_, __, camera) => {
+            if (!forceUniformUpdate && !camera.getUniformUpdateFlag('projectionMatrix')) return null;
+            console.log('projectionMatrix');
+            return camera.projectionMatrix;
+        },
+        [Uniform.DIFFUSE_COLOR]: (renderable) => {
+            if (!forceUniformUpdate && !renderable.material.getUniformUpdateFlag('diffuseColor')) return null;
+            console.log('diffuseColor');
+            return renderable.material.diffuseColor;
+        },
+        [Uniform.SPECULAR_COLOR]: (renderable) => {
+            if (!forceUniformUpdate && !renderable.material.getUniformUpdateFlag('specularColor')) return null;
+            console.log('specularColor');
+            return renderable.material.specularColor;
+        },
+        [Uniform.AMBIENT_INTENSITY]: (renderable) => {
+            if (!forceUniformUpdate && !renderable.material.getUniformUpdateFlag('ambientIntensity')) return null;
+            console.log('ambientIntensity');
+            return renderable.material.ambientIntensity;
+        },
+        [Uniform.SPECULAR_SHININESS]: (renderable) => {
+            if (!forceUniformUpdate && !renderable.material.getUniformUpdateFlag('specularShininess')) return null;
+            console.log('specularShininess');
+            return renderable.material.specularShininess;
+        },
+        [Uniform.OPACITY]: (renderable) => {
+            if (!forceUniformUpdate && !renderable.material.getUniformUpdateFlag('opacity')) return null;
+            console.log('opacity');
+            return renderable.material.opacity;
+        },
+        [Uniform.CAMERA_POSITION]: (_, __, camera) => {
+            if (!forceUniformUpdate && !camera.getUniformUpdateFlag('position')) return null;
+            console.log('cameraPosition');
+            return camera.position;
+        },
+        [Uniform.DIR_LIGHT_DIRECTIONS]: (_, __, ___, dirLights) => {
+            const needsUpdate = dirLights.some(l => l.getUniformUpdateFlag('direction'));
+            if (!forceUniformUpdate && !needsUpdate) return null;
+            console.log('dirLightDirection');
+            return getLightValuesAsFlatArray(dirLights, 'direction');
+        },
+        [Uniform.DIR_LIGHT_AMBIENT_COLORS]: (_, __, ___, dirLights) => {
+            const needsUpdate = dirLights.some(l => l.getUniformUpdateFlag('ambientColor'));
+            if (!forceUniformUpdate && !needsUpdate) return null;
+            console.log('dirLightAmbientColor');
+            return getLightValuesAsFlatArray(dirLights, 'ambientColor');
+        },
+        [Uniform.DIR_LIGHT_DIFFUSE_COLORS]: (_, __, ___, dirLights) => {
+            const needsUpdate = dirLights.some(l => l.getUniformUpdateFlag('diffuseColor'));
+            if (!forceUniformUpdate && !needsUpdate) return null;
+            console.log('dirLightDiffuseColor');
+            return getLightValuesAsFlatArray(dirLights, 'diffuseColor');
+        },
+        [Uniform.DIR_LIGHT_SPECULAR_COLORS]: (_, __, ___, dirLights) => {
+            const needsUpdate = dirLights.some(l => l.getUniformUpdateFlag('specularColor'));
+            if (!forceUniformUpdate && !needsUpdate) return null;
+            console.log('dirLightSpecularColor');
+            return getLightValuesAsFlatArray(dirLights, 'specularColor');
+        },
+        [Uniform.DIR_LIGHT_COUNT]: (_, __, ___, dirLights) => {
+            if (!forceUniformUpdate && lastDirLightCount === dirLights.length) return null;
+            console.log('dirLightCount');
+            return dirLights.length;
+        },
+        forceUpdate: () => {
+            forceUniformUpdate = true;
+        },
+        markRenderableAsUpdated: (renderable, transform) => {
+            renderable.material.markUniformsAsUpdated();
+            transform.markUniformsAsUpdated();
+        },
+        markFrameAsUpdated: (camera, dirLights) => {
+            camera.markUniformsAsUpdated();
+            dirLights.forEach(l => l.markUniformsAsUpdated());
+            lastDirLightCount = dirLights.length;
+            forceUniformUpdate = false;
+        },
+    };
 };
 
-const mat4Identity$2 = () => fromValues$3(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1);
-const mat3Identity = () => fromValues$2(1, 0, 0, 0, 1, 0, 0, 0, 1);
+const Sampler2D = class {
+    constructor(gl, name, location, texture) {
+        this.gl = gl;
+        this.name = name;
+        this.location = location;
+        this.texture = texture;
+    }
 
-const modelViewMatrix = mat4Identity$2();
-const normalMatrix = mat3Identity();
-
-const isTransformUniform = (name) => ['modelMatrix'].includes(name);
-
-const isCameraUniform = (name) => ['cameraPosition', 'projectionMatrix'].includes(name);
-
-const isCameraTransformUniform = (name) => ['modelViewMatrix', 'normalMatrix'].includes(name);
-
-const isDirLightUniform = (name) => Object.keys(propertyNameMappings.dirLight).includes(name);
-
-const isMaterialUniform = (name) => [
-    'diffuseColor',
-    'specularColor',
-    'ambientIntensity',
-    'specularShininess',
-    'diffuseMap',
-    'specularMap',
-    'opacity',
-].includes(name);
+    update(index) {
+        this.gl.activeTexture(this.gl.TEXTURE0 + index);
+        this.gl.bindTexture(this.gl.TEXTURE_2D, this.texture);
+        WebGL2Utils.uniformTypeToUpdateUniformFunction.sampler2D(this.gl, this.location, index);
+    }
+};
 
 const CachedRenderable = class {
-    constructor(gl, camera, dirLights, transform, renderable, globalWebglState, webglUniformTypeToUniformType) {
-        console.log('new cached renderable');
+    constructor(gl, id, renderable, transform, uniformUpdateLookupTable) {
         this.gl = gl;
-        this.camera = camera;
-        this.dirLights = dirLights;
-        this.transform = transform;
+        this.id = id;
         this.renderable = renderable;
-        this.globalWebglState = globalWebglState;
-        this.webglUniformTypeToUniformType = webglUniformTypeToUniformType;
+        this.transform = transform;
+        this.uniformUpdateLookupTable = uniformUpdateLookupTable;
+        this.uniformUpdateLookupTable.forceUpdate();
 
         const vertexShaderSource = ShaderRegistry.getVertexShader(renderable);
         const fragmentShaderSource = ShaderRegistry.getFragmentShader(renderable);
@@ -8871,6 +9019,11 @@ const CachedRenderable = class {
         this.vertexShader = WebGL2Utils.createShader(gl, gl.VERTEX_SHADER, vertexShaderSource);
         this.fragmentShader = WebGL2Utils.createShader(gl, gl.FRAGMENT_SHADER, fragmentShaderSource);
         this.program = WebGL2Utils.createProgram(gl, this.vertexShader, this.fragmentShader);
+
+        this.webglUniformTypeToUniformType = WebGL2Utils.createUniformTypeLookupTable(this.gl);
+
+        // TODO: use this info
+        const activeAttributesCount = this.gl.getProgramParameter(this.program, this.gl.ACTIVE_ATTRIBUTES);
 
         const result = WebGL2Utils.createVertexArray(gl, renderable.geometry);
         this.positionBuffer = result.positionBuffer;
@@ -8881,136 +9034,47 @@ const CachedRenderable = class {
 
         this.indices = WebGL2Utils.createElementArrayBuffer(gl, renderable.geometry);
 
-        this.lastDirLightCount = 0;
-        this.needsCacheBust = true;
-
-        this.textures = {};
-
-        this.uniforms = {
-            transform: [],
-            camera: [],
-            cameraTransform: [],
-            material: [],
-            dirLights: [],
-        };
+        this.sampler2Ds = [];
+        this.uniforms = [];
 
         const activeUniformsCount = this.gl.getProgramParameter(this.program, this.gl.ACTIVE_UNIFORMS);
         for (let i = 0; i < activeUniformsCount; i++) {
             const uniformInfo = this.gl.getActiveUniform(this.program, i);
             const type = this.webglUniformTypeToUniformType[uniformInfo.type];
             const location = this.gl.getUniformLocation(this.program, uniformInfo.name);
-
             if (type === 'sampler2D') {
-                this.textures[uniformInfo.name] = WebGL2Utils.createTexture(this.gl, this.renderable.material[uniformInfo.name]);
-            }
-
-            if (isTransformUniform(uniformInfo.name)) {
-                this.uniforms.transform.push({ name: uniformInfo.name, type, location });
-            }
-            if (isCameraUniform(uniformInfo.name)) {
-                this.uniforms.camera.push({ name: uniformInfo.name, type, location });
-            }
-            if (isCameraTransformUniform(uniformInfo.name)) {
-                this.uniforms.cameraTransform.push({ name: uniformInfo.name, type, location });
-            }
-            if (isMaterialUniform(uniformInfo.name)) {
-                this.uniforms.material.push({ name: uniformInfo.name, type, location });
-            }
-            if (isDirLightUniform(uniformInfo.name)) {
-                this.uniforms.dirLights.push({ name: uniformInfo.name, type, location });
+                const texture = WebGL2Utils.createTexture(this.gl, renderable.material[uniformInfo.name]);
+                const sampler = new Sampler2D(this.gl, uniformInfo.name, location, texture);
+                this.sampler2Ds.push(sampler);
+            } else {
+                const u = new Uniform(this.gl, uniformInfo.name, type, location, this.uniformUpdateLookupTable);
+                this.uniforms.push(u);
             }
         }
     }
 
-    draw(dirLights) {
-        const gl = this.gl; // eslint-disable-line prefer-destructuring
+    render(camera, dirLights) {
+        const gl = this.gl;
 
         gl.useProgram(this.program);
         gl.bindVertexArray(this.vao);
 
-        this.globalWebglState.setBlendEnabled(this.renderable.material.opacity < 1);
-
         let textureIndex = 0;
 
-        let normalMatrixNeedsUpdate = false;
-        for (let i = 0; i < this.uniforms.cameraTransform.length; i++) {
-            const uniform = this.uniforms.cameraTransform[i];
-            const modelMatrixNeedsUpdate = this.transform.getUniformUpdateFlag('modelMatrix');
-            const viewMatrixNeedsUpdate = this.camera.getUniformUpdateFlag('viewMatrix');
-
-            if (uniform.name === 'modelViewMatrix' && (this.needsCacheBust || modelMatrixNeedsUpdate || viewMatrixNeedsUpdate)) {
-                multiply$3(modelViewMatrix, this.camera.viewMatrix, this.transform.modelMatrix);
-                // console.log('cameraTransform update', uniform.name);
-                WebGL2Utils.uniformTypeToUpdateUniformFunction[uniform.type](gl, uniform.location, modelViewMatrix);
-                normalMatrixNeedsUpdate = true;
-            }
-            if (uniform.name === 'normalMatrix' && (this.needsCacheBust || normalMatrixNeedsUpdate)) {
-                normalFromMat4(normalMatrix, modelViewMatrix);
-                // console.log('cameraTransform update', uniform.name);
-                WebGL2Utils.uniformTypeToUpdateUniformFunction[uniform.type](gl, uniform.location, normalMatrix);
-            }
+        for (let i = 0; i < this.sampler2Ds.length; i++) {
+            const sampler = this.sampler2Ds[i];
+            sampler.update(textureIndex);
+            textureIndex++;
         }
 
-        for (let i = 0; i < this.uniforms.transform.length; i++) {
-            const uniform = this.uniforms.transform[i];
-            if (this.needsCacheBust || this.transform.getUniformUpdateFlag(uniform.name)) {
-                const value = this.transform[uniform.name];
-                // console.log('transform update', uniform.name);
-                WebGL2Utils.uniformTypeToUpdateUniformFunction[uniform.type](gl, uniform.location, value);
-                this.transform.setUniformUpdateFlag(uniform.name, false);
-            }
-        }
-
-        for (let i = 0; i < this.uniforms.camera.length; i++) {
-            const uniform = this.uniforms.camera[i];
-            const cameraPropertyName = propertyNameMappings.camera[uniform.name] || uniform.name;
-            if (this.needsCacheBust || this.camera.getUniformUpdateFlag(cameraPropertyName)) {
-                const value = this.camera[cameraPropertyName];
-                // console.log('camera update', uniform.name);
-                WebGL2Utils.uniformTypeToUpdateUniformFunction[uniform.type](gl, uniform.location, value);
-            }
-        }
-
-        for (let i = 0; i < this.uniforms.material.length; i++) {
-            const uniform = this.uniforms.material[i];
-
-            if (uniform.type === 'sampler2D') {
-                // console.log(uniform);
-                gl.activeTexture(gl.TEXTURE0 + textureIndex);
-                gl.bindTexture(gl.TEXTURE_2D, this.textures[uniform.name]);
-                WebGL2Utils.uniformTypeToUpdateUniformFunction[uniform.type](gl, uniform.location, textureIndex);
-                this.renderable.material.setUniformUpdateFlag(uniform.name, false);
-                textureIndex++;
-            } else if (this.needsCacheBust || this.renderable.material.getUniformUpdateFlag(uniform.name)) {
-                const value = this.renderable.material[uniform.name];
-                // console.log('material update', uniform.name, value);
-                WebGL2Utils.uniformTypeToUpdateUniformFunction[uniform.type](gl, uniform.location, value);
-                this.renderable.material.setUniformUpdateFlag(uniform.name, false);
-            }
-        }
-
-        for (let i = 0; i < this.uniforms.dirLights.length; i++) {
-            const uniform = this.uniforms.dirLights[i];
-            const propertyName = propertyNameMappings.dirLight[uniform.name];
-            if (propertyName === 'length') {
-                if (this.needsCacheBust || this.lastDirLightCount !== dirLights.length) {
-                    // console.log('dirlight length update', dirLights.length);
-                    WebGL2Utils.uniformTypeToUpdateUniformFunction[uniform.type](gl, uniform.location, dirLights.length);
-                    this.lastDirLightCount = dirLights.length;
-                }
-            } else {
-                const needsUpdate = dirLights.some(l => l.getUniformUpdateFlag(propertyName));
-                if (this.needsCacheBust || needsUpdate) {
-                    const value = getLightValuesAsFlatArray(dirLights, propertyName);
-                    // console.log('dirLights update', uniform.name);
-                    WebGL2Utils.uniformTypeToUpdateUniformFunction[uniform.type](gl, uniform.location, value);
-                }
-            }
+        for (let i = 0; i < this.uniforms.length; i++) {
+            const uniform = this.uniforms[i];
+            uniform.updateValue(this.renderable, this.transform, camera, dirLights);
         }
 
         gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.indices);
         gl.drawElements(gl.TRIANGLES, this.renderable.geometry.indices.length, gl.UNSIGNED_INT, 0);
-        this.needsCacheBust = false;
+        this.uniformUpdateLookupTable.markRenderableAsUpdated(this.renderable, this.transform);
     }
 
     cleanup() {
@@ -9026,51 +9090,10 @@ const CachedRenderable = class {
     }
 };
 
-const GlobalWebGL2State = class {
-    constructor(gl) {
-        this.gl = gl;
-        this.depthTestEnabled = true;
-        this.depthFunc = gl.LEQUAL;
-
-        this.blendEnabled = false;
-        this.blendEquation = gl.FUNC_ADD;
-        this.blendFuncSFactor = gl.SRC_ALPHA;
-        this.blendFuncDFactor = gl.ONE_MINUS_SRC_ALPHA;
-
-        gl.depthFunc(this.depthFunc);
-        gl.blendEquation(this.blendEquation);
-        gl.blendFunc(this.blendFuncSFactor, this.blendFuncDFactor);
-
-        gl.enable(gl.DEPTH_TEST);
-        gl.disable(gl.BLEND);
-    }
-
-    setDepthTestEnabled(flag) {
-        if (this.depthTestEnabled === flag) return;
-        this.depthTestEnabled = flag;
-        console.log('setDepthTestEnabled', flag);
-        if (flag) {
-            this.gl.enable(this.gl.DEPTH_TEST);
-        } else {
-            this.gl.disable(this.gl.DEPTH_TEST);
-        }
-    }
-
-    setBlendEnabled(flag) {
-        if (this.blendEnabled === flag) return;
-        this.blendEnabled = flag;
-        console.log('setBlendEnabled', flag);
-        if (flag) {
-            this.gl.enable(this.gl.BLEND);
-        } else {
-            this.gl.disable(this.gl.BLEND);
-        }
-    }
-};
-
 const WebGL2Renderer = class {
-    constructor(canvas) {
+    constructor(canvas, world) {
         this.canvas = canvas;
+        this.world = world;
         this.canvas.width = this.canvas.clientWidth;
         this.canvas.height = this.canvas.clientHeight;
 
@@ -9082,12 +9105,90 @@ const WebGL2Renderer = class {
             desynchronized: true,
         });
 
+        this.depthFunc = this.gl.LEQUAL;
+        this.blendEquation = this.gl.FUNC_ADD;
+        this.blendFuncSFactor = this.gl.SRC_ALPHA;
+        this.blendFuncDFactor = this.gl.ONE_MINUS_SRC_ALPHA;
+
+        this.gl.viewport(0, 0, canvas.width, canvas.height);
         this.gl.clearColor(0, 0, 0, 1);
         this.gl.colorMask(true, true, true, false);
 
-        this.globalWebglState = new GlobalWebGL2State(this.gl);
-        this.webglUniformTypeToUniformType = WebGL2Utils.createUniformTypeLookupTable(this.gl);
-        this.renderableCache = {};
+        this.gl.depthFunc(this.depthFunc);
+        this.gl.blendEquation(this.blendEquation);
+        this.gl.blendFunc(this.blendFuncSFactor, this.blendFuncDFactor);
+
+        this.gl.enable(this.gl.DEPTH_TEST);
+        this.gl.disable(this.gl.BLEND);
+
+        this.perspectiveCameras = [];
+        this.orthographicCameras = [];
+        this.directionalLights = [];
+        this.cachedRenderables = [];
+        this.activeCamera = null;
+
+        this.uniformUpdateLookupTable = Uniform.createUniformUpdateLookupTable();
+
+        world.on(World.EVENT.REGISTER_ENTITY, (entity) => {
+            const renderable = entity.getComponentByType('Renderable');
+            const transform = entity.getComponentByType('Transform');
+            if (renderable && transform) {
+                this.cachedRenderables.push(new CachedRenderable(this.gl, entity.id, renderable, transform, this.uniformUpdateLookupTable));
+            }
+
+            const perspectiveCamera = entity.getComponentByType('PerspectiveCamera');
+            if (perspectiveCamera) {
+                this.perspectiveCameras.push(perspectiveCamera);
+                this.activeCamera = perspectiveCamera;
+            }
+
+            const orthographicCamera = entity.getComponentByType('OrthographicCamera');
+            if (orthographicCamera) {
+                this.orthographicCameras.push(orthographicCamera);
+                this.activeCamera = orthographicCamera;
+            }
+
+            const dirLight = entity.getComponentByType('DirectionalLight');
+            if (dirLight) {
+                this.directionalLights.push(dirLight);
+            }
+        });
+
+        world.on(World.EVENT.REMOVE_ENTITY, (entity) => {
+            const renderable = entity.getComponentByType('Renderable');
+            const transform = entity.getComponentByType('Transform');
+            if (renderable && transform) {
+                const renderableToRemove = this.cachedRenderables.find(r => r.id === entity.id);
+                console.log('cleanup');
+                renderableToRemove.cleanup();
+                this.cachedRenderables = this.cachedRenderables.filter(r => r !== renderableToRemove);
+            }
+
+            const perspectiveCamera = entity.getComponentByType('PerspectiveCamera');
+            if (perspectiveCamera) {
+                this.perspectiveCameras = this.perspectiveCameras.filter(c => c !== perspectiveCamera);
+                if (this.activeCamera === perspectiveCamera) {
+                    const lastPerspectiveCamera = this.perspectiveCameras[this.perspectiveCameras.length - 1];
+                    const lastOrthographicCamera = this.orthographicCameras[this.orthographicCameras.length - 1];
+                    this.activeCamera = lastPerspectiveCamera || lastOrthographicCamera;
+                }
+            }
+
+            const orthographicCamera = entity.getComponentByType('OrthographicCamera');
+            if (orthographicCamera) {
+                this.orthographicCameras = this.orthographicCameras.filter(c => c !== orthographicCamera);
+                if (this.activeCamera === orthographicCamera) {
+                    const lastPerspectiveCamera = this.perspectiveCameras[this.perspectiveCameras.length - 1];
+                    const lastOrthographicCamera = this.orthographicCameras[this.orthographicCameras.length - 1];
+                    this.activeCamera = lastPerspectiveCamera || lastOrthographicCamera;
+                }
+            }
+
+            const dirLight = entity.getComponentByType('DirectionalLight');
+            if (dirLight) {
+                this.directionalLights = this.directionalLights.filter(l => l !== dirLight);
+            }
+        });
 
         window.addEventListener('unload', () => {
             Object.keys(this.renderableCache).forEach((id) => {
@@ -9105,44 +9206,30 @@ const WebGL2Renderer = class {
         this.gl.viewport(0, 0, c.width, c.height);
     }
 
-    cacheRenderable2D(camera, dirLights, transform, renderable) {
-        const cachedRenderable = new CachedRenderable(
-            this.gl,
-            camera,
-            dirLights,
-            transform,
-            renderable,
-            this.globalWebglState,
-            this.webglUniformTypeToUniformType,
-        );
-
-        this.renderableCache[renderable.entityId] = cachedRenderable;
-        return cachedRenderable;
-    }
-
-    render(world) {
+    render() {
         this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT);
 
-        const camera = world.getComponentByType('Camera');
-        const dirLights = world.getComponentsByType('DirectionalLight');
+        const renderableCount = this.cachedRenderables.length;
 
-        const renderables = world.getComponentsByType('Renderable');
-        for (let i = 0; i < renderables.length; i++) {
-            const renderable = renderables[i];
-            const transform = world.getComponentsByEntityId(renderable.entityId).find(c => c.constructor.name === 'Transform');
-            const cachedRenderable = this.renderableCache[renderable.entityId] || this.cacheRenderable2D(camera, dirLights, transform, renderable);
-            cachedRenderable.draw(dirLights);
+        // render non-transparent renderables
+        this.gl.disable(this.gl.BLEND);
+        for (let i = 0; i < renderableCount; i++) {
+            const cachedRenderable = this.cachedRenderables[i];
+            if (cachedRenderable.renderable.material.opacity >= 1) {
+                cachedRenderable.render(this.activeCamera, this.directionalLights);
+            }
         }
 
-        Object.keys(camera.getUniformUpdateFlags()).forEach((name) => {
-            camera.setUniformUpdateFlag(name, false);
-        });
+        // render transparent renderables
+        this.gl.enable(this.gl.BLEND);
+        for (let i = 0; i < renderableCount; i++) {
+            const cachedRenderable = this.cachedRenderables[i];
+            if (cachedRenderable.renderable.material.opacity < 1) {
+                cachedRenderable.render(this.activeCamera, this.directionalLights);
+            }
+        }
 
-        dirLights.forEach(light => {
-            Object.keys(light.getUniformUpdateFlags()).forEach((name) => {
-                light.setUniformUpdateFlag(name, false);
-            });
-        });
+        this.uniformUpdateLookupTable.markFrameAsUpdated(this.activeCamera, this.directionalLights);
     }
 };
 

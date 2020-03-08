@@ -55,6 +55,10 @@ class Transform extends Component {
     setUniformUpdateFlag(name, flag) {
         this.uniformUpdate[name] = flag;
     }
+
+    markUniformsAsUpdated() {
+        this.uniformUpdate.modelMatrix = false;
+    }
 }
 
 export default Transform;

@@ -34,6 +34,15 @@ class StandardMaterial {
     setUniformUpdateFlag(name, flag) {
         this.uniformUpdate[name] = flag;
     }
+
+    markUniformsAsUpdated() {
+        this.uniformUpdate.diffuseColor = false;
+        this.uniformUpdate.diffuseMap = false;
+        this.uniformUpdate.specularColor = false;
+        this.uniformUpdate.specularMap = false;
+        this.uniformUpdate.ambientIntensity = false;
+        this.uniformUpdate.specularShininess = false;
+    }
 }
 
 export default StandardMaterial;

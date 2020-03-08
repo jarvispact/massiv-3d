@@ -41,9 +41,10 @@
                     MASSIV.ImageLoader.load('./assets/textures/wood-specular-map.jpg'),
                 ]);
 
+                const world = new MASSIV.World();
                 const canvas = document.getElementById('canvas');
                 const aspect = canvas.clientWidth / canvas.clientHeight;
-                const renderer = new MASSIV.WebGL2Renderer(canvas);
+                const renderer = new MASSIV.WebGL2Renderer(canvas, world);
                 const fpsDebugger = MASSIV.createFPSDebugger();
 
                 const cameraEntity = new MASSIV.Entity([
@@ -71,12 +72,11 @@
 
                 const cubeTransforms = cubeEntities.map(e => e.getComponentByType('Transform'));
 
-                const world = new MASSIV.World()
-                    .registerEntities([...cubeEntities, cameraEntity, dirLightEntity])
-                    .on('update', delta => cubeTransforms.forEach(t => t.rotate([5 * delta, 15 * delta, 0])))
-                    .on('update', () => fpsDebugger.update())
-                    .on('render', world => renderer.render(world))
-                    .run();
+                world.registerEntities([...cubeEntities, cameraEntity, dirLightEntity])
+                world.on('update', delta => cubeTransforms.forEach(t => t.rotate([5 * delta, 15 * delta, 0])))
+                world.on('update', fpsDebugger.update)
+                world.on('render', () => renderer.render())
+                world.run();
             })();
         </script>
     </body>

@@ -20,9 +20,11 @@
         <canvas id="canvas"></canvas>
         <script type="module">
             import * as MASSIV from './massiv-3d.esm.mjs';
+
+            const world = new MASSIV.World();
             const canvas = document.getElementById('canvas');
             const aspect = canvas.clientWidth / canvas.clientHeight;
-            const renderer = new MASSIV.WebGL2Renderer(canvas);
+            const renderer = new MASSIV.WebGL2Renderer(canvas, world);
             const fpsDebugger = MASSIV.createFPSDebugger();
 
             const cameraEntity = new MASSIV.Entity([
@@ -43,12 +45,11 @@
 
             const cubeTransform = cubeEntity.getComponentByType('Transform');
 
-            const world = new MASSIV.World()
-                .registerEntities([cameraEntity, dirLightEntity, cubeEntity])
-                .on('update', delta => cubeTransform.rotate([5 * delta, 15 * delta, 0]))
-                .on('update', () => fpsDebugger.update())
-                .on('render', world => renderer.render(world))
-                .run();
+            world.registerEntities([cameraEntity, dirLightEntity, cubeEntity])
+            world.on('update', delta => cubeTransform.rotate([5 * delta, 15 * delta, 0]))
+            world.on('update', fpsDebugger.update)
+            world.on('render', () => renderer.render())
+            world.run();
         </script>
     </body>
 </html>
