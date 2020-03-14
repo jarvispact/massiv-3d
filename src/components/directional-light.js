@@ -8,12 +8,14 @@ class DirectionalLight extends Component {
         this.ambientColor = options.ambientColor ? vec3.fromValues(...options.ambientColor) : vec3.fromValues(1, 1, 1);
         this.diffuseColor = options.diffuseColor ? vec3.fromValues(...options.diffuseColor) : vec3.fromValues(1, 1, 1);
         this.specularColor = options.specularColor ? vec3.fromValues(...options.specularColor) : vec3.fromValues(1, 1, 1);
+        this.intensity = options.intensity || 1.0;
 
         this.uniformUpdate = {
             direction: true,
             ambientColor: true,
             diffuseColor: true,
             specularColor: true,
+            intensity: true,
         };
     }
 
@@ -41,6 +43,7 @@ class DirectionalLight extends Component {
         this.uniformUpdate.ambientColor = false;
         this.uniformUpdate.diffuseColor = false;
         this.uniformUpdate.specularColor = false;
+        this.uniformUpdate.intensity = false;
     }
 }
 

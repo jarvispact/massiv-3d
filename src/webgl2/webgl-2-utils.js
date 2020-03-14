@@ -1,4 +1,4 @@
-/* eslint-disable no-console */
+/* eslint-disable no-console, no-confusing-arrow */
 
 const arrayBufferLookupTable = {
     position: (geometry) => ({
@@ -132,8 +132,8 @@ const uniformTypeToUpdateUniformFunction = {
     mat3: (gl, location, value) => gl.uniformMatrix3fv(location, false, value),
     vec3: (gl, location, value) => gl.uniform3fv(location, value),
     vec4: (gl, location, value) => gl.uniform4fv(location, value),
-    float: (gl, location, value) => gl.uniform1f(location, value),
-    int: (gl, location, value) => gl.uniform1i(location, value),
+    float: (gl, location, value) => Array.isArray(value) ? gl.uniform1fv(location, value) : gl.uniform1f(location, value),
+    int: (gl, location, value) => Array.isArray(value) ? gl.uniform1iv(location, value) : gl.uniform1i(location, value),
     sampler2D: (gl, location, index) => gl.uniform1i(location, index),
 };
 

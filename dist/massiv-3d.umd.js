@@ -7609,12 +7609,14 @@
           this.ambientColor = options.ambientColor ? fromValues$4(...options.ambientColor) : fromValues$4(1, 1, 1);
           this.diffuseColor = options.diffuseColor ? fromValues$4(...options.diffuseColor) : fromValues$4(1, 1, 1);
           this.specularColor = options.specularColor ? fromValues$4(...options.specularColor) : fromValues$4(1, 1, 1);
+          this.intensity = options.intensity || 1.0;
 
           this.uniformUpdate = {
               direction: true,
               ambientColor: true,
               diffuseColor: true,
               specularColor: true,
+              intensity: true,
           };
       }
 
@@ -7642,6 +7644,7 @@
           this.uniformUpdate.ambientColor = false;
           this.uniformUpdate.diffuseColor = false;
           this.uniformUpdate.specularColor = false;
+          this.uniformUpdate.intensity = false;
       }
   }
 
@@ -8638,19 +8641,20 @@
         uniform vec3 dirLightAmbientColor[MAX_DIRECTIONAL_LIGHTS];
         uniform vec3 dirLightDiffuseColor[MAX_DIRECTIONAL_LIGHTS];
         uniform vec3 dirLightSpecularColor[MAX_DIRECTIONAL_LIGHTS];
+        uniform float dirLightIntensity[MAX_DIRECTIONAL_LIGHTS];
         uniform int dirLightCount;
 
         out vec4 fragmentColor;
 
-        vec3 CalcDirLight(vec3 lightDir, vec3 lightAmbient, vec3 lightDiffuse, vec3 lightSpecular, vec3 normal, vec3 viewDir, vec3 materialDiffuse, vec3 materialSpecular)
+        vec3 CalcDirLight(vec3 lightDir, vec3 lightAmbient, vec3 lightDiffuse, vec3 lightSpecular, float lightIntensity, vec3 normal, vec3 viewDir, vec3 materialDiffuse, vec3 materialSpecular)
         {
             vec3 direction = normalize(lightDir);
             float diff = max(dot(normal, direction), 0.0);
             vec3 reflectDir = reflect(-direction, normal);
             float spec = pow(max(dot(viewDir, reflectDir), 0.0), specularShininess);
             vec3 ambient  = (lightAmbient * materialDiffuse) * ambientIntensity;
-            vec3 diffuse  = lightDiffuse * diff * materialDiffuse;
-            vec3 specular = lightSpecular * spec * materialSpecular;
+            vec3 diffuse  = lightDiffuse * diff * materialDiffuse * lightIntensity;
+            vec3 specular = lightSpecular * spec * materialSpecular * lightIntensity;
             return ambient + diffuse + specular;
         }
 
@@ -8672,7 +8676,7 @@
             #endif
 
             for(int i = 0; i < dirLightCount; i++) {
-                result += CalcDirLight(dirLightDirection[i], dirLightAmbientColor[i], dirLightDiffuseColor[i], dirLightSpecularColor[i], normal, viewDir, materialDiffuse, materialSpecular);
+                result += CalcDirLight(dirLightDirection[i], dirLightAmbientColor[i], dirLightDiffuseColor[i], dirLightSpecularColor[i], dirLightIntensity[i], normal, viewDir, materialDiffuse, materialSpecular);
             }
 
             fragmentColor = vec4(result, opacity);
@@ -8685,7 +8689,7 @@
       getFragmentShader,
   };
 
-  /* eslint-disable no-console */
+  /* eslint-disable no-console, no-confusing-arrow */
 
   const arrayBufferLookupTable = {
       position: (geometry) => ({
@@ -8819,8 +8823,8 @@
       mat3: (gl, location, value) => gl.uniformMatrix3fv(location, false, value),
       vec3: (gl, location, value) => gl.uniform3fv(location, value),
       vec4: (gl, location, value) => gl.uniform4fv(location, value),
-      float: (gl, location, value) => gl.uniform1f(location, value),
-      int: (gl, location, value) => gl.uniform1i(location, value),
+      float: (gl, location, value) => Array.isArray(value) ? gl.uniform1fv(location, value) : gl.uniform1f(location, value),
+      int: (gl, location, value) => Array.isArray(value) ? gl.uniform1iv(location, value) : gl.uniform1i(location, value),
       sampler2D: (gl, location, index) => gl.uniform1i(location, index),
   };
 
@@ -8867,6 +8871,7 @@
   Uniform.DIR_LIGHT_AMBIENT_COLORS = 'dirLightAmbientColor[0]';
   Uniform.DIR_LIGHT_DIFFUSE_COLORS = 'dirLightDiffuseColor[0]';
   Uniform.DIR_LIGHT_SPECULAR_COLORS = 'dirLightSpecularColor[0]';
+  Uniform.DIR_LIGHT_SPECULAR_INTENSITIES = 'dirLightIntensity[0]';
   Uniform.DIR_LIGHT_COUNT = 'dirLightCount';
 
   const modelViewMatrixCache = create$3();
@@ -8921,66 +8926,72 @@
           },
           [Uniform.PROJECTION_MATRIX]: (_, __, camera) => {
               if (!forceUniformUpdate && !camera.getUniformUpdateFlag('projectionMatrix')) return null;
-              console.log('projectionMatrix');
+              // console.log('projectionMatrix');
               return camera.projectionMatrix;
           },
           [Uniform.DIFFUSE_COLOR]: (renderable) => {
               if (!forceUniformUpdate && !renderable.material.getUniformUpdateFlag('diffuseColor')) return null;
-              console.log('diffuseColor');
+              // console.log('diffuseColor');
               return renderable.material.diffuseColor;
           },
           [Uniform.SPECULAR_COLOR]: (renderable) => {
               if (!forceUniformUpdate && !renderable.material.getUniformUpdateFlag('specularColor')) return null;
-              console.log('specularColor');
+              // console.log('specularColor');
               return renderable.material.specularColor;
           },
           [Uniform.AMBIENT_INTENSITY]: (renderable) => {
               if (!forceUniformUpdate && !renderable.material.getUniformUpdateFlag('ambientIntensity')) return null;
-              console.log('ambientIntensity');
+              // console.log('ambientIntensity');
               return renderable.material.ambientIntensity;
           },
           [Uniform.SPECULAR_SHININESS]: (renderable) => {
               if (!forceUniformUpdate && !renderable.material.getUniformUpdateFlag('specularShininess')) return null;
-              console.log('specularShininess');
+              // console.log('specularShininess');
               return renderable.material.specularShininess;
           },
           [Uniform.OPACITY]: (renderable) => {
               if (!forceUniformUpdate && !renderable.material.getUniformUpdateFlag('opacity')) return null;
-              console.log('opacity');
+              // console.log('opacity');
               return renderable.material.opacity;
           },
           [Uniform.CAMERA_POSITION]: (_, __, camera) => {
               if (!forceUniformUpdate && !camera.getUniformUpdateFlag('position')) return null;
-              console.log('cameraPosition');
+              // console.log('cameraPosition');
               return camera.position;
           },
           [Uniform.DIR_LIGHT_DIRECTIONS]: (_, __, ___, dirLights) => {
               const needsUpdate = dirLights.some(l => l.getUniformUpdateFlag('direction'));
               if (!forceUniformUpdate && !needsUpdate) return null;
-              console.log('dirLightDirection');
+              // console.log('dirLightDirection');
               return getLightValuesAsFlatArray(dirLights, 'direction');
           },
           [Uniform.DIR_LIGHT_AMBIENT_COLORS]: (_, __, ___, dirLights) => {
               const needsUpdate = dirLights.some(l => l.getUniformUpdateFlag('ambientColor'));
               if (!forceUniformUpdate && !needsUpdate) return null;
-              console.log('dirLightAmbientColor');
+              // console.log('dirLightAmbientColor');
               return getLightValuesAsFlatArray(dirLights, 'ambientColor');
           },
           [Uniform.DIR_LIGHT_DIFFUSE_COLORS]: (_, __, ___, dirLights) => {
               const needsUpdate = dirLights.some(l => l.getUniformUpdateFlag('diffuseColor'));
               if (!forceUniformUpdate && !needsUpdate) return null;
-              console.log('dirLightDiffuseColor');
+              // console.log('dirLightDiffuseColor');
               return getLightValuesAsFlatArray(dirLights, 'diffuseColor');
           },
           [Uniform.DIR_LIGHT_SPECULAR_COLORS]: (_, __, ___, dirLights) => {
               const needsUpdate = dirLights.some(l => l.getUniformUpdateFlag('specularColor'));
               if (!forceUniformUpdate && !needsUpdate) return null;
-              console.log('dirLightSpecularColor');
+              // console.log('dirLightSpecularColor');
               return getLightValuesAsFlatArray(dirLights, 'specularColor');
+          },
+          [Uniform.DIR_LIGHT_SPECULAR_INTENSITIES]: (_, __, ___, dirLights) => {
+              const needsUpdate = dirLights.some(l => l.getUniformUpdateFlag('intensity'));
+              if (!forceUniformUpdate && !needsUpdate) return null;
+              // console.log('dirLightIntensity');
+              return dirLights.map(l => l.intensity);
           },
           [Uniform.DIR_LIGHT_COUNT]: (_, __, ___, dirLights) => {
               if (!forceUniformUpdate && lastDirLightCount === dirLights.length) return null;
-              console.log('dirLightCount');
+              // console.log('dirLightCount');
               return dirLights.length;
           },
           forceUpdate: () => {

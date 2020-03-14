@@ -62,19 +62,20 @@ const getFragmentShader = (renderable) => {
         uniform vec3 dirLightAmbientColor[MAX_DIRECTIONAL_LIGHTS];
         uniform vec3 dirLightDiffuseColor[MAX_DIRECTIONAL_LIGHTS];
         uniform vec3 dirLightSpecularColor[MAX_DIRECTIONAL_LIGHTS];
+        uniform float dirLightIntensity[MAX_DIRECTIONAL_LIGHTS];
         uniform int dirLightCount;
 
         out vec4 fragmentColor;
 
-        vec3 CalcDirLight(vec3 lightDir, vec3 lightAmbient, vec3 lightDiffuse, vec3 lightSpecular, vec3 normal, vec3 viewDir, vec3 materialDiffuse, vec3 materialSpecular)
+        vec3 CalcDirLight(vec3 lightDir, vec3 lightAmbient, vec3 lightDiffuse, vec3 lightSpecular, float lightIntensity, vec3 normal, vec3 viewDir, vec3 materialDiffuse, vec3 materialSpecular)
         {
             vec3 direction = normalize(lightDir);
             float diff = max(dot(normal, direction), 0.0);
             vec3 reflectDir = reflect(-direction, normal);
             float spec = pow(max(dot(viewDir, reflectDir), 0.0), specularShininess);
             vec3 ambient  = (lightAmbient * materialDiffuse) * ambientIntensity;
-            vec3 diffuse  = lightDiffuse * diff * materialDiffuse;
-            vec3 specular = lightSpecular * spec * materialSpecular;
+            vec3 diffuse  = lightDiffuse * diff * materialDiffuse * lightIntensity;
+            vec3 specular = lightSpecular * spec * materialSpecular * lightIntensity;
             return ambient + diffuse + specular;
         }
 
@@ -96,7 +97,7 @@ const getFragmentShader = (renderable) => {
             #endif
 
             for(int i = 0; i < dirLightCount; i++) {
-                result += CalcDirLight(dirLightDirection[i], dirLightAmbientColor[i], dirLightDiffuseColor[i], dirLightSpecularColor[i], normal, viewDir, materialDiffuse, materialSpecular);
+                result += CalcDirLight(dirLightDirection[i], dirLightAmbientColor[i], dirLightDiffuseColor[i], dirLightSpecularColor[i], dirLightIntensity[i], normal, viewDir, materialDiffuse, materialSpecular);
             }
 
             fragmentColor = vec4(result, opacity);
