@@ -8738,22 +8738,22 @@ const createVertexArray = (gl, geometry, attribs) => {
     let normalBuffer = null;
     let colorBuffer = null;
 
-    const hasPositions = attribs.includes('position') && geometry.positions && geometry.positions.length > 0;
+    const hasPositions = attribs.includes('position') && geometry.positions.length > 0;
     if (hasPositions) {
         positionBuffer = createArrayBuffer(gl, 'position', geometry);
     }
 
-    const hasUvs = attribs.includes('uv') && geometry.uvs && geometry.uvs.length > 0;
+    const hasUvs = attribs.includes('uv') && geometry.uvs.length > 0;
     if (hasUvs) {
         uvBuffer = createArrayBuffer(gl, 'uv', geometry);
     }
 
-    const hasNormals = attribs.includes('normal') && geometry.normals && geometry.normals.length > 0;
+    const hasNormals = attribs.includes('normal') && geometry.normals.length > 0;
     if (hasNormals) {
         normalBuffer = createArrayBuffer(gl, 'normal', geometry);
     }
 
-    const hasColors = attribs.includes('color') && geometry.colors && geometry.colors.length > 0;
+    const hasColors = attribs.includes('color') && geometry.colors.length > 0;
     if (hasColors) {
         colorBuffer = createArrayBuffer(gl, 'color', geometry);
     }
