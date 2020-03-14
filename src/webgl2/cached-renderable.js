@@ -21,15 +21,16 @@ const CachedRenderable = class {
 
         this.webglUniformTypeToUniformType = WebGL2Utils.createUniformTypeLookupTable(this.gl);
 
-        // TODO: use this info
         const activeAttributesCount = this.gl.getProgramParameter(this.program, this.gl.ACTIVE_ATTRIBUTES);
+        const attribs = [];
+
         for (let i = 0; i < activeAttributesCount; i++) {
-            // const attributeInfo = this.gl.getActiveAttrib(this.program, i);
+            const attributeInfo = this.gl.getActiveAttrib(this.program, i);
             // const type = this.webglUniformTypeToUniformType[attributeInfo.type];
-            // console.log({ attributeInfo, type });
+            attribs.push(attributeInfo.name);
         }
 
-        const result = WebGL2Utils.createVertexArray(gl, renderable.geometry);
+        const result = WebGL2Utils.createVertexArray(gl, renderable.geometry, attribs);
         this.positionBuffer = result.positionBuffer;
         this.uvBuffer = result.uvBuffer;
         this.normalBuffer = result.normalBuffer;

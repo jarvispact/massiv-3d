@@ -8729,7 +8729,7 @@ const createElementArrayBuffer = (gl, material) => {
     return buffer;
 };
 
-const createVertexArray = (gl, geometry) => {
+const createVertexArray = (gl, geometry, attribs) => {
     const vao = gl.createVertexArray();
     gl.bindVertexArray(vao);
 
@@ -8738,22 +8738,22 @@ const createVertexArray = (gl, geometry) => {
     let normalBuffer = null;
     let colorBuffer = null;
 
-    const hasPositions = geometry.positions && geometry.positions.length > 0;
+    const hasPositions = attribs.includes('position') && geometry.positions && geometry.positions.length > 0;
     if (hasPositions) {
         positionBuffer = createArrayBuffer(gl, 'position', geometry);
     }
 
-    const hasUvs = geometry.uvs && geometry.uvs.length > 0;
+    const hasUvs = attribs.includes('uv') && geometry.uvs && geometry.uvs.length > 0;
     if (hasUvs) {
         uvBuffer = createArrayBuffer(gl, 'uv', geometry);
     }
 
-    const hasNormals = geometry.normals && geometry.normals.length > 0;
+    const hasNormals = attribs.includes('normal') && geometry.normals && geometry.normals.length > 0;
     if (hasNormals) {
         normalBuffer = createArrayBuffer(gl, 'normal', geometry);
     }
 
-    const hasColors = geometry.colors && geometry.colors.length > 0;
+    const hasColors = attribs.includes('color') && geometry.colors && geometry.colors.length > 0;
     if (hasColors) {
         colorBuffer = createArrayBuffer(gl, 'color', geometry);
     }
@@ -9041,10 +9041,16 @@ const CachedRenderable = class {
 
         this.webglUniformTypeToUniformType = WebGL2Utils.createUniformTypeLookupTable(this.gl);
 
-        // TODO: use this info
         const activeAttributesCount = this.gl.getProgramParameter(this.program, this.gl.ACTIVE_ATTRIBUTES);
+        const attribs = [];
 
-        const result = WebGL2Utils.createVertexArray(gl, renderable.geometry);
+        for (let i = 0; i < activeAttributesCount; i++) {
+            const attributeInfo = this.gl.getActiveAttrib(this.program, i);
+            // const type = this.webglUniformTypeToUniformType[attributeInfo.type];
+            attribs.push(attributeInfo.name);
+        }
+
+        const result = WebGL2Utils.createVertexArray(gl, renderable.geometry, attribs);
         this.positionBuffer = result.positionBuffer;
         this.uvBuffer = result.uvBuffer;
         this.normalBuffer = result.normalBuffer;
