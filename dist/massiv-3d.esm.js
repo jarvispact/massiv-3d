@@ -8636,23 +8636,15 @@ const getFragmentShader = (renderable) => {
 
         out vec4 fragmentColor;
 
-        vec3 CalcDirLight(vec3 dirLightDirection, vec3 dirLightAmbientColor, vec3 dirLightDiffuseColor, vec3 dirLightSpecularColor, vec3 normal, vec3 viewDir)
+        vec3 CalcDirLight(vec3 lightDir, vec3 lightAmbient, vec3 lightDiffuse, vec3 lightSpecular, vec3 normal, vec3 viewDir, vec3 materialDiffuse, vec3 materialSpecular)
         {
-            #ifdef USE_DIFFUSE_MAP
-            vec3 diffuseColor = texture(diffuseMap, vUv).xyz;
-            #endif
-
-            #ifdef USE_SPECULAR_MAP
-            vec3 specularColor = texture(specularMap, vUv).xyz;
-            #endif
-
-            vec3 lightDir = normalize(dirLightDirection);
-            float diff = max(dot(normal, lightDir), 0.0);
-            vec3 reflectDir = reflect(-lightDir, normal);
+            vec3 direction = normalize(lightDir);
+            float diff = max(dot(normal, direction), 0.0);
+            vec3 reflectDir = reflect(-direction, normal);
             float spec = pow(max(dot(viewDir, reflectDir), 0.0), specularShininess);
-            vec3 ambient  = (dirLightAmbientColor * diffuseColor) * ambientIntensity;
-            vec3 diffuse  = dirLightDiffuseColor * diff * diffuseColor;
-            vec3 specular = dirLightSpecularColor * spec * specularColor;
+            vec3 ambient  = (lightAmbient * materialDiffuse) * ambientIntensity;
+            vec3 diffuse  = lightDiffuse * diff * materialDiffuse;
+            vec3 specular = lightSpecular * spec * materialSpecular;
             return ambient + diffuse + specular;
         }
 
@@ -8661,8 +8653,20 @@ const getFragmentShader = (renderable) => {
             vec3 viewDir = normalize(cameraPosition - vPosition);
             vec3 result = vec3(0.0, 0.0, 0.0);
 
+            #ifdef USE_DIFFUSE_MAP
+                vec3 materialDiffuse = texture(diffuseMap, vUv).xyz;
+            #else
+                vec3 materialDiffuse = diffuseColor;
+            #endif
+
+            #ifdef USE_SPECULAR_MAP
+                vec3 materialSpecular = texture(specularMap, vUv).xyz;
+            #else
+                vec3 materialSpecular = specularColor;
+            #endif
+
             for(int i = 0; i < dirLightCount; i++) {
-                result += CalcDirLight(dirLightDirection[i], dirLightAmbientColor[i], dirLightDiffuseColor[i], dirLightSpecularColor[i], normal, viewDir);
+                result += CalcDirLight(dirLightDirection[i], dirLightAmbientColor[i], dirLightDiffuseColor[i], dirLightSpecularColor[i], normal, viewDir, materialDiffuse, materialSpecular);
             }
 
             fragmentColor = vec4(result, opacity);
@@ -9260,4 +9264,4 @@ const createFPSDebugger = (options = {}) => {
 
 const rangeMap = (value, inMin, inMax, outMin, outMax) => ((value - inMin) * (outMax - outMin)) / ((inMax - inMin) + outMin);
 
-export { CubeGeometry, DirectionalLight, Entity, Geometry, GeometryUtils, ImageLoader, KeyboardInput, MouseInput, ObjLoader, OrthographicCamera, PerspectiveCamera, Renderable, ShaderRegistry, StandardMaterial, Transform, WebGL2Renderer, WebGL2Utils, World, Component as component, createFPSDebugger, common as glMatrix, mat2, mat2d, mat3, mat4, quat, quat2, rangeMap, uuid, vec2, vec3, vec4 };
+export { CubeGeometry, DirectionalLight, Entity, Geometry, GeometryUtils, ImageLoader, KeyboardInput, MouseInput, ObjLoader, OrthographicCamera, PerspectiveCamera, StandardMaterial as PhongMaterial, Renderable, ShaderRegistry, Transform, WebGL2Renderer, WebGL2Utils, World, Component as component, createFPSDebugger, common as glMatrix, mat2, mat2d, mat3, mat4, quat, quat2, rangeMap, uuid, vec2, vec3, vec4 };

@@ -1,1 +1,1 @@
-export { default as StandardMaterial } from './standard-material';
+export { default as PhongMaterial } from './phong-material';
