@@ -9,7 +9,7 @@ class Geometry {
         this.positionBufferSize = 3;
         this.normalBufferSize = 3;
         this.uvBufferSize = 2;
-        this.colorBufferSize = 4;
+        this.colorBufferSize = 3;
     }
 }
 

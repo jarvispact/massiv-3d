@@ -1,10 +1,46 @@
-/* eslint-disable no-console, no-confusing-arrow */
+/* eslint-disable no-console, no-confusing-arrow, max-len */
+
+const CONSTANT = {
+    MAX_DIRECTIONAL_LIGHTS: { TYPE: 'int', NAME: 'MAX_DIRECTIONAL_LIGHTS', VALUE: '5' },
+};
 
 const ATTRIBUTE = {
-    POSITION: { LOCATION: 0, NAME: 'position' },
-    UV: { LOCATION: 1, NAME: 'uv' },
-    NORMAL: { LOCATION: 2, NAME: 'normal' },
-    COLOR: { LOCATION: 3, NAME: 'color' },
+    POSITION: { LOCATION: 0, TYPE: 'vec3', NAME: 'position' },
+    UV: { LOCATION: 1, TYPE: 'vec2', NAME: 'uv' },
+    NORMAL: { LOCATION: 2, TYPE: 'vec3', NAME: 'normal' },
+    COLOR: { LOCATION: 3, TYPE: 'vec3', NAME: 'color' },
+};
+
+const VARYING = {
+    POSITION: { TYPE: 'vec3', NAME: 'vPosition' },
+    UV: { TYPE: 'vec2', NAME: 'vUv' },
+    NORMAL: { TYPE: 'vec3', NAME: 'vNormal' },
+    // VIEW_DIRECTION: { TYPE: 'vec3', NAME: 'viewDirection' },
+};
+
+const UNIFORM = {
+    MODEL_MATRIX: { TYPE: 'mat4', NAME: 'modelMatrix' },
+    MODEL_VIEW_MATRIX: { TYPE: 'mat4', NAME: 'modelViewMatrix' },
+    NORMAL_MATRIX: { TYPE: 'mat3', NAME: 'normalMatrix' },
+
+    DIFFUSE_COLOR: { TYPE: 'vec3', NAME: 'diffuseColor' },
+    SPECULAR_COLOR: { TYPE: 'vec3', NAME: 'specularColor' },
+    AMBIENT_INTENSITY: { TYPE: 'float', NAME: 'ambientIntensity' },
+    SPECULAR_SHININESS: { TYPE: 'float', NAME: 'specularShininess' },
+    OPACITY: { TYPE: 'float', NAME: 'opacity' },
+
+    DIFFUSE_MAP: { TYPE: 'sampler2D', NAME: 'diffuseMap' },
+    SPECULAR_MAP: { TYPE: 'sampler2D', NAME: 'specularMap' },
+
+    PROJECTION_MATRIX: { TYPE: 'mat4', NAME: 'projectionMatrix' },
+    CAMERA_POSITION: { TYPE: 'vec3', NAME: 'cameraPosition' },
+
+    DIR_LIGHT_DIRECTIONS: { TYPE: 'vec3', NAME: 'dirLightDirection[0]', NAME_WITH_INDEX: 'dirLightDirection[i]', DECLARATION: `dirLightDirection[${CONSTANT.MAX_DIRECTIONAL_LIGHTS.NAME}]` },
+    DIR_LIGHT_AMBIENT_COLORS: { TYPE: 'vec3', NAME: 'dirLightAmbientColor[0]', NAME_WITH_INDEX: 'dirLightAmbientColor[i]', DECLARATION: `dirLightAmbientColor[${CONSTANT.MAX_DIRECTIONAL_LIGHTS.NAME}]` },
+    DIR_LIGHT_DIFFUSE_COLORS: { TYPE: 'vec3', NAME: 'dirLightDiffuseColor[0]', NAME_WITH_INDEX: 'dirLightDiffuseColor[i]', DECLARATION: `dirLightDiffuseColor[${CONSTANT.MAX_DIRECTIONAL_LIGHTS.NAME}]` },
+    DIR_LIGHT_SPECULAR_COLORS: { TYPE: 'vec3', NAME: 'dirLightSpecularColor[0]', NAME_WITH_INDEX: 'dirLightSpecularColor[i]', DECLARATION: `dirLightSpecularColor[${CONSTANT.MAX_DIRECTIONAL_LIGHTS.NAME}]` },
+    DIR_LIGHT_INTENSITIES: { TYPE: 'float', NAME: 'dirLightIntensity[0]', NAME_WITH_INDEX: 'dirLightIntensity[i]', DECLARATION: `dirLightIntensity[${CONSTANT.MAX_DIRECTIONAL_LIGHTS.NAME}]` },
+    DIR_LIGHT_COUNT: { TYPE: 'int', NAME: 'dirLightCount' },
 };
 
 const arrayBufferLookupTable = {
@@ -137,7 +173,10 @@ const uniformTypeToUpdateUniformFunction = {
 };
 
 const WebGL2Utils = {
+    CONSTANT,
     ATTRIBUTE,
+    VARYING,
+    UNIFORM,
     createArrayBuffer,
     createElementArrayBuffer,
     createVertexArray,

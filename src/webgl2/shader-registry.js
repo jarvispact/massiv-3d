@@ -1,127 +1,201 @@
+/* eslint-disable max-len */
+
 import WebGL2Utils from './webgl-2-utils';
 
-const POS = WebGL2Utils.ATTRIBUTE.POSITION;
-const UV = WebGL2Utils.ATTRIBUTE.UV;
-const NORMAL = WebGL2Utils.ATTRIBUTE.NORMAL;
-const COLOR = WebGL2Utils.ATTRIBUTE.COLOR;
+const C = WebGL2Utils.CONSTANT;
+const A = WebGL2Utils.ATTRIBUTE;
+const V = WebGL2Utils.VARYING;
+const U = WebGL2Utils.UNIFORM;
 
 const VERSION = '#version 300 es\n\n';
 const PRECISION = 'precision highp float;\nprecision highp int;\n\n';
 
-const ATTRIBS = (geometry) => {
-    const hasPositions = geometry.positions.length > 0;
-    const hasUvs = geometry.uvs.length > 0;
-    const hasNormals = geometry.normals.length > 0;
-    const hasColors = geometry.colors.length > 0;
+const CONST = (constant) => `const ${constant.TYPE} ${constant.NAME} = ${constant.VALUE};`;
+const ATTRIB = (attrib) => `layout(location = ${attrib.LOCATION}) in ${attrib.TYPE} ${attrib.NAME};`;
+const VARYING = (direction, varying) => `${direction} ${varying.TYPE} ${varying.NAME};`;
+const UNIFORM = (uniform) => `uniform ${uniform.TYPE} ${uniform.DECLARATION || uniform.NAME};`;
 
-    return [
-        ...hasPositions ? [`layout(location = ${POS.LOCATION}) in vec3 ${POS.NAME};`] : [],
-        ...hasUvs ? [`layout(location = ${UV.LOCATION}) in vec2 ${UV.NAME};`] : [],
-        ...hasNormals ? [`layout(location = ${NORMAL.LOCATION}) in vec3 ${NORMAL.NAME};`] : [],
-        ...hasColors ? [`layout(location = ${COLOR.LOCATION}) in vec4 ${COLOR.NAME};`] : [],
-    ].join('\n');
+// TODO: only write attribs, varyings, etc. when data (normals, uvs, etc) is here
+// or do a validation step to ensure that a PhongMaterial needs normals for example
+
+const FRAGMENT_SHADER_CONSTANTS = {
+    PhongMaterial: () => {
+        const constantBlock = [
+            CONST(C.MAX_DIRECTIONAL_LIGHTS),
+        ].join('\n');
+
+        return `${constantBlock}\n\n`;
+    },
+};
+
+const ATTRIBS = {
+    PhongMaterial: () => {
+        const attributeBlock = [
+            ATTRIB(A.POSITION),
+            ATTRIB(A.UV),
+            ATTRIB(A.NORMAL),
+            ATTRIB(A.COLOR),
+        ].join('\n');
+
+        return `${attributeBlock}\n\n`;
+    },
+};
+
+const VERTEX_SHADER_VARYINGS = {
+    PhongMaterial: () => {
+        const varyingBlock = [
+            VARYING('out', V.POSITION),
+            // VARYING('out', V.VIEW_DIRECTION),
+            VARYING('out', V.UV),
+            VARYING('out', V.NORMAL),
+        ].join('\n');
+
+        return `${varyingBlock}\n\n`;
+    },
+};
+
+const FRAGMENT_SHADER_VARYINGS = {
+    PhongMaterial: () => {
+        const varyingBlock = [
+            VARYING('in', V.POSITION),
+            // VARYING('in', V.VIEW_DIRECTION),
+            VARYING('in', V.UV),
+            VARYING('in', V.NORMAL),
+        ].join('\n');
+
+        return `${varyingBlock}\n\n`;
+    },
+};
+
+const VERTEX_SHADER_UNIFORMS = {
+    PhongMaterial: () => {
+        const uniformBlock = [
+            UNIFORM(U.MODEL_MATRIX),
+            UNIFORM(U.MODEL_VIEW_MATRIX),
+            UNIFORM(U.NORMAL_MATRIX),
+            UNIFORM(U.PROJECTION_MATRIX),
+        ].join('\n');
+
+        return `${uniformBlock}\n\n`;
+    },
+};
+
+const FRAGMENT_SHADER_UNIFORMS = {
+    PhongMaterial: (material) => {
+        const useDiffuseMap = !!material.diffuseMap;
+        const useSpecularMap = !!material.specularMap;
+
+        const uniformBlock = [
+            UNIFORM(U.DIFFUSE_COLOR),
+            UNIFORM(U.SPECULAR_COLOR),
+            UNIFORM(U.AMBIENT_INTENSITY),
+            UNIFORM(U.SPECULAR_SHININESS),
+            UNIFORM(U.OPACITY),
+
+            ...useDiffuseMap ? [UNIFORM(U.DIFFUSE_MAP)] : [],
+            ...useSpecularMap ? [UNIFORM(U.SPECULAR_MAP)] : [],
+
+            UNIFORM(U.CAMERA_POSITION),
+
+            UNIFORM(U.DIR_LIGHT_DIRECTIONS),
+            UNIFORM(U.DIR_LIGHT_AMBIENT_COLORS),
+            UNIFORM(U.DIR_LIGHT_DIFFUSE_COLORS),
+            UNIFORM(U.DIR_LIGHT_SPECULAR_COLORS),
+            UNIFORM(U.DIR_LIGHT_INTENSITIES),
+            UNIFORM(U.DIR_LIGHT_COUNT),
+        ].join('\n');
+
+        return `${uniformBlock}\n\n`;
+    },
+};
+
+const FNS = {
+    CALC_DIR_LIGHT: () => {
+        const fnBlock = [
+            'vec3 CalcDirLight(vec3 lDir, vec3 lAmbient, vec3 lDiffuse, vec3 lSpecular, float lIntensity, vec3 normal, vec3 viewDir, vec3 materialDiffuse, vec3 materialSpecular) {',
+            '\tvec3 direction = normalize(lDir);',
+            '\tfloat diff = max(dot(normal, direction), 0.0);',
+            '\tvec3 reflectDir = reflect(-direction, normal);',
+            `\tfloat spec = pow(max(dot(viewDir, reflectDir), 0.0), ${U.SPECULAR_SHININESS.NAME});`,
+            `\tvec3 ambient  = (lAmbient * materialDiffuse) * ${U.AMBIENT_INTENSITY.NAME};`,
+            '\tvec3 diffuse  = lDiffuse * diff * materialDiffuse * lIntensity;',
+            '\tvec3 specular = lSpecular * spec * materialSpecular * lIntensity;',
+            '\treturn ambient + diffuse + specular;',
+            '}',
+        ].join('\n');
+
+        return `${fnBlock}\n\n`;
+    },
+};
+
+const VERTEX_SHADER_MAIN = {
+    PhongMaterial: () => {
+        return [
+            'void main() {',
+            `\t${V.NORMAL.NAME} = ${U.NORMAL_MATRIX.NAME} * ${A.NORMAL.NAME};`,
+            `\t${V.POSITION.NAME} = vec3(${U.MODEL_MATRIX.NAME} * vec4(${A.POSITION.NAME}, 1.0));`,
+            `\t${V.UV.NAME} = ${A.UV.NAME};`,
+            `\tgl_Position = ${U.PROJECTION_MATRIX.NAME} * ${U.MODEL_VIEW_MATRIX.NAME} * vec4(${A.POSITION.NAME}, 1.0);`,
+            '}',
+        ].join('\n');
+    },
+};
+
+const FRAGMENT_SHADER_MAIN = {
+    PhongMaterial: (material) => {
+        const useDiffuseMap = !!material.diffuseMap;
+        const useSpecularMap = !!material.specularMap;
+        const diffuseColorDeclaration = useDiffuseMap ? '\tvec3 materialDiffuse = texture(diffuseMap, vUv).xyz;\n' : '';
+        const specularColorDeclaration = useSpecularMap ? '\tvec3 materialSpecular = texture(specularMap, vUv).xyz;\n' : '';
+        const diffuseColorArgName = useDiffuseMap ? 'materialDiffuse' : U.DIFFUSE_COLOR.NAME;
+        const specularColorArgName = useSpecularMap ? 'materialSpecular' : U.SPECULAR_COLOR.NAME;
+
+        return [
+            'void main() {',
+            `\tvec3 normal = normalize(${V.NORMAL.NAME});`,
+            `\tvec3 viewDir = normalize(${U.CAMERA_POSITION.NAME} - ${V.POSITION.NAME});`,
+            '\tvec3 result = vec3(0.0, 0.0, 0.0);',
+            diffuseColorDeclaration,
+            specularColorDeclaration,
+            `\tfor(int i = 0; i < ${U.DIR_LIGHT_COUNT.NAME}; i++) {`,
+            `\t\tresult += CalcDirLight(${U.DIR_LIGHT_DIRECTIONS.NAME_WITH_INDEX}, ${U.DIR_LIGHT_AMBIENT_COLORS.NAME_WITH_INDEX}, ${U.DIR_LIGHT_DIFFUSE_COLORS.NAME_WITH_INDEX}, ${U.DIR_LIGHT_SPECULAR_COLORS.NAME_WITH_INDEX}, ${U.DIR_LIGHT_INTENSITIES.NAME_WITH_INDEX}, normal, viewDir, ${diffuseColorArgName}, ${specularColorArgName});`,
+            '\t}\n',
+            '\tfragmentColor = vec4(result, opacity);',
+            '}',
+        ].join('\n');
+    },
 };
 
 const getVertexShader = (renderable) => {
-    return `
-        ${VERSION}
-        ${PRECISION}
-        ${ATTRIBS(renderable.geometry)}
+    const sourceCode = [
+        VERSION,
+        PRECISION,
+        ATTRIBS[renderable.material.constructor.name](),
+        VERTEX_SHADER_UNIFORMS[renderable.material.constructor.name](),
+        VERTEX_SHADER_VARYINGS[renderable.material.constructor.name](),
+        VERTEX_SHADER_MAIN[renderable.material.constructor.name](),
+    ].join('').trim();
 
-        uniform mat4 modelMatrix;
-        uniform mat4 modelViewMatrix;
-        uniform mat3 normalMatrix;
-
-        uniform mat4 projectionMatrix;
-
-        out vec3 vPosition;
-        out vec3 vNormal;
-        out vec2 vUv;
-
-        void main() {
-            vNormal = normalMatrix * normal;
-            vPosition = vec3(modelMatrix * vec4(position, 1.0));
-            vUv = uv;
-            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-        }
-    `.trim();
+    // console.log('vertex');
+    // console.log(sourceCode);
+    return sourceCode;
 };
 
 const getFragmentShader = (renderable) => {
-    const useDiffuseMap = !!renderable.material.diffuseMap;
-    const useSpecularMap = !!renderable.material.specularMap;
+    const sourceCode = [
+        VERSION,
+        PRECISION,
+        FRAGMENT_SHADER_CONSTANTS[renderable.material.constructor.name](),
+        FRAGMENT_SHADER_VARYINGS[renderable.material.constructor.name](),
+        FRAGMENT_SHADER_UNIFORMS[renderable.material.constructor.name](renderable.material),
+        'out vec4 fragmentColor;\n\n',
+        FNS.CALC_DIR_LIGHT(),
+        FRAGMENT_SHADER_MAIN[renderable.material.constructor.name](renderable.material),
+    ].join('').trim();
 
-    return `
-        #version 300 es
-
-        ${useDiffuseMap ? '#define USE_DIFFUSE_MAP' : ''}
-        ${useSpecularMap ? '#define USE_SPECULAR_MAP' : ''}
-
-        precision highp float;
-        precision highp int;
-
-        const int MAX_DIRECTIONAL_LIGHTS = 5;
-
-        in vec3 vPosition;
-        in vec3 vNormal;
-        in vec2 vUv;
-
-        uniform vec3 diffuseColor;
-        uniform vec3 specularColor;
-        uniform float ambientIntensity;
-        uniform float specularShininess;
-        uniform float opacity;
-
-        uniform sampler2D diffuseMap;
-        uniform sampler2D specularMap;
-
-        uniform vec3 cameraPosition;
-
-        uniform vec3 dirLightDirection[MAX_DIRECTIONAL_LIGHTS];
-        uniform vec3 dirLightAmbientColor[MAX_DIRECTIONAL_LIGHTS];
-        uniform vec3 dirLightDiffuseColor[MAX_DIRECTIONAL_LIGHTS];
-        uniform vec3 dirLightSpecularColor[MAX_DIRECTIONAL_LIGHTS];
-        uniform float dirLightIntensity[MAX_DIRECTIONAL_LIGHTS];
-        uniform int dirLightCount;
-
-        out vec4 fragmentColor;
-
-        vec3 CalcDirLight(vec3 lightDir, vec3 lightAmbient, vec3 lightDiffuse, vec3 lightSpecular, float lightIntensity, vec3 normal, vec3 viewDir, vec3 materialDiffuse, vec3 materialSpecular)
-        {
-            vec3 direction = normalize(lightDir);
-            float diff = max(dot(normal, direction), 0.0);
-            vec3 reflectDir = reflect(-direction, normal);
-            float spec = pow(max(dot(viewDir, reflectDir), 0.0), specularShininess);
-            vec3 ambient  = (lightAmbient * materialDiffuse) * ambientIntensity;
-            vec3 diffuse  = lightDiffuse * diff * materialDiffuse * lightIntensity;
-            vec3 specular = lightSpecular * spec * materialSpecular * lightIntensity;
-            return ambient + diffuse + specular;
-        }
-
-        void main() {
-            vec3 normal = normalize(vNormal);
-            vec3 viewDir = normalize(cameraPosition - vPosition);
-            vec3 result = vec3(0.0, 0.0, 0.0);
-
-            #ifdef USE_DIFFUSE_MAP
-                vec3 materialDiffuse = texture(diffuseMap, vUv).xyz;
-            #else
-                vec3 materialDiffuse = diffuseColor;
-            #endif
-
-            #ifdef USE_SPECULAR_MAP
-                vec3 materialSpecular = texture(specularMap, vUv).xyz;
-            #else
-                vec3 materialSpecular = specularColor;
-            #endif
-
-            for(int i = 0; i < dirLightCount; i++) {
-                result += CalcDirLight(dirLightDirection[i], dirLightAmbientColor[i], dirLightDiffuseColor[i], dirLightSpecularColor[i], dirLightIntensity[i], normal, viewDir, materialDiffuse, materialSpecular);
-            }
-
-            fragmentColor = vec4(result, opacity);
-        }
-    `.trim();
+    // console.log('fragment');
+    // console.log(sourceCode);
+    return sourceCode;
 };
 
 const ShaderRegistry = {

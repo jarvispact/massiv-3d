@@ -1,6 +1,6 @@
 import { vec3 } from 'gl-matrix';
 
-class StandardMaterial {
+class PhongMaterial {
     constructor(options = {}) {
         this.diffuseColor = options.diffuseColor ? vec3.fromValues(...options.diffuseColor) : vec3.fromValues(0.74, 0.38, 0.41);
         this.specularColor = options.specularColor ? vec3.fromValues(...options.specularColor) : vec3.fromValues(1, 1, 1);
@@ -45,4 +45,4 @@ class StandardMaterial {
     }
 }
 
-export default StandardMaterial;
+export default PhongMaterial;
