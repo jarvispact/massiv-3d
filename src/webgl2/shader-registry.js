@@ -19,6 +19,9 @@ const UNIFORM = (uniform) => `uniform ${uniform.TYPE} ${uniform.DECLARATION || u
 // or do a validation step to ensure that a PhongMaterial needs normals for example
 
 const FRAGMENT_SHADER_CONSTANTS = {
+    NormalMaterial: () => {
+        return '';
+    },
     PhongMaterial: () => {
         const constantBlock = [
             CONST(C.MAX_DIRECTIONAL_LIGHTS),
@@ -29,6 +32,14 @@ const FRAGMENT_SHADER_CONSTANTS = {
 };
 
 const ATTRIBS = {
+    NormalMaterial: () => {
+        const attributeBlock = [
+            ATTRIB(A.POSITION),
+            ATTRIB(A.NORMAL),
+        ].join('\n');
+
+        return `${attributeBlock}\n\n`;
+    },
     PhongMaterial: () => {
         const attributeBlock = [
             ATTRIB(A.POSITION),
@@ -42,10 +53,16 @@ const ATTRIBS = {
 };
 
 const VERTEX_SHADER_VARYINGS = {
+    NormalMaterial: () => {
+        const varyingBlock = [
+            VARYING('out', V.NORMAL),
+        ].join('\n');
+
+        return `${varyingBlock}\n\n`;
+    },
     PhongMaterial: () => {
         const varyingBlock = [
             VARYING('out', V.POSITION),
-            // VARYING('out', V.VIEW_DIRECTION),
             VARYING('out', V.UV),
             VARYING('out', V.NORMAL),
         ].join('\n');
@@ -55,10 +72,16 @@ const VERTEX_SHADER_VARYINGS = {
 };
 
 const FRAGMENT_SHADER_VARYINGS = {
+    NormalMaterial: () => {
+        const varyingBlock = [
+            VARYING('in', V.NORMAL),
+        ].join('\n');
+
+        return `${varyingBlock}\n\n`;
+    },
     PhongMaterial: () => {
         const varyingBlock = [
             VARYING('in', V.POSITION),
-            // VARYING('in', V.VIEW_DIRECTION),
             VARYING('in', V.UV),
             VARYING('in', V.NORMAL),
         ].join('\n');
@@ -68,6 +91,15 @@ const FRAGMENT_SHADER_VARYINGS = {
 };
 
 const VERTEX_SHADER_UNIFORMS = {
+    NormalMaterial: () => {
+        const uniformBlock = [
+            UNIFORM(U.MODEL_VIEW_MATRIX),
+            UNIFORM(U.NORMAL_MATRIX),
+            UNIFORM(U.PROJECTION_MATRIX),
+        ].join('\n');
+
+        return `${uniformBlock}\n\n`;
+    },
     PhongMaterial: () => {
         const uniformBlock = [
             UNIFORM(U.MODEL_MATRIX),
@@ -81,6 +113,13 @@ const VERTEX_SHADER_UNIFORMS = {
 };
 
 const FRAGMENT_SHADER_UNIFORMS = {
+    NormalMaterial: () => {
+        const uniformBlock = [
+            UNIFORM(U.OPACITY),
+        ].join('\n');
+
+        return `${uniformBlock}\n\n`;
+    },
     PhongMaterial: (material) => {
         const useDiffuseMap = !!material.diffuseMap;
         const useSpecularMap = !!material.specularMap;
@@ -110,7 +149,10 @@ const FRAGMENT_SHADER_UNIFORMS = {
 };
 
 const FNS = {
-    CALC_DIR_LIGHT: () => {
+    NormalMaterial: () => {
+        return '';
+    },
+    PhongMaterial: () => {
         const fnBlock = [
             'vec3 CalcDirLight(vec3 lDir, vec3 lAmbient, vec3 lDiffuse, vec3 lSpecular, float lIntensity, vec3 normal, vec3 viewDir, vec3 materialDiffuse, vec3 materialSpecular) {',
             '\tvec3 direction = normalize(lDir);',
@@ -129,6 +171,14 @@ const FNS = {
 };
 
 const VERTEX_SHADER_MAIN = {
+    NormalMaterial: () => {
+        return [
+            'void main() {',
+            `\t${V.NORMAL.NAME} = ${U.NORMAL_MATRIX.NAME} * ${A.NORMAL.NAME};`,
+            `\tgl_Position = ${U.PROJECTION_MATRIX.NAME} * ${U.MODEL_VIEW_MATRIX.NAME} * vec4(${A.POSITION.NAME}, 1.0);`,
+            '}',
+        ].join('\n');
+    },
     PhongMaterial: () => {
         return [
             'void main() {',
@@ -142,6 +192,14 @@ const VERTEX_SHADER_MAIN = {
 };
 
 const FRAGMENT_SHADER_MAIN = {
+    NormalMaterial: () => {
+        return [
+            'void main() {',
+            `\tvec3 normal = normalize(${V.NORMAL.NAME});`,
+            '\tfragmentColor = vec4(normal, opacity);',
+            '}',
+        ].join('\n');
+    },
     PhongMaterial: (material) => {
         const useDiffuseMap = !!material.diffuseMap;
         const useSpecularMap = !!material.specularMap;
@@ -176,8 +234,8 @@ const getVertexShader = (renderable) => {
         VERTEX_SHADER_MAIN[renderable.material.constructor.name](),
     ].join('').trim();
 
-    // console.log('vertex');
-    // console.log(sourceCode);
+    console.log('vertex');
+    console.log(sourceCode);
     return sourceCode;
 };
 
@@ -189,12 +247,12 @@ const getFragmentShader = (renderable) => {
         FRAGMENT_SHADER_VARYINGS[renderable.material.constructor.name](),
         FRAGMENT_SHADER_UNIFORMS[renderable.material.constructor.name](renderable.material),
         'out vec4 fragmentColor;\n\n',
-        FNS.CALC_DIR_LIGHT(),
+        FNS[renderable.material.constructor.name](),
         FRAGMENT_SHADER_MAIN[renderable.material.constructor.name](renderable.material),
     ].join('').trim();
 
-    // console.log('fragment');
-    // console.log(sourceCode);
+    console.log('fragment');
+    console.log(sourceCode);
     return sourceCode;
 };
 

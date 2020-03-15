@@ -42,30 +42,24 @@ const getLightValuesAsFlatArray = (lights, propertyName) => {
 
 Uniform.createUniformUpdateLookupTable = () => {
     let forceUniformUpdate = true;
-    let modelViewMatrixNeedsUpdate = true;
-    let normalMatrixNeedsUpdate = true;
     let lastDirLightCount = 0;
 
     return {
         [U.MODEL_MATRIX.NAME]: (_, transform) => {
             if (!forceUniformUpdate && !transform.getUniformUpdateFlag('modelMatrix')) return null;
             // console.log('modelMatrix');
-            modelViewMatrixNeedsUpdate = true;
             return transform.modelMatrix;
         },
         [U.MODEL_VIEW_MATRIX.NAME]: (_, transform, camera) => {
-            if (!forceUniformUpdate && !modelViewMatrixNeedsUpdate && !camera.getUniformUpdateFlag('viewMatrix')) return null;
+            if (!forceUniformUpdate && !transform.getUniformUpdateFlag('modelMatrix') && !camera.getUniformUpdateFlag('viewMatrix')) return null;
             // console.log('modelViewMatrix');
             mat4.multiply(modelViewMatrixCache, camera.viewMatrix, transform.modelMatrix);
-            modelViewMatrixNeedsUpdate = false;
-            normalMatrixNeedsUpdate = true;
             return modelViewMatrixCache;
         },
-        [U.NORMAL_MATRIX.NAME]: () => {
-            if (!forceUniformUpdate && !normalMatrixNeedsUpdate) return null;
+        [U.NORMAL_MATRIX.NAME]: (_, transform, camera) => {
+            if (!forceUniformUpdate && !transform.getUniformUpdateFlag('modelMatrix') && !camera.getUniformUpdateFlag('viewMatrix')) return null;
             // console.log('normalMatrix');
             mat3.normalFromMat4(normalMatrixCache, modelViewMatrixCache);
-            normalMatrixNeedsUpdate = false;
             return normalMatrixCache;
         },
         [U.PROJECTION_MATRIX.NAME]: (_, __, camera) => {

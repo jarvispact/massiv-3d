@@ -17,6 +17,7 @@ class PhongMaterial {
             specularMap: true,
             ambientIntensity: true,
             specularShininess: true,
+            opacity: true,
         };
     }
 
@@ -42,6 +43,7 @@ class PhongMaterial {
         this.uniformUpdate.specularMap = false;
         this.uniformUpdate.ambientIntensity = false;
         this.uniformUpdate.specularShininess = false;
+        this.uniformUpdate.opacity = false;
     }
 }
 

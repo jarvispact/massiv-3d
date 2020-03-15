@@ -8530,6 +8530,29 @@ const ObjLoader = {
     load: async (objFilePath) => fetch(objFilePath).then(response => response.text()).then(ObjParser.parse),
 };
 
+class NormalMaterial {
+    constructor(options = {}) {
+        this.opacity = options.opacity || 1;
+
+        this.uniformUpdate = {
+            opacity: true,
+        };
+    }
+
+    setOpacity(opacity) {
+        this.opacity = opacity;
+        this.uniformUpdate.opacity = true;
+    }
+
+    getUniformUpdateFlag(name) {
+        return this.uniformUpdate[name];
+    }
+
+    markUniformsAsUpdated() {
+        this.uniformUpdate.opacity = false;
+    }
+}
+
 class PhongMaterial {
     constructor(options = {}) {
         this.diffuseColor = options.diffuseColor ? fromValues$4(...options.diffuseColor) : fromValues$4(0.74, 0.38, 0.41);
@@ -8547,6 +8570,7 @@ class PhongMaterial {
             specularMap: true,
             ambientIntensity: true,
             specularShininess: true,
+            opacity: true,
         };
     }
 
@@ -8572,6 +8596,7 @@ class PhongMaterial {
         this.uniformUpdate.specularMap = false;
         this.uniformUpdate.ambientIntensity = false;
         this.uniformUpdate.specularShininess = false;
+        this.uniformUpdate.opacity = false;
     }
 }
 
@@ -8592,7 +8617,6 @@ const VARYING = {
     POSITION: { TYPE: 'vec3', NAME: 'vPosition' },
     UV: { TYPE: 'vec2', NAME: 'vUv' },
     NORMAL: { TYPE: 'vec3', NAME: 'vNormal' },
-    // VIEW_DIRECTION: { TYPE: 'vec3', NAME: 'viewDirection' },
 };
 
 const UNIFORM = {
@@ -8783,6 +8807,9 @@ const UNIFORM$1 = (uniform) => `uniform ${uniform.TYPE} ${uniform.DECLARATION ||
 // or do a validation step to ensure that a PhongMaterial needs normals for example
 
 const FRAGMENT_SHADER_CONSTANTS = {
+    NormalMaterial: () => {
+        return '';
+    },
     PhongMaterial: () => {
         const constantBlock = [
             CONST(C.MAX_DIRECTIONAL_LIGHTS),
@@ -8793,6 +8820,14 @@ const FRAGMENT_SHADER_CONSTANTS = {
 };
 
 const ATTRIBS = {
+    NormalMaterial: () => {
+        const attributeBlock = [
+            ATTRIB(A.POSITION),
+            ATTRIB(A.NORMAL),
+        ].join('\n');
+
+        return `${attributeBlock}\n\n`;
+    },
     PhongMaterial: () => {
         const attributeBlock = [
             ATTRIB(A.POSITION),
@@ -8806,10 +8841,16 @@ const ATTRIBS = {
 };
 
 const VERTEX_SHADER_VARYINGS = {
+    NormalMaterial: () => {
+        const varyingBlock = [
+            VARYING$1('out', V.NORMAL),
+        ].join('\n');
+
+        return `${varyingBlock}\n\n`;
+    },
     PhongMaterial: () => {
         const varyingBlock = [
             VARYING$1('out', V.POSITION),
-            // VARYING('out', V.VIEW_DIRECTION),
             VARYING$1('out', V.UV),
             VARYING$1('out', V.NORMAL),
         ].join('\n');
@@ -8819,10 +8860,16 @@ const VERTEX_SHADER_VARYINGS = {
 };
 
 const FRAGMENT_SHADER_VARYINGS = {
+    NormalMaterial: () => {
+        const varyingBlock = [
+            VARYING$1('in', V.NORMAL),
+        ].join('\n');
+
+        return `${varyingBlock}\n\n`;
+    },
     PhongMaterial: () => {
         const varyingBlock = [
             VARYING$1('in', V.POSITION),
-            // VARYING('in', V.VIEW_DIRECTION),
             VARYING$1('in', V.UV),
             VARYING$1('in', V.NORMAL),
         ].join('\n');
@@ -8832,6 +8879,15 @@ const FRAGMENT_SHADER_VARYINGS = {
 };
 
 const VERTEX_SHADER_UNIFORMS = {
+    NormalMaterial: () => {
+        const uniformBlock = [
+            UNIFORM$1(U.MODEL_VIEW_MATRIX),
+            UNIFORM$1(U.NORMAL_MATRIX),
+            UNIFORM$1(U.PROJECTION_MATRIX),
+        ].join('\n');
+
+        return `${uniformBlock}\n\n`;
+    },
     PhongMaterial: () => {
         const uniformBlock = [
             UNIFORM$1(U.MODEL_MATRIX),
@@ -8845,6 +8901,13 @@ const VERTEX_SHADER_UNIFORMS = {
 };
 
 const FRAGMENT_SHADER_UNIFORMS = {
+    NormalMaterial: () => {
+        const uniformBlock = [
+            UNIFORM$1(U.OPACITY),
+        ].join('\n');
+
+        return `${uniformBlock}\n\n`;
+    },
     PhongMaterial: (material) => {
         const useDiffuseMap = !!material.diffuseMap;
         const useSpecularMap = !!material.specularMap;
@@ -8874,7 +8937,10 @@ const FRAGMENT_SHADER_UNIFORMS = {
 };
 
 const FNS = {
-    CALC_DIR_LIGHT: () => {
+    NormalMaterial: () => {
+        return '';
+    },
+    PhongMaterial: () => {
         const fnBlock = [
             'vec3 CalcDirLight(vec3 lDir, vec3 lAmbient, vec3 lDiffuse, vec3 lSpecular, float lIntensity, vec3 normal, vec3 viewDir, vec3 materialDiffuse, vec3 materialSpecular) {',
             '\tvec3 direction = normalize(lDir);',
@@ -8893,6 +8959,14 @@ const FNS = {
 };
 
 const VERTEX_SHADER_MAIN = {
+    NormalMaterial: () => {
+        return [
+            'void main() {',
+            `\t${V.NORMAL.NAME} = ${U.NORMAL_MATRIX.NAME} * ${A.NORMAL.NAME};`,
+            `\tgl_Position = ${U.PROJECTION_MATRIX.NAME} * ${U.MODEL_VIEW_MATRIX.NAME} * vec4(${A.POSITION.NAME}, 1.0);`,
+            '}',
+        ].join('\n');
+    },
     PhongMaterial: () => {
         return [
             'void main() {',
@@ -8906,6 +8980,14 @@ const VERTEX_SHADER_MAIN = {
 };
 
 const FRAGMENT_SHADER_MAIN = {
+    NormalMaterial: () => {
+        return [
+            'void main() {',
+            `\tvec3 normal = normalize(${V.NORMAL.NAME});`,
+            '\tfragmentColor = vec4(normal, opacity);',
+            '}',
+        ].join('\n');
+    },
     PhongMaterial: (material) => {
         const useDiffuseMap = !!material.diffuseMap;
         const useSpecularMap = !!material.specularMap;
@@ -8940,8 +9022,8 @@ const getVertexShader = (renderable) => {
         VERTEX_SHADER_MAIN[renderable.material.constructor.name](),
     ].join('').trim();
 
-    // console.log('vertex');
-    // console.log(sourceCode);
+    console.log('vertex');
+    console.log(sourceCode);
     return sourceCode;
 };
 
@@ -8953,12 +9035,12 @@ const getFragmentShader = (renderable) => {
         FRAGMENT_SHADER_VARYINGS[renderable.material.constructor.name](),
         FRAGMENT_SHADER_UNIFORMS[renderable.material.constructor.name](renderable.material),
         'out vec4 fragmentColor;\n\n',
-        FNS.CALC_DIR_LIGHT(),
+        FNS[renderable.material.constructor.name](),
         FRAGMENT_SHADER_MAIN[renderable.material.constructor.name](renderable.material),
     ].join('').trim();
 
-    // console.log('fragment');
-    // console.log(sourceCode);
+    console.log('fragment');
+    console.log(sourceCode);
     return sourceCode;
 };
 
@@ -9008,30 +9090,24 @@ const getLightValuesAsFlatArray = (lights, propertyName) => {
 
 Uniform.createUniformUpdateLookupTable = () => {
     let forceUniformUpdate = true;
-    let modelViewMatrixNeedsUpdate = true;
-    let normalMatrixNeedsUpdate = true;
     let lastDirLightCount = 0;
 
     return {
         [U$1.MODEL_MATRIX.NAME]: (_, transform) => {
             if (!forceUniformUpdate && !transform.getUniformUpdateFlag('modelMatrix')) return null;
             // console.log('modelMatrix');
-            modelViewMatrixNeedsUpdate = true;
             return transform.modelMatrix;
         },
         [U$1.MODEL_VIEW_MATRIX.NAME]: (_, transform, camera) => {
-            if (!forceUniformUpdate && !modelViewMatrixNeedsUpdate && !camera.getUniformUpdateFlag('viewMatrix')) return null;
+            if (!forceUniformUpdate && !transform.getUniformUpdateFlag('modelMatrix') && !camera.getUniformUpdateFlag('viewMatrix')) return null;
             // console.log('modelViewMatrix');
             multiply$3(modelViewMatrixCache, camera.viewMatrix, transform.modelMatrix);
-            modelViewMatrixNeedsUpdate = false;
-            normalMatrixNeedsUpdate = true;
             return modelViewMatrixCache;
         },
-        [U$1.NORMAL_MATRIX.NAME]: () => {
-            if (!forceUniformUpdate && !normalMatrixNeedsUpdate) return null;
+        [U$1.NORMAL_MATRIX.NAME]: (_, transform, camera) => {
+            if (!forceUniformUpdate && !transform.getUniformUpdateFlag('modelMatrix') && !camera.getUniformUpdateFlag('viewMatrix')) return null;
             // console.log('normalMatrix');
             normalFromMat4(normalMatrixCache, modelViewMatrixCache);
-            normalMatrixNeedsUpdate = false;
             return normalMatrixCache;
         },
         [U$1.PROJECTION_MATRIX.NAME]: (_, __, camera) => {
@@ -9246,6 +9322,7 @@ const WebGL2Renderer = class {
         this.blendEquation = this.gl.FUNC_ADD;
         this.blendFuncSFactor = this.gl.SRC_ALPHA;
         this.blendFuncDFactor = this.gl.ONE_MINUS_SRC_ALPHA;
+        this.cullFace = this.gl.BACK;
 
         this.gl.viewport(0, 0, canvas.width, canvas.height);
         this.gl.clearColor(0, 0, 0, 1);
@@ -9254,9 +9331,11 @@ const WebGL2Renderer = class {
         this.gl.depthFunc(this.depthFunc);
         this.gl.blendEquation(this.blendEquation);
         this.gl.blendFunc(this.blendFuncSFactor, this.blendFuncDFactor);
+        this.gl.cullFace(this.cullFace);
 
         this.gl.enable(this.gl.DEPTH_TEST);
         this.gl.disable(this.gl.BLEND);
+        this.gl.enable(this.gl.CULL_FACE);
 
         this.perspectiveCameras = [];
         this.orthographicCameras = [];
@@ -9405,6 +9484,7 @@ exports.GeometryUtils = GeometryUtils;
 exports.ImageLoader = ImageLoader;
 exports.KeyboardInput = KeyboardInput;
 exports.MouseInput = MouseInput;
+exports.NormalMaterial = NormalMaterial;
 exports.ObjLoader = ObjLoader;
 exports.OrthographicCamera = OrthographicCamera;
 exports.PerspectiveCamera = PerspectiveCamera;

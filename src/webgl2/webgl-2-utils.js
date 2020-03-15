@@ -15,7 +15,6 @@ const VARYING = {
     POSITION: { TYPE: 'vec3', NAME: 'vPosition' },
     UV: { TYPE: 'vec2', NAME: 'vUv' },
     NORMAL: { TYPE: 'vec3', NAME: 'vNormal' },
-    // VIEW_DIRECTION: { TYPE: 'vec3', NAME: 'viewDirection' },
 };
 
 const UNIFORM = {

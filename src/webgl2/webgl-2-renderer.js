@@ -22,6 +22,7 @@ const WebGL2Renderer = class {
         this.blendEquation = this.gl.FUNC_ADD;
         this.blendFuncSFactor = this.gl.SRC_ALPHA;
         this.blendFuncDFactor = this.gl.ONE_MINUS_SRC_ALPHA;
+        this.cullFace = this.gl.BACK;
 
         this.gl.viewport(0, 0, canvas.width, canvas.height);
         this.gl.clearColor(0, 0, 0, 1);
@@ -30,9 +31,11 @@ const WebGL2Renderer = class {
         this.gl.depthFunc(this.depthFunc);
         this.gl.blendEquation(this.blendEquation);
         this.gl.blendFunc(this.blendFuncSFactor, this.blendFuncDFactor);
+        this.gl.cullFace(this.cullFace);
 
         this.gl.enable(this.gl.DEPTH_TEST);
         this.gl.disable(this.gl.BLEND);
+        this.gl.enable(this.gl.CULL_FACE);
 
         this.perspectiveCameras = [];
         this.orthographicCameras = [];
