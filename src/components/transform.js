@@ -52,10 +52,6 @@ class Transform extends Component {
         return this.uniformUpdate[name];
     }
 
-    setUniformUpdateFlag(name, flag) {
-        this.uniformUpdate[name] = flag;
-    }
-
     markUniformsAsUpdated() {
         this.uniformUpdate.modelMatrix = false;
     }

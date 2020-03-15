@@ -26,16 +26,8 @@ class DirectionalLight extends Component {
         this.uniformUpdate.direction = true;
     }
 
-    getUniformUpdateFlags() {
-        return this.uniformUpdate;
-    }
-
     getUniformUpdateFlag(name) {
         return this.uniformUpdate[name];
-    }
-
-    setUniformUpdateFlag(name, flag) {
-        this.uniformUpdate[name] = flag;
     }
 
     markUniformsAsUpdated() {

@@ -32,10 +32,6 @@ class PhongMaterial {
         return this.uniformUpdate[name];
     }
 
-    setUniformUpdateFlag(name, flag) {
-        this.uniformUpdate[name] = flag;
-    }
-
     markUniformsAsUpdated() {
         this.uniformUpdate.diffuseColor = false;
         this.uniformUpdate.diffuseMap = false;

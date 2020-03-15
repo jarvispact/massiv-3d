@@ -7621,16 +7621,8 @@ class DirectionalLight extends Component {
         this.uniformUpdate.direction = true;
     }
 
-    getUniformUpdateFlags() {
-        return this.uniformUpdate;
-    }
-
     getUniformUpdateFlag(name) {
         return this.uniformUpdate[name];
-    }
-
-    setUniformUpdateFlag(name, flag) {
-        this.uniformUpdate[name] = flag;
     }
 
     markUniformsAsUpdated() {
@@ -7675,16 +7667,8 @@ const Camera = class extends Component {
         this.uniformUpdate.viewMatrix = true;
     }
 
-    getUniformUpdateFlags() {
-        return this.uniformUpdate;
-    }
-
     getUniformUpdateFlag(name) {
         return this.uniformUpdate[name];
-    }
-
-    setUniformUpdateFlag(name, flag) {
-        this.uniformUpdate[name] = flag;
     }
 
     markUniformsAsUpdated() {
@@ -7803,10 +7787,6 @@ class Transform extends Component {
 
     getUniformUpdateFlag(name) {
         return this.uniformUpdate[name];
-    }
-
-    setUniformUpdateFlag(name, flag) {
-        this.uniformUpdate[name] = flag;
     }
 
     markUniformsAsUpdated() {
@@ -8579,10 +8559,6 @@ class PhongMaterial {
 
     getUniformUpdateFlag(name) {
         return this.uniformUpdate[name];
-    }
-
-    setUniformUpdateFlag(name, flag) {
-        this.uniformUpdate[name] = flag;
     }
 
     markUniformsAsUpdated() {

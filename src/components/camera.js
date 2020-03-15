@@ -34,16 +34,8 @@ const Camera = class extends Component {
         this.uniformUpdate.viewMatrix = true;
     }
 
-    getUniformUpdateFlags() {
-        return this.uniformUpdate;
-    }
-
     getUniformUpdateFlag(name) {
         return this.uniformUpdate[name];
-    }
-
-    setUniformUpdateFlag(name, flag) {
-        this.uniformUpdate[name] = flag;
     }
 
     markUniformsAsUpdated() {
