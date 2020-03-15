@@ -1,23 +1,30 @@
 /* eslint-disable no-console, no-confusing-arrow */
 
+const ATTRIBUTE = {
+    POSITION: { LOCATION: 0, NAME: 'position' },
+    UV: { LOCATION: 1, NAME: 'uv' },
+    NORMAL: { LOCATION: 2, NAME: 'normal' },
+    COLOR: { LOCATION: 3, NAME: 'color' },
+};
+
 const arrayBufferLookupTable = {
-    position: (geometry) => ({
-        location: 0,
+    [ATTRIBUTE.POSITION.NAME]: (geometry) => ({
+        location: ATTRIBUTE.POSITION.LOCATION,
         bufferData: geometry.positions,
         bufferSize: geometry.positionBufferSize,
     }),
-    uv: (geometry) => ({
-        location: 1,
+    [ATTRIBUTE.UV.NAME]: (geometry) => ({
+        location: ATTRIBUTE.UV.LOCATION,
         bufferData: geometry.uvs,
         bufferSize: geometry.uvBufferSize,
     }),
-    normal: (geometry) => ({
-        location: 2,
+    [ATTRIBUTE.NORMAL.NAME]: (geometry) => ({
+        location: ATTRIBUTE.NORMAL.LOCATION,
         bufferData: geometry.normals,
         bufferSize: geometry.normalBufferSize,
     }),
-    color: (geometry) => ({
-        location: 3,
+    [ATTRIBUTE.COLOR.NAME]: (geometry) => ({
+        location: ATTRIBUTE.COLOR.LOCATION,
         bufferData: geometry.colors,
         bufferSize: geometry.colorBufferSize,
     }),
@@ -49,25 +56,17 @@ const createVertexArray = (gl, geometry, attribs) => {
     let normalBuffer = null;
     let colorBuffer = null;
 
-    const hasPositions = attribs.includes('position') && geometry.positions.length > 0;
-    if (hasPositions) {
-        positionBuffer = createArrayBuffer(gl, 'position', geometry);
-    }
+    const hasPositions = attribs.includes(ATTRIBUTE.POSITION.NAME) && geometry.positions.length > 0;
+    if (hasPositions) positionBuffer = createArrayBuffer(gl, ATTRIBUTE.POSITION.NAME, geometry);
 
-    const hasUvs = attribs.includes('uv') && geometry.uvs.length > 0;
-    if (hasUvs) {
-        uvBuffer = createArrayBuffer(gl, 'uv', geometry);
-    }
+    const hasUvs = attribs.includes(ATTRIBUTE.UV.NAME) && geometry.uvs.length > 0;
+    if (hasUvs) uvBuffer = createArrayBuffer(gl, ATTRIBUTE.UV.NAME, geometry);
 
-    const hasNormals = attribs.includes('normal') && geometry.normals.length > 0;
-    if (hasNormals) {
-        normalBuffer = createArrayBuffer(gl, 'normal', geometry);
-    }
+    const hasNormals = attribs.includes(ATTRIBUTE.NORMAL.NAME) && geometry.normals.length > 0;
+    if (hasNormals) normalBuffer = createArrayBuffer(gl, ATTRIBUTE.NORMAL.NAME, geometry);
 
-    const hasColors = attribs.includes('color') && geometry.colors.length > 0;
-    if (hasColors) {
-        colorBuffer = createArrayBuffer(gl, 'color', geometry);
-    }
+    const hasColors = attribs.includes(ATTRIBUTE.COLOR.NAME) && geometry.colors.length > 0;
+    if (hasColors) colorBuffer = createArrayBuffer(gl, ATTRIBUTE.COLOR.NAME, geometry);
 
     return {
         vertexArray: vao,
@@ -138,6 +137,7 @@ const uniformTypeToUpdateUniformFunction = {
 };
 
 const WebGL2Utils = {
+    ATTRIBUTE,
     createArrayBuffer,
     createElementArrayBuffer,
     createVertexArray,

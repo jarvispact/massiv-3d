@@ -1,13 +1,32 @@
+import WebGL2Utils from './webgl-2-utils';
+
+const POS = WebGL2Utils.ATTRIBUTE.POSITION;
+const UV = WebGL2Utils.ATTRIBUTE.UV;
+const NORMAL = WebGL2Utils.ATTRIBUTE.NORMAL;
+const COLOR = WebGL2Utils.ATTRIBUTE.COLOR;
+
+const VERSION = '#version 300 es\n\n';
+const PRECISION = 'precision highp float;\nprecision highp int;\n\n';
+
+const ATTRIBS = (geometry) => {
+    const hasPositions = geometry.positions.length > 0;
+    const hasUvs = geometry.uvs.length > 0;
+    const hasNormals = geometry.normals.length > 0;
+    const hasColors = geometry.colors.length > 0;
+
+    return [
+        ...hasPositions ? [`layout(location = ${POS.LOCATION}) in vec3 ${POS.NAME};`] : [],
+        ...hasUvs ? [`layout(location = ${UV.LOCATION}) in vec2 ${UV.NAME};`] : [],
+        ...hasNormals ? [`layout(location = ${NORMAL.LOCATION}) in vec3 ${NORMAL.NAME};`] : [],
+        ...hasColors ? [`layout(location = ${COLOR.LOCATION}) in vec4 ${COLOR.NAME};`] : [],
+    ].join('\n');
+};
+
 const getVertexShader = (renderable) => {
     return `
-        #version 300 es
-
-        precision highp float;
-        precision highp int;
-
-        layout(location = 0) in vec3 position;
-        layout(location = 1) in vec2 uv;
-        layout(location = 2) in vec3 normal;
+        ${VERSION}
+        ${PRECISION}
+        ${ATTRIBS(renderable.geometry)}
 
         uniform mat4 modelMatrix;
         uniform mat4 modelViewMatrix;
