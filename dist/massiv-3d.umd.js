@@ -362,7 +362,7 @@
    */
 
   function str(a) {
-    return 'mat2(' + a[0] + ', ' + a[1] + ', ' + a[2] + ', ' + a[3] + ')';
+    return "mat2(" + a[0] + ", " + a[1] + ", " + a[2] + ", " + a[3] + ")";
   }
   /**
    * Returns Frobenius norm of a mat2
@@ -530,12 +530,12 @@
   /**
    * 2x3 Matrix
    * @module mat2d
-   *
    * @description
    * A mat2d contains six elements defined as:
    * <pre>
-   * [a, b, c,
-   *  d, tx, ty]
+   * [a, b,
+   *  c, d,
+   *  tx, ty]
    * </pre>
    * This is a short form for the 3x3 matrix:
    * <pre>
@@ -881,7 +881,7 @@
    */
 
   function str$1(a) {
-    return 'mat2d(' + a[0] + ', ' + a[1] + ', ' + a[2] + ', ' + a[3] + ', ' + a[4] + ', ' + a[5] + ')';
+    return "mat2d(" + a[0] + ", " + a[1] + ", " + a[2] + ", " + a[3] + ", " + a[4] + ", " + a[5] + ")";
   }
   /**
    * Returns Frobenius norm of a mat2d
@@ -1548,13 +1548,13 @@
     return out;
   }
   /**
-  * Calculates a 3x3 matrix from the given quaternion
-  *
-  * @param {mat3} out mat3 receiving operation result
-  * @param {quat} q Quaternion to create matrix from
-  *
-  * @returns {mat3} out
-  */
+   * Calculates a 3x3 matrix from the given quaternion
+   *
+   * @param {mat3} out mat3 receiving operation result
+   * @param {quat} q Quaternion to create matrix from
+   *
+   * @returns {mat3} out
+   */
 
   function fromQuat(out, q) {
     var x = q[0],
@@ -1585,13 +1585,13 @@
     return out;
   }
   /**
-  * Calculates a 3x3 normal matrix (transpose inverse) from the 4x4 matrix
-  *
-  * @param {mat3} out mat3 receiving operation result
-  * @param {mat4} a Mat4 to derive the normal matrix from
-  *
-  * @returns {mat3} out
-  */
+   * Calculates a 3x3 normal matrix (transpose inverse) from the 4x4 matrix
+   *
+   * @param {mat3} out mat3 receiving operation result
+   * @param {mat4} a Mat4 to derive the normal matrix from
+   *
+   * @returns {mat3} out
+   */
 
   function normalFromMat4(out, a) {
     var a00 = a[0],
@@ -1670,7 +1670,7 @@
    */
 
   function str$2(a) {
-    return 'mat3(' + a[0] + ', ' + a[1] + ', ' + a[2] + ', ' + a[3] + ', ' + a[4] + ', ' + a[5] + ', ' + a[6] + ', ' + a[7] + ', ' + a[8] + ')';
+    return "mat3(" + a[0] + ", " + a[1] + ", " + a[2] + ", " + a[3] + ", " + a[4] + ", " + a[5] + ", " + a[6] + ", " + a[7] + ", " + a[8] + ")";
   }
   /**
    * Returns Frobenius norm of a mat3
@@ -3478,7 +3478,7 @@
    */
 
   function str$3(a) {
-    return 'mat4(' + a[0] + ', ' + a[1] + ', ' + a[2] + ', ' + a[3] + ', ' + a[4] + ', ' + a[5] + ', ' + a[6] + ', ' + a[7] + ', ' + a[8] + ', ' + a[9] + ', ' + a[10] + ', ' + a[11] + ', ' + a[12] + ', ' + a[13] + ', ' + a[14] + ', ' + a[15] + ')';
+    return "mat4(" + a[0] + ", " + a[1] + ", " + a[2] + ", " + a[3] + ", " + a[4] + ", " + a[5] + ", " + a[6] + ", " + a[7] + ", " + a[8] + ", " + a[9] + ", " + a[10] + ", " + a[11] + ", " + a[12] + ", " + a[13] + ", " + a[14] + ", " + a[15] + ")";
   }
   /**
    * Returns Frobenius norm of a mat4
@@ -3488,7 +3488,7 @@
    */
 
   function frob$3(a) {
-    return Math.hypot(a[0], a[1], a[3], a[4], a[5], a[6], a[7], a[8], a[9], a[10], a[11], a[12], a[13], a[14], a[15]);
+    return Math.hypot(a[0], a[1], a[2], a[3], a[4], a[5], a[6], a[7], a[8], a[9], a[10], a[11], a[12], a[13], a[14], a[15]);
   }
   /**
    * Adds two mat4's
@@ -4276,11 +4276,11 @@
    * @param {vec3} out The receiving vec3
    * @param {vec3} a The vec3 point to rotate
    * @param {vec3} b The origin of the rotation
-   * @param {Number} c The angle of rotation
+   * @param {Number} rad The angle of rotation in radians
    * @returns {vec3} out
    */
 
-  function rotateX$1(out, a, b, c) {
+  function rotateX$1(out, a, b, rad) {
     var p = [],
         r = []; //Translate point to the origin
 
@@ -4289,8 +4289,8 @@
     p[2] = a[2] - b[2]; //perform rotation
 
     r[0] = p[0];
-    r[1] = p[1] * Math.cos(c) - p[2] * Math.sin(c);
-    r[2] = p[1] * Math.sin(c) + p[2] * Math.cos(c); //translate to correct position
+    r[1] = p[1] * Math.cos(rad) - p[2] * Math.sin(rad);
+    r[2] = p[1] * Math.sin(rad) + p[2] * Math.cos(rad); //translate to correct position
 
     out[0] = r[0] + b[0];
     out[1] = r[1] + b[1];
@@ -4302,11 +4302,11 @@
    * @param {vec3} out The receiving vec3
    * @param {vec3} a The vec3 point to rotate
    * @param {vec3} b The origin of the rotation
-   * @param {Number} c The angle of rotation
+   * @param {Number} rad The angle of rotation in radians
    * @returns {vec3} out
    */
 
-  function rotateY$1(out, a, b, c) {
+  function rotateY$1(out, a, b, rad) {
     var p = [],
         r = []; //Translate point to the origin
 
@@ -4314,9 +4314,9 @@
     p[1] = a[1] - b[1];
     p[2] = a[2] - b[2]; //perform rotation
 
-    r[0] = p[2] * Math.sin(c) + p[0] * Math.cos(c);
+    r[0] = p[2] * Math.sin(rad) + p[0] * Math.cos(rad);
     r[1] = p[1];
-    r[2] = p[2] * Math.cos(c) - p[0] * Math.sin(c); //translate to correct position
+    r[2] = p[2] * Math.cos(rad) - p[0] * Math.sin(rad); //translate to correct position
 
     out[0] = r[0] + b[0];
     out[1] = r[1] + b[1];
@@ -4328,11 +4328,11 @@
    * @param {vec3} out The receiving vec3
    * @param {vec3} a The vec3 point to rotate
    * @param {vec3} b The origin of the rotation
-   * @param {Number} c The angle of rotation
+   * @param {Number} rad The angle of rotation in radians
    * @returns {vec3} out
    */
 
-  function rotateZ$1(out, a, b, c) {
+  function rotateZ$1(out, a, b, rad) {
     var p = [],
         r = []; //Translate point to the origin
 
@@ -4340,8 +4340,8 @@
     p[1] = a[1] - b[1];
     p[2] = a[2] - b[2]; //perform rotation
 
-    r[0] = p[0] * Math.cos(c) - p[1] * Math.sin(c);
-    r[1] = p[0] * Math.sin(c) + p[1] * Math.cos(c);
+    r[0] = p[0] * Math.cos(rad) - p[1] * Math.sin(rad);
+    r[1] = p[0] * Math.sin(rad) + p[1] * Math.cos(rad);
     r[2] = p[2]; //translate to correct position
 
     out[0] = r[0] + b[0];
@@ -4357,19 +4357,17 @@
    */
 
   function angle(a, b) {
-    var tempA = fromValues$4(a[0], a[1], a[2]);
-    var tempB = fromValues$4(b[0], b[1], b[2]);
-    normalize(tempA, tempA);
-    normalize(tempB, tempB);
-    var cosine = dot(tempA, tempB);
-
-    if (cosine > 1.0) {
-      return 0;
-    } else if (cosine < -1.0) {
-      return Math.PI;
-    } else {
-      return Math.acos(cosine);
-    }
+    var ax = a[0],
+        ay = a[1],
+        az = a[2],
+        bx = b[0],
+        by = b[1],
+        bz = b[2],
+        mag1 = Math.sqrt(ax * ax + ay * ay + az * az),
+        mag2 = Math.sqrt(bx * bx + by * by + bz * bz),
+        mag = mag1 * mag2,
+        cosine = mag && dot(a, b) / mag;
+    return Math.acos(Math.min(Math.max(cosine, -1), 1));
   }
   /**
    * Set the components of a vec3 to zero
@@ -4392,7 +4390,7 @@
    */
 
   function str$4(a) {
-    return 'vec3(' + a[0] + ', ' + a[1] + ', ' + a[2] + ')';
+    return "vec3(" + a[0] + ", " + a[1] + ", " + a[2] + ")";
   }
   /**
    * Returns whether or not the vectors have exactly the same elements in the same position (when compared with ===)
@@ -5103,7 +5101,7 @@
    */
 
   function str$5(a) {
-    return 'vec4(' + a[0] + ', ' + a[1] + ', ' + a[2] + ', ' + a[3] + ')';
+    return "vec4(" + a[0] + ", " + a[1] + ", " + a[2] + ", " + a[3] + ")";
   }
   /**
    * Returns whether or not the vectors have exactly the same elements in the same position (when compared with ===)
@@ -5360,7 +5358,7 @@
   /**
    * Gets the angular distance between two unit quaternions
    *
-   * @param  {quat} a     Origin unit quaternion 
+   * @param  {quat} a     Origin unit quaternion
    * @param  {quat} b     Destination unit quaternion
    * @return {Number}     Angle, in radians, between the two quaternions
    */
@@ -5596,7 +5594,7 @@
   }
   /**
    * Generates a random unit quaternion
-   * 
+   *
    * @param {quat} out the receiving quaternion
    * @returns {quat} out
    */
@@ -5734,7 +5732,7 @@
    */
 
   function str$6(a) {
-    return 'quat(' + a[0] + ', ' + a[1] + ', ' + a[2] + ', ' + a[3] + ')';
+    return "quat(" + a[0] + ", " + a[1] + ", " + a[2] + ", " + a[3] + ")";
   }
   /**
    * Creates a new quat initialized with values from an existing quaternion
@@ -6812,7 +6810,7 @@
    */
 
   function str$7(a) {
-    return 'quat2(' + a[0] + ', ' + a[1] + ', ' + a[2] + ', ' + a[3] + ', ' + a[4] + ', ' + a[5] + ', ' + a[6] + ', ' + a[7] + ')';
+    return "quat2(" + a[0] + ", " + a[1] + ", " + a[2] + ", " + a[3] + ", " + a[4] + ", " + a[5] + ", " + a[6] + ", " + a[7] + ")";
   }
   /**
    * Returns whether or not the dual quaternions have exactly the same elements in the same position (when compared with ===)
@@ -7352,16 +7350,16 @@
    * @param {vec2} out The receiving vec2
    * @param {vec2} a The vec2 point to rotate
    * @param {vec2} b The origin of the rotation
-   * @param {Number} c The angle of rotation
+   * @param {Number} rad The angle of rotation in radians
    * @returns {vec2} out
    */
 
-  function rotate$4(out, a, b, c) {
+  function rotate$4(out, a, b, rad) {
     //Translate point to the origin
     var p0 = a[0] - b[0],
         p1 = a[1] - b[1],
-        sinC = Math.sin(c),
-        cosC = Math.cos(c); //perform rotation and translate to correct position
+        sinC = Math.sin(rad),
+        cosC = Math.cos(rad); //perform rotation and translate to correct position
 
     out[0] = p0 * cosC - p1 * sinC + b[0];
     out[1] = p0 * sinC + p1 * cosC + b[1];
@@ -7378,30 +7376,13 @@
     var x1 = a[0],
         y1 = a[1],
         x2 = b[0],
-        y2 = b[1];
-    var len1 = x1 * x1 + y1 * y1;
+        y2 = b[1],
+        // mag is the product of the magnitudes of a and b
+    mag = Math.sqrt(x1 * x1 + y1 * y1) * Math.sqrt(x2 * x2 + y2 * y2),
+        // mag &&.. short circuits if mag == 0
+    cosine = mag && (x1 * x2 + y1 * y2) / mag; // Math.min(Math.max(cosine, -1), 1) clamps the cosine between -1 and 1
 
-    if (len1 > 0) {
-      //TODO: evaluate use of glm_invsqrt here?
-      len1 = 1 / Math.sqrt(len1);
-    }
-
-    var len2 = x2 * x2 + y2 * y2;
-
-    if (len2 > 0) {
-      //TODO: evaluate use of glm_invsqrt here?
-      len2 = 1 / Math.sqrt(len2);
-    }
-
-    var cosine = (x1 * x2 + y1 * y2) * len1 * len2;
-
-    if (cosine > 1.0) {
-      return 0;
-    } else if (cosine < -1.0) {
-      return Math.PI;
-    } else {
-      return Math.acos(cosine);
-    }
+    return Math.acos(Math.min(Math.max(cosine, -1), 1));
   }
   /**
    * Set the components of a vec2 to zero
@@ -7423,7 +7404,7 @@
    */
 
   function str$8(a) {
-    return 'vec2(' + a[0] + ', ' + a[1] + ')';
+    return "vec2(" + a[0] + ", " + a[1] + ")";
   }
   /**
    * Returns whether or not the vectors exactly have the same elements in the same position (when compared with ===)
