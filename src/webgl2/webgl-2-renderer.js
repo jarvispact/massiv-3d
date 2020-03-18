@@ -1,7 +1,6 @@
 
 import World from '../core/world';
 import CachedRenderable from './cached-renderable';
-import Uniform from './uniform';
 
 const WebGL2Renderer = class {
     constructor(canvas, world) {
@@ -43,13 +42,12 @@ const WebGL2Renderer = class {
         this.cachedRenderables = [];
         this.activeCamera = null;
 
-        this.uniformUpdateLookupTable = Uniform.createUniformUpdateLookupTable();
-
         world.on(World.EVENT.REGISTER_ENTITY, (entity) => {
             const renderable = entity.getComponentByType('Renderable');
             const transform = entity.getComponentByType('Transform');
             if (renderable && transform) {
-                this.cachedRenderables.push(new CachedRenderable(this.gl, entity.id, renderable, transform, this.uniformUpdateLookupTable));
+                console.log('register renderable');
+                this.cachedRenderables.push(new CachedRenderable(this.gl, entity.id, renderable, transform));
             }
 
             const perspectiveCamera = entity.getComponentByType('PerspectiveCamera');
@@ -75,7 +73,7 @@ const WebGL2Renderer = class {
             const transform = entity.getComponentByType('Transform');
             if (renderable && transform) {
                 const renderableToRemove = this.cachedRenderables.find(r => r.id === entity.id);
-                console.log('cleanup');
+                console.log('remove renderable');
                 renderableToRemove.cleanup();
                 this.cachedRenderables = this.cachedRenderables.filter(r => r !== renderableToRemove);
             }
@@ -145,7 +143,11 @@ const WebGL2Renderer = class {
             }
         }
 
-        this.uniformUpdateLookupTable.markFrameAsUpdated(this.activeCamera, this.directionalLights);
+        this.activeCamera.markUniformsAsUpdated();
+
+        for (let i = 0; i < this.directionalLights.length; i++) {
+            this.directionalLights[i].markUniformsAsUpdated();
+        }
     }
 };
 

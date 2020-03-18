@@ -4,13 +4,11 @@ import Uniform from './uniform';
 import Sampler2D from './sampler-2d';
 
 const CachedRenderable = class {
-    constructor(gl, id, renderable, transform, uniformUpdateLookupTable) {
+    constructor(gl, id, renderable, transform) {
         this.gl = gl;
         this.id = id;
         this.renderable = renderable;
         this.transform = transform;
-        this.uniformUpdateLookupTable = uniformUpdateLookupTable;
-        this.uniformUpdateLookupTable.forceUpdate();
 
         const vertexShaderSource = ShaderRegistry.getVertexShader(renderable);
         const fragmentShaderSource = ShaderRegistry.getFragmentShader(renderable);
@@ -26,7 +24,6 @@ const CachedRenderable = class {
 
         for (let i = 0; i < activeAttributesCount; i++) {
             const attributeInfo = this.gl.getActiveAttrib(this.program, i);
-            // const type = this.webglUniformTypeToUniformType[attributeInfo.type];
             attribs.push(attributeInfo.name);
         }
 
@@ -52,7 +49,7 @@ const CachedRenderable = class {
                 const sampler = new Sampler2D(this.gl, uniformInfo.name, location, texture);
                 this.sampler2Ds.push(sampler);
             } else {
-                const u = new Uniform(this.gl, uniformInfo.name, type, location, this.uniformUpdateLookupTable);
+                const u = new Uniform(this.gl, uniformInfo.name, type, location);
                 this.uniforms.push(u);
             }
         }
@@ -74,12 +71,14 @@ const CachedRenderable = class {
 
         for (let i = 0; i < this.uniforms.length; i++) {
             const uniform = this.uniforms[i];
-            uniform.updateValue(this.renderable, this.transform, camera, dirLights);
+            uniform.updateValue(this, camera, dirLights);
         }
 
         gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.indices);
         gl.drawElements(gl.TRIANGLES, this.renderable.geometry.indices.length, gl.UNSIGNED_INT, 0);
-        this.uniformUpdateLookupTable.markRenderableAsUpdated(this.renderable, this.transform);
+
+        this.renderable.material.markUniformsAsUpdated();
+        this.transform.markUniformsAsUpdated();
     }
 
     cleanup() {

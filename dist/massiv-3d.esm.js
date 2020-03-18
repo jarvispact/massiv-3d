@@ -8963,8 +8963,6 @@ const FRAGMENT_SHADER_MAIN = {
     PhongMaterial: (material) => {
         const useDiffuseMap = !!material.diffuseMap;
         const useSpecularMap = !!material.specularMap;
-        const diffuseColorDeclaration = useDiffuseMap ? '\tvec3 materialDiffuse = texture(diffuseMap, vUv).xyz;\n' : '';
-        const specularColorDeclaration = useSpecularMap ? '\tvec3 materialSpecular = texture(specularMap, vUv).xyz;\n' : '';
         const diffuseColorArgName = useDiffuseMap ? 'materialDiffuse' : U.DIFFUSE_COLOR.NAME;
         const specularColorArgName = useSpecularMap ? 'materialSpecular' : U.SPECULAR_COLOR.NAME;
 
@@ -8972,9 +8970,10 @@ const FRAGMENT_SHADER_MAIN = {
             'void main() {',
             `\tvec3 normal = normalize(${V.NORMAL.NAME});`,
             `\tvec3 viewDir = normalize(${U.CAMERA_POSITION.NAME} - ${V.POSITION.NAME});`,
-            '\tvec3 result = vec3(0.0, 0.0, 0.0);',
-            diffuseColorDeclaration,
-            specularColorDeclaration,
+            '\tvec3 result = vec3(0.0, 0.0, 0.0);\n',
+            ...useDiffuseMap ? ['\tvec3 materialDiffuse = texture(diffuseMap, vUv).xyz;'] : [],
+            ...useSpecularMap ? ['\tvec3 materialSpecular = texture(specularMap, vUv).xyz;'] : [],
+            ...useDiffuseMap || useSpecularMap ? [''] : [],
             `\tfor(int i = 0; i < ${U.DIR_LIGHT_COUNT.NAME}; i++) {`,
             `\t\tresult += CalcDirLight(${U.DIR_LIGHT_DIRECTIONS.NAME_WITH_INDEX}, ${U.DIR_LIGHT_AMBIENT_COLORS.NAME_WITH_INDEX}, ${U.DIR_LIGHT_DIFFUSE_COLORS.NAME_WITH_INDEX}, ${U.DIR_LIGHT_SPECULAR_COLORS.NAME_WITH_INDEX}, ${U.DIR_LIGHT_INTENSITIES.NAME_WITH_INDEX}, normal, viewDir, ${diffuseColorArgName}, ${specularColorArgName});`,
             '\t}\n',
@@ -8994,8 +8993,8 @@ const getVertexShader = (renderable) => {
         VERTEX_SHADER_MAIN[renderable.material.constructor.name](),
     ].join('').trim();
 
-    console.log('vertex');
-    console.log(sourceCode);
+    // console.log('vertex');
+    // console.log(sourceCode);
     return sourceCode;
 };
 
@@ -9011,8 +9010,8 @@ const getFragmentShader = (renderable) => {
         FRAGMENT_SHADER_MAIN[renderable.material.constructor.name](renderable.material),
     ].join('').trim();
 
-    console.log('fragment');
-    console.log(sourceCode);
+    // console.log('fragment');
+    // console.log(sourceCode);
     return sourceCode;
 };
 
@@ -9022,21 +9021,6 @@ const ShaderRegistry = {
 };
 
 const U$1 = WebGL2Utils.UNIFORM;
-
-const Uniform = class {
-    constructor(gl, name, type, location, lookupTable) {
-        this.gl = gl;
-        this.name = name;
-        this.type = type;
-        this.location = location;
-        this.lookupTable = lookupTable;
-    }
-
-    updateValue(renderable, transform, camera, dirLights) {
-        const value = this.lookupTable[this.name](renderable, transform, camera, dirLights);
-        if (value !== null) WebGL2Utils.uniformTypeToUpdateUniformFunction[this.type](this.gl, this.location, value);
-    }
-};
 
 const modelViewMatrixCache = create$3();
 const normalMatrixCache = create$2();
@@ -9060,112 +9044,105 @@ const getLightValuesAsFlatArray = (lights, propertyName) => {
     return vec3Cache[propertyName];
 };
 
-Uniform.createUniformUpdateLookupTable = () => {
-    let forceUniformUpdate = true;
-    let lastDirLightCount = 0;
+// TODO: FrameState (modelViewMatrixCache, normalMatrixCache)
+// TODO: debug dynamic renderable uniform update
 
-    return {
-        [U$1.MODEL_MATRIX.NAME]: (_, transform) => {
-            if (!forceUniformUpdate && !transform.getUniformUpdateFlag('modelMatrix')) return null;
-            // console.log('modelMatrix');
-            return transform.modelMatrix;
-        },
-        [U$1.MODEL_VIEW_MATRIX.NAME]: (_, transform, camera) => {
-            if (!forceUniformUpdate && !transform.getUniformUpdateFlag('modelMatrix') && !camera.getUniformUpdateFlag('viewMatrix')) return null;
-            // console.log('modelViewMatrix');
+const Uniform = class {
+    constructor(gl, name, type, location) {
+        this.gl = gl;
+        this.name = name;
+        this.type = type;
+        this.location = location;
+        this.lastDirLightsCount = 0; // TODO: remove this
+    }
+
+    updateValue(cachedRenderable, camera, dirLights) {
+        const transform = cachedRenderable.transform;
+        const material = cachedRenderable.renderable.material;
+        let value = null;
+
+        // TRANSFORM
+
+        if (this.name === U$1.MODEL_MATRIX.NAME && transform.getUniformUpdateFlag('modelMatrix')) {
+            value = transform.modelMatrix;
+        }
+
+        if (this.name === U$1.MODEL_VIEW_MATRIX.NAME && (transform.getUniformUpdateFlag('modelMatrix') || camera.getUniformUpdateFlag('viewMatrix'))) {
             multiply$3(modelViewMatrixCache, camera.viewMatrix, transform.modelMatrix);
-            return modelViewMatrixCache;
-        },
-        [U$1.NORMAL_MATRIX.NAME]: (_, transform, camera) => {
-            if (!forceUniformUpdate && !transform.getUniformUpdateFlag('modelMatrix') && !camera.getUniformUpdateFlag('viewMatrix')) return null;
-            // console.log('normalMatrix');
+            value = modelViewMatrixCache;
+        }
+
+        if (this.name === U$1.NORMAL_MATRIX.NAME && (transform.getUniformUpdateFlag('modelMatrix') || camera.getUniformUpdateFlag('viewMatrix'))) {
             normalFromMat4(normalMatrixCache, modelViewMatrixCache);
-            return normalMatrixCache;
-        },
-        [U$1.PROJECTION_MATRIX.NAME]: (_, __, camera) => {
-            if (!forceUniformUpdate && !camera.getUniformUpdateFlag('projectionMatrix')) return null;
-            // console.log('projectionMatrix');
-            return camera.projectionMatrix;
-        },
-        [U$1.DIFFUSE_COLOR.NAME]: (renderable) => {
-            if (!forceUniformUpdate && !renderable.material.getUniformUpdateFlag('diffuseColor')) return null;
-            // console.log('diffuseColor');
-            return renderable.material.diffuseColor;
-        },
-        [U$1.SPECULAR_COLOR.NAME]: (renderable) => {
-            if (!forceUniformUpdate && !renderable.material.getUniformUpdateFlag('specularColor')) return null;
-            // console.log('specularColor');
-            return renderable.material.specularColor;
-        },
-        [U$1.AMBIENT_INTENSITY.NAME]: (renderable) => {
-            if (!forceUniformUpdate && !renderable.material.getUniformUpdateFlag('ambientIntensity')) return null;
-            // console.log('ambientIntensity');
-            return renderable.material.ambientIntensity;
-        },
-        [U$1.SPECULAR_SHININESS.NAME]: (renderable) => {
-            if (!forceUniformUpdate && !renderable.material.getUniformUpdateFlag('specularShininess')) return null;
-            // console.log('specularShininess');
-            return renderable.material.specularShininess;
-        },
-        [U$1.OPACITY.NAME]: (renderable) => {
-            if (!forceUniformUpdate && !renderable.material.getUniformUpdateFlag('opacity')) return null;
-            // console.log('opacity');
-            return renderable.material.opacity;
-        },
-        [U$1.CAMERA_POSITION.NAME]: (_, __, camera) => {
-            if (!forceUniformUpdate && !camera.getUniformUpdateFlag('position')) return null;
-            // console.log('cameraPosition');
-            return camera.position;
-        },
-        [U$1.DIR_LIGHT_DIRECTIONS.NAME]: (_, __, ___, dirLights) => {
-            const needsUpdate = dirLights.some(l => l.getUniformUpdateFlag('direction'));
-            if (!forceUniformUpdate && !needsUpdate) return null;
-            // console.log('dirLightDirection');
-            return getLightValuesAsFlatArray(dirLights, 'direction');
-        },
-        [U$1.DIR_LIGHT_AMBIENT_COLORS.NAME]: (_, __, ___, dirLights) => {
-            const needsUpdate = dirLights.some(l => l.getUniformUpdateFlag('ambientColor'));
-            if (!forceUniformUpdate && !needsUpdate) return null;
-            // console.log('dirLightAmbientColor');
-            return getLightValuesAsFlatArray(dirLights, 'ambientColor');
-        },
-        [U$1.DIR_LIGHT_DIFFUSE_COLORS.NAME]: (_, __, ___, dirLights) => {
-            const needsUpdate = dirLights.some(l => l.getUniformUpdateFlag('diffuseColor'));
-            if (!forceUniformUpdate && !needsUpdate) return null;
-            // console.log('dirLightDiffuseColor');
-            return getLightValuesAsFlatArray(dirLights, 'diffuseColor');
-        },
-        [U$1.DIR_LIGHT_SPECULAR_COLORS.NAME]: (_, __, ___, dirLights) => {
-            const needsUpdate = dirLights.some(l => l.getUniformUpdateFlag('specularColor'));
-            if (!forceUniformUpdate && !needsUpdate) return null;
-            // console.log('dirLightSpecularColor');
-            return getLightValuesAsFlatArray(dirLights, 'specularColor');
-        },
-        [U$1.DIR_LIGHT_INTENSITIES.NAME]: (_, __, ___, dirLights) => {
-            const needsUpdate = dirLights.some(l => l.getUniformUpdateFlag('intensity'));
-            if (!forceUniformUpdate && !needsUpdate) return null;
-            // console.log('dirLightIntensity');
-            return dirLights.map(l => l.intensity);
-        },
-        [U$1.DIR_LIGHT_COUNT.NAME]: (_, __, ___, dirLights) => {
-            if (!forceUniformUpdate && lastDirLightCount === dirLights.length) return null;
-            // console.log('dirLightCount');
-            return dirLights.length;
-        },
-        forceUpdate: () => {
-            forceUniformUpdate = true;
-        },
-        markRenderableAsUpdated: (renderable, transform) => {
-            renderable.material.markUniformsAsUpdated();
-            transform.markUniformsAsUpdated();
-        },
-        markFrameAsUpdated: (camera, dirLights) => {
-            camera.markUniformsAsUpdated();
-            dirLights.forEach(l => l.markUniformsAsUpdated());
-            lastDirLightCount = dirLights.length;
-            forceUniformUpdate = false;
-        },
-    };
+            value = normalMatrixCache;
+        }
+
+        // CAMERA
+
+        if (this.name === U$1.PROJECTION_MATRIX.NAME && camera.getUniformUpdateFlag('projectionMatrix')) {
+            value = camera.projectionMatrix;
+        }
+
+        if (this.name === U$1.CAMERA_POSITION.NAME && camera.getUniformUpdateFlag('position')) {
+            value = camera.position;
+        }
+
+        // MATERIAL
+
+        if (this.name === U$1.DIFFUSE_COLOR.NAME && material.getUniformUpdateFlag('diffuseColor')) {
+            value = material.diffuseColor;
+        }
+
+        if (this.name === U$1.SPECULAR_COLOR.NAME && material.getUniformUpdateFlag('specularColor')) {
+            value = material.specularColor;
+        }
+
+        if (this.name === U$1.AMBIENT_INTENSITY.NAME && material.getUniformUpdateFlag('ambientIntensity')) {
+            value = material.ambientIntensity;
+        }
+
+        if (this.name === U$1.SPECULAR_SHININESS.NAME && material.getUniformUpdateFlag('specularShininess')) {
+            value = material.specularShininess;
+        }
+
+        if (this.name === U$1.OPACITY.NAME && material.getUniformUpdateFlag('opacity')) {
+            value = material.opacity;
+        }
+
+        // DIRECTIONAL LIGHT
+
+        if (this.name === U$1.DIR_LIGHT_DIRECTIONS.NAME && dirLights.some(l => l.getUniformUpdateFlag('direction'))) {
+            value = getLightValuesAsFlatArray(dirLights, 'direction');
+        }
+
+        if (this.name === U$1.DIR_LIGHT_AMBIENT_COLORS.NAME && dirLights.some(l => l.getUniformUpdateFlag('ambientColor'))) {
+            value = getLightValuesAsFlatArray(dirLights, 'ambientColor');
+        }
+
+        if (this.name === U$1.DIR_LIGHT_DIFFUSE_COLORS.NAME && dirLights.some(l => l.getUniformUpdateFlag('diffuseColor'))) {
+            value = getLightValuesAsFlatArray(dirLights, 'diffuseColor');
+        }
+
+        if (this.name === U$1.DIR_LIGHT_SPECULAR_COLORS.NAME && dirLights.some(l => l.getUniformUpdateFlag('specularColor'))) {
+            value = getLightValuesAsFlatArray(dirLights, 'specularColor');
+        }
+
+        if (this.name === U$1.DIR_LIGHT_INTENSITIES.NAME && dirLights.some(l => l.getUniformUpdateFlag('intensity'))) {
+            value = dirLights.map(l => l.intensity);
+        }
+
+        if (this.name === U$1.DIR_LIGHT_COUNT.NAME && dirLights.length !== this.lastDirLightsCount) {
+            value = dirLights.length;
+            this.lastDirLightsCount = dirLights.length;
+        }
+
+        if (value !== null) {
+            if (![U$1.MODEL_MATRIX.NAME, U$1.MODEL_VIEW_MATRIX.NAME, U$1.NORMAL_MATRIX.NAME].includes(this.name)) {
+                console.log('uniform update', this.name);
+            }
+            WebGL2Utils.uniformTypeToUpdateUniformFunction[this.type](this.gl, this.location, value);
+        }
+    }
 };
 
 const Sampler2D = class {
@@ -9184,13 +9161,11 @@ const Sampler2D = class {
 };
 
 const CachedRenderable = class {
-    constructor(gl, id, renderable, transform, uniformUpdateLookupTable) {
+    constructor(gl, id, renderable, transform) {
         this.gl = gl;
         this.id = id;
         this.renderable = renderable;
         this.transform = transform;
-        this.uniformUpdateLookupTable = uniformUpdateLookupTable;
-        this.uniformUpdateLookupTable.forceUpdate();
 
         const vertexShaderSource = ShaderRegistry.getVertexShader(renderable);
         const fragmentShaderSource = ShaderRegistry.getFragmentShader(renderable);
@@ -9206,7 +9181,6 @@ const CachedRenderable = class {
 
         for (let i = 0; i < activeAttributesCount; i++) {
             const attributeInfo = this.gl.getActiveAttrib(this.program, i);
-            // const type = this.webglUniformTypeToUniformType[attributeInfo.type];
             attribs.push(attributeInfo.name);
         }
 
@@ -9232,7 +9206,7 @@ const CachedRenderable = class {
                 const sampler = new Sampler2D(this.gl, uniformInfo.name, location, texture);
                 this.sampler2Ds.push(sampler);
             } else {
-                const u = new Uniform(this.gl, uniformInfo.name, type, location, this.uniformUpdateLookupTable);
+                const u = new Uniform(this.gl, uniformInfo.name, type, location);
                 this.uniforms.push(u);
             }
         }
@@ -9254,12 +9228,14 @@ const CachedRenderable = class {
 
         for (let i = 0; i < this.uniforms.length; i++) {
             const uniform = this.uniforms[i];
-            uniform.updateValue(this.renderable, this.transform, camera, dirLights);
+            uniform.updateValue(this, camera, dirLights);
         }
 
         gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.indices);
         gl.drawElements(gl.TRIANGLES, this.renderable.geometry.indices.length, gl.UNSIGNED_INT, 0);
-        this.uniformUpdateLookupTable.markRenderableAsUpdated(this.renderable, this.transform);
+
+        this.renderable.material.markUniformsAsUpdated();
+        this.transform.markUniformsAsUpdated();
     }
 
     cleanup() {
@@ -9315,13 +9291,12 @@ const WebGL2Renderer = class {
         this.cachedRenderables = [];
         this.activeCamera = null;
 
-        this.uniformUpdateLookupTable = Uniform.createUniformUpdateLookupTable();
-
         world.on(World.EVENT.REGISTER_ENTITY, (entity) => {
             const renderable = entity.getComponentByType('Renderable');
             const transform = entity.getComponentByType('Transform');
             if (renderable && transform) {
-                this.cachedRenderables.push(new CachedRenderable(this.gl, entity.id, renderable, transform, this.uniformUpdateLookupTable));
+                console.log('register renderable');
+                this.cachedRenderables.push(new CachedRenderable(this.gl, entity.id, renderable, transform));
             }
 
             const perspectiveCamera = entity.getComponentByType('PerspectiveCamera');
@@ -9347,7 +9322,7 @@ const WebGL2Renderer = class {
             const transform = entity.getComponentByType('Transform');
             if (renderable && transform) {
                 const renderableToRemove = this.cachedRenderables.find(r => r.id === entity.id);
-                console.log('cleanup');
+                console.log('remove renderable');
                 renderableToRemove.cleanup();
                 this.cachedRenderables = this.cachedRenderables.filter(r => r !== renderableToRemove);
             }
@@ -9417,7 +9392,11 @@ const WebGL2Renderer = class {
             }
         }
 
-        this.uniformUpdateLookupTable.markFrameAsUpdated(this.activeCamera, this.directionalLights);
+        this.activeCamera.markUniformsAsUpdated();
+
+        for (let i = 0; i < this.directionalLights.length; i++) {
+            this.directionalLights[i].markUniformsAsUpdated();
+        }
     }
 };
 

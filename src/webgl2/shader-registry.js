@@ -203,8 +203,6 @@ const FRAGMENT_SHADER_MAIN = {
     PhongMaterial: (material) => {
         const useDiffuseMap = !!material.diffuseMap;
         const useSpecularMap = !!material.specularMap;
-        const diffuseColorDeclaration = useDiffuseMap ? '\tvec3 materialDiffuse = texture(diffuseMap, vUv).xyz;\n' : '';
-        const specularColorDeclaration = useSpecularMap ? '\tvec3 materialSpecular = texture(specularMap, vUv).xyz;\n' : '';
         const diffuseColorArgName = useDiffuseMap ? 'materialDiffuse' : U.DIFFUSE_COLOR.NAME;
         const specularColorArgName = useSpecularMap ? 'materialSpecular' : U.SPECULAR_COLOR.NAME;
 
@@ -212,9 +210,10 @@ const FRAGMENT_SHADER_MAIN = {
             'void main() {',
             `\tvec3 normal = normalize(${V.NORMAL.NAME});`,
             `\tvec3 viewDir = normalize(${U.CAMERA_POSITION.NAME} - ${V.POSITION.NAME});`,
-            '\tvec3 result = vec3(0.0, 0.0, 0.0);',
-            diffuseColorDeclaration,
-            specularColorDeclaration,
+            '\tvec3 result = vec3(0.0, 0.0, 0.0);\n',
+            ...useDiffuseMap ? ['\tvec3 materialDiffuse = texture(diffuseMap, vUv).xyz;'] : [],
+            ...useSpecularMap ? ['\tvec3 materialSpecular = texture(specularMap, vUv).xyz;'] : [],
+            ...useDiffuseMap || useSpecularMap ? [''] : [],
             `\tfor(int i = 0; i < ${U.DIR_LIGHT_COUNT.NAME}; i++) {`,
             `\t\tresult += CalcDirLight(${U.DIR_LIGHT_DIRECTIONS.NAME_WITH_INDEX}, ${U.DIR_LIGHT_AMBIENT_COLORS.NAME_WITH_INDEX}, ${U.DIR_LIGHT_DIFFUSE_COLORS.NAME_WITH_INDEX}, ${U.DIR_LIGHT_SPECULAR_COLORS.NAME_WITH_INDEX}, ${U.DIR_LIGHT_INTENSITIES.NAME_WITH_INDEX}, normal, viewDir, ${diffuseColorArgName}, ${specularColorArgName});`,
             '\t}\n',
@@ -234,8 +233,8 @@ const getVertexShader = (renderable) => {
         VERTEX_SHADER_MAIN[renderable.material.constructor.name](),
     ].join('').trim();
 
-    console.log('vertex');
-    console.log(sourceCode);
+    // console.log('vertex');
+    // console.log(sourceCode);
     return sourceCode;
 };
 
@@ -251,8 +250,8 @@ const getFragmentShader = (renderable) => {
         FRAGMENT_SHADER_MAIN[renderable.material.constructor.name](renderable.material),
     ].join('').trim();
 
-    console.log('fragment');
-    console.log(sourceCode);
+    // console.log('fragment');
+    // console.log(sourceCode);
     return sourceCode;
 };
 
