@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="de">
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="initial-scale=1, maximum-scale=1, user-scalable=no">
+        <title>pong</title>
+        <style type="text/css">
+            #canvas {
+                position: fixed;
+                top: 0px;
+                left: 0px;
+                width: 100%;
+                height: 100%;
+                overflow: hidden;
+            }
+        </style>
+    </head>
+
+    <body>
+        <canvas id="canvas"></canvas>
+        <script type="module">
+            import * as MASSIV from './massiv-3d.esm.mjs';
+            
+            const canvas = document.getElementById('canvas');
+            canvas.width = canvas.clientWidth;
+            canvas.height = canvas.clientHeight;
+
+            const gl = canvas.getContext('webgl2');
+            gl.viewport(0, 0, canvas.width, canvas.height);
+            gl.clearColor(0, 0, 0, 1);
+            gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+            const positions = Float32Array.from([-0.5, -0.5, 0, 0.5, -0.5, 0, 0.5, 0.5, 0, -0.5, 0.5, 0]);
+            // const normals = [0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0];
+            // const uvs = [0.0, 0.0, 1.0, 0.0, 1.0, 1.0, 0.0, 1.0];
+            const indices = Uint32Array.from([0, 1, 2, 0, 2, 3]);
+
+            const vShaderSource = `
+                #version 300 es
+
+                precision highp float;
+                precision highp int;
+
+                layout(location = 0) in vec3 position;
+
+                uniform mat4 projectionMatrix;
+                uniform mat4 modelViewMatrix;
+
+                void main() {
+                    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+                }
+            `.trim();
+
+            const fShaderSource = `
+                #version 300 es
+
+                precision highp float;
+                precision highp int;
+
+                out vec4 fragmentColor;
+
+                void main() {
+                    fragmentColor = vec4(1.0, 1.0, 1.0, 1.0);
+                }
+            `.trim();
+
+            const vertexShader = MASSIV.WebGL2Utils.createShader(gl, gl.VERTEX_SHADER, vShaderSource);
+            const fragmentShader = MASSIV.WebGL2Utils.createShader(gl, gl.FRAGMENT_SHADER, fShaderSource);
+            const program = MASSIV.WebGL2Utils.createProgram(gl, vertexShader, fragmentShader);
+
+            const vaoResult = MASSIV.WebGL2Utils.createVertexArray(gl, { positions, positionBufferSize: 3 }, ['position']);
+            const indicesArrayBuffer = MASSIV.WebGL2Utils.createElementArrayBuffer(gl, { indices });
+
+            gl.useProgram(program);
+            gl.bindVertexArray(vaoResult.vertexArray);
+
+            const projectionMatrixUniform = gl.getUniformLocation(program, 'projectionMatrix');
+            const modelViewMatrixUniform = gl.getUniformLocation(program, 'modelViewMatrix');
+
+            const projectionMatrixValue = MASSIV.mat4.create();
+            MASSIV.mat4.perspective(projectionMatrixValue, 45, canvas.width / canvas.height, 0.1, 1000);
+            gl.uniformMatrix4fv(projectionMatrixUniform, false, projectionMatrixValue);
+
+            const modelMatrix = MASSIV.mat4.fromValues(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1);
+            const viewMatrix = MASSIV.mat4.create();
+            MASSIV.mat4.lookAt(viewMatrix, [0, 0, 3], [0, 0, 0], [0, 1, 0]);
+            const modelViewMatrixValue = MASSIV.mat4.create();
+            MASSIV.mat4.multiply(modelViewMatrixValue, viewMatrix, modelMatrix);
+            gl.uniformMatrix4fv(modelViewMatrixUniform, false, modelViewMatrixValue);
+
+            gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indicesArrayBuffer);
+            gl.drawElements(gl.TRIANGLES, indices.length, gl.UNSIGNED_INT, 0);
+            
+
+            window.addEventListener('unload', () => {
+                gl.deleteShader(vertexShader);
+                gl.deleteShader(fragmentShader);
+                gl.deleteProgram(program);
+                if (vaoResult.positionBuffer) gl.deleteBuffer(vaoResult.positionBuffer);
+                gl.deleteVertexArray(vaoResult.vertexArray);
+                gl.deleteBuffer(indicesArrayBuffer);
+            });
+        </script>
+    </body>
+</html>
