@@ -128,7 +128,6 @@ describe('world.ts', () => {
                     world.subscribe(this, ['SomeEvent']);
                 }
                 onEvent(event: WorldEvent): void {
-                    console.log('called');
                     deliveredEvent = event;
                 }
             }

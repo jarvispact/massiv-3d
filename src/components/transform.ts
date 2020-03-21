@@ -14,20 +14,26 @@ export interface Transform extends Component {
     data: TransformData;
 }
 
+const TransformType = 'Transform';
+
 export const Transform = class implements Transform {
     entityId!: string;
-    type = 'Transform';
+    type = TransformType;
     data: TransformData;
 
-    constructor(data?: Partial<TransformData>) {
+    constructor(data: {position?: vec3; quaternion?: quat; scaling?: vec3} = {}) {
         this.data = {
-            position: data && data.position ? data.position : [0, 0, 0],
-            quaternion: data && data.quaternion ? data.quaternion : [0, 0, 0, 1],
-            scaling: data && data.scaling ? data.scaling : [1, 1, 1],
+            position: data.position ? data.position : [0, 0, 0],
+            quaternion: data.quaternion ? data.quaternion : [0, 0, 0, 1],
+            scaling: data.scaling ? data.scaling : [1, 1, 1],
             modelMatrix: mat4.fromValues(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1),
             eulerRotationCache: quat.fromValues(0, 0, 0, 1),
             dirty: true,
         };
+    }
+
+    static get TYPE(): string {
+        return TransformType;
     }
 
     translate(translation: vec3): void {

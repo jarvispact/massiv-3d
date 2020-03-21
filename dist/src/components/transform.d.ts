@@ -12,7 +12,11 @@ export interface Transform extends Component {
     data: TransformData;
 }
 export declare const Transform: {
-    new (data?: Partial<TransformData> | undefined): {
+    new (data?: {
+        position?: [number, number, number] | Float32Array | undefined;
+        quaternion?: Float32Array | [number, number, number, number] | undefined;
+        scaling?: [number, number, number] | Float32Array | undefined;
+    }): {
         entityId: string;
         type: string;
         data: TransformData;
@@ -20,4 +24,5 @@ export declare const Transform: {
         scale(scaling: vec3): void;
         rotate(eulerRotation: vec3): void;
     };
+    readonly TYPE: string;
 };

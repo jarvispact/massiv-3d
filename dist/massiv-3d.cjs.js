@@ -751,17 +751,21 @@ var setAxes = function () {
   };
 }();
 
+const TransformType = 'Transform';
 const Transform = class {
-    constructor(data) {
-        this.type = 'Transform';
+    constructor(data = {}) {
+        this.type = TransformType;
         this.data = {
-            position: data && data.position ? data.position : [0, 0, 0],
-            quaternion: data && data.quaternion ? data.quaternion : [0, 0, 0, 1],
-            scaling: data && data.scaling ? data.scaling : [1, 1, 1],
+            position: data.position ? data.position : [0, 0, 0],
+            quaternion: data.quaternion ? data.quaternion : [0, 0, 0, 1],
+            scaling: data.scaling ? data.scaling : [1, 1, 1],
             modelMatrix: fromValues(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1),
             eulerRotationCache: fromValues$3(0, 0, 0, 1),
             dirty: true,
         };
+    }
+    static get TYPE() {
+        return TransformType;
     }
     translate(translation) {
         add(this.data.position, this.data.position, translation);
@@ -786,6 +790,14 @@ const Component = class {
         this.data = data;
     }
 };
+
+const WorldEvent = {
+    REGISTER_ENTITY: 'RegisterEntityEvent',
+    REMOVE_ENTITY: 'RemoveEntityEvent',
+};
+const createEvent = (type, payload) => ({ type, payload });
+const createRegisterEntityEvent = (payload) => ({ type: WorldEvent.REGISTER_ENTITY, payload });
+const createRemoveEntityEvent = (payload) => ({ type: WorldEvent.REMOVE_ENTITY, payload });
 
 // https://gist.github.com/jcxplorer/823878
 var uuid = () => {
@@ -827,13 +839,6 @@ const UpdateableSystem = class extends System {
         console.log('Method not implemented');
     }
 };
-
-const WorldEvent = {
-    REGISTER_ENTITY: 'RegisterEntityEvent',
-    REMOVE_ENTITY: 'RemoveEntityEvent',
-};
-const createRegisterEntityEvent = (payload) => ({ type: WorldEvent.REGISTER_ENTITY, payload });
-const createRemoveEntityEvent = (payload) => ({ type: WorldEvent.REMOVE_ENTITY, payload });
 
 const cleanupAndFilterSystem = (systemToRemove) => (system) => {
     if (system === systemToRemove) {
@@ -885,11 +890,11 @@ const World = class {
         return entity;
     }
     removeEntity(entity) {
+        this.publish(createRemoveEntityEvent(entity));
         this.componentsByEntityId[entity.id] = [];
         Object.keys(this.componentsByType).forEach(type => {
             this.componentsByType[type] = this.componentsByType[type].filter(c => c.entityId !== entity.id);
         });
-        this.publish(createRemoveEntityEvent(entity));
         return this;
     }
     registerSystem(SystemClass) {
@@ -919,13 +924,26 @@ const World = class {
 const UpdateTransformSystem = class extends UpdateableSystem {
     constructor(world) {
         super(world);
+        world.subscribe(this, [WorldEvent.REGISTER_ENTITY, WorldEvent.REMOVE_ENTITY]);
         this.transforms = world.componentsByType.Transform;
+    }
+    onEvent(event) {
+        if (event.type === WorldEvent.REGISTER_ENTITY) {
+            const transform = event.payload.getComponent(Transform.TYPE);
+            // TODO: ensure that the same transform is not cached twice
+            if (transform && !this.transforms.some(t => t === transform))
+                this.transforms.push(transform);
+        }
+        else if (event.type === WorldEvent.REMOVE_ENTITY) {
+            const transform = event.payload.getComponent(Transform.TYPE);
+            if (transform)
+                this.transforms = this.transforms.filter(t => t !== transform);
+        }
     }
     onUpdate() {
         for (let i = 0; i < this.transforms.length; i++) {
             const t = this.transforms[i];
             if (t.data.dirty) {
-                console.log('update');
                 fromRotationTranslationScale(t.data.modelMatrix, t.data.quaternion, t.data.position, t.data.scaling);
                 this.transforms[i].data.dirty = false;
             }
@@ -942,4 +960,8 @@ exports.Transform = Transform;
 exports.UpdateTransformSystem = UpdateTransformSystem;
 exports.UpdateableSystem = UpdateableSystem;
 exports.World = World;
+exports.WorldEvent = WorldEvent;
 exports.createComponent = createComponent;
+exports.createEvent = createEvent;
+exports.createRegisterEntityEvent = createRegisterEntityEvent;
+exports.createRemoveEntityEvent = createRemoveEntityEvent;

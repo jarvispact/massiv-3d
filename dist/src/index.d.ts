@@ -1,5 +1,6 @@
 export * from './components/transform';
 export * from './core/component';
+export * from './core/event';
 export * from './core/entity';
 export * from './core/system';
 export * from './core/world';

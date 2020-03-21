@@ -70,13 +70,13 @@ export const World = class implements World {
     }
 
     removeEntity(entity: Entity): World {
+        this.publish(createRemoveEntityEvent(entity));
         this.componentsByEntityId[entity.id] = [];
 
         Object.keys(this.componentsByType).forEach(type => {
             this.componentsByType[type] = this.componentsByType[type].filter(c => c.entityId !== entity.id);
         });
 
-        this.publish(createRemoveEntityEvent(entity));
         return this;
     }
 
