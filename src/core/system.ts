@@ -4,6 +4,7 @@ import { WorldEvent } from './event';
 export interface System {
     world: World;
     onEvent?(event: WorldEvent): void;
+    cleanup?(): void;
 }
 
 export interface SystemClass {

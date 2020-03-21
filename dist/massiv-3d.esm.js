@@ -774,6 +774,7 @@ const Transform = class {
     }
 };
 
+const createComponent = (type, data) => ({ entityId: '', type, data });
 const Component = class {
     constructor(type, data) {
         this.entityId = '';
@@ -830,14 +831,25 @@ const WorldEvent = {
 const createRegisterEntityEvent = (payload) => ({ type: WorldEvent.REGISTER_ENTITY, payload });
 const createRemoveEntityEvent = (payload) => ({ type: WorldEvent.REMOVE_ENTITY, payload });
 
+const cleanupAndFilterSystem = (systemToRemove) => (system) => {
+    if (system === systemToRemove) {
+        if (system.cleanup)
+            system.cleanup();
+        return false;
+    }
+    return true;
+};
 const World = class {
     constructor() {
         this.componentsByType = {};
         this.componentsByEntityId = {};
         this.subscriptions = {};
+        this.systems = [];
         this.updateableSystems = [];
     }
     publish(event) {
+        if (!this.subscriptions[event.type])
+            this.subscriptions[event.type] = [];
         for (let i = 0; i < this.subscriptions[event.type].length; i++) {
             const system = this.subscriptions[event.type][i];
             if (system.onEvent)
@@ -856,6 +868,9 @@ const World = class {
         if (!this.componentsByEntityId[entity.id])
             this.componentsByEntityId[entity.id] = [];
         components.forEach(component => {
+            if (this.componentsByEntityId[entity.id].find(c => c.type === component.type)) {
+                throw new Error('a entity cannot have more than one component of the same type');
+            }
             if (!this.componentsByType[component.type])
                 this.componentsByType[component.type] = [];
             this.componentsByType[component.type].push(component);
@@ -877,6 +892,18 @@ const World = class {
         const system = new SystemClass(this);
         if (system instanceof UpdateableSystem) {
             this.updateableSystems.push(system);
+        }
+        else {
+            this.systems.push(system);
+        }
+        return system;
+    }
+    removeSystem(system) {
+        if (system instanceof UpdateableSystem) {
+            this.updateableSystems = this.updateableSystems.filter(cleanupAndFilterSystem(system));
+        }
+        else {
+            this.systems = this.systems.filter(cleanupAndFilterSystem(system));
         }
         return this;
     }
@@ -904,4 +931,4 @@ const UpdateTransformSystem = class extends UpdateableSystem {
 
 setMatrixArrayType(Array);
 
-export { Component, Entity, System, Transform, UpdateTransformSystem, UpdateableSystem, World };
+export { Component, Entity, System, Transform, UpdateTransformSystem, UpdateableSystem, World, createComponent };

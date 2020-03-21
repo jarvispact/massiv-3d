@@ -6,7 +6,7 @@
   "module": "dist/massiv-3d.esm.js",
   "browser": "dist/massiv-3d.umd.js",
   "scripts": {
-    "test": "echo 'no tests at the moment' && exit 1",
+    "test": "TS_NODE_PROJECT=tsconfig.tests.json mocha -r ts-node/register tests/**/*.test.ts",
     "lint": "eslint . --ext .ts",
     "tsc:check": "tsc --noEmit",
     "clean": "rm -rf ./dist/*",
@@ -42,18 +42,23 @@
   ],
   "devDependencies": {
     "@rollup/plugin-typescript": "^4.0.0",
+    "@types/chai": "^4.2.11",
+    "@types/mocha": "^7.0.2",
     "@typescript-eslint/eslint-plugin": "^2.24.0",
     "@typescript-eslint/parser": "^2.24.0",
+    "chai": "^4.2.0",
     "eslint": "^6.8.0",
     "eslint-config-airbnb-base": "^14.1.0",
     "eslint-plugin-import": "^2.20.1",
     "express": "^4.17.1",
     "http-server": "^0.12.1",
+    "mocha": "^7.1.1",
     "npm-check-updates": "^4.0.4",
     "pre-commit": "^1.2.2",
     "rollup": "^2.1.0",
     "rollup-plugin-node-resolve": "^5.2.0",
     "rollup-plugin-typescript2": "^0.26.0",
+    "ts-node": "^8.7.0",
     "typescript": "^3.8.3"
   },
   "dependencies": {

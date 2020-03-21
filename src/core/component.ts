@@ -4,6 +4,8 @@ export interface Component {
     data: unknown;
 }
 
+export const createComponent = (type: string, data: unknown): Component => ({ entityId: '', type, data });
+
 export const Component = class implements Component {
     entityId = '';
     type: string;
