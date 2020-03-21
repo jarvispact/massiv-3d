@@ -19,32 +19,61 @@
     <body>
         <canvas id="canvas"></canvas>
         <script type="module">
-            import * as MASSIV from './massiv-3d.esm.mjs';
+            import * as MASSIV from './massiv.mjs';
 
             const world = new MASSIV.World();
-            const canvas = document.getElementById('canvas');
-            const aspect = canvas.clientWidth / canvas.clientHeight;
-            const renderer = new MASSIV.WebGL2Renderer(canvas, world);
 
-            const cameraEntity = new MASSIV.Entity([
-                new MASSIV.PerspectiveCamera({ position: [3, 3, 5], aspect })
-            ])
-            
-            const dirLightEntity = new MASSIV.Entity([
-                new MASSIV.DirectionalLight()
+            const spaceShip = world.registerEntity([
+                new MASSIV.Transform({ position: [0, 0, 0] }),
+                new MASSIV.Component('Velocity', { foo: 'bar' }),
+                new MASSIV.Component('Acceleration', { foo: 'bar' }),
             ]);
 
-            const cubeEntity = new MASSIV.Entity([
-                new MASSIV.Transform(),
-                new MASSIV.Renderable(
-                    new MASSIV.CubeGeometry(),
-                    new MASSIV.PhongMaterial()
-                ),
+            const asteroid = world.registerEntity([
+                new MASSIV.Transform({ position: [0, 0, 0] }),
+                new MASSIV.Component('Velocity', { foo: 'bar' }),
+                new MASSIV.Component('Acceleration', { foo: 'bar' }),
             ]);
 
-            world.registerEntities([cameraEntity, dirLightEntity, cubeEntity])
-            world.on('render', () => renderer.render())
-            world.step();
+            const CustomSystem = class extends MASSIV.System {
+                constructor() {
+                    super('CustomSystem', world);
+                    console.log('CustomSystem constructor called');
+                }
+            }
+
+            const CustomUpdateableSystem = class extends MASSIV.UpdateableSystem {
+                constructor() {
+                    super('CustomUpdateableSystem', world);
+                    console.log('CustomUpdateableSystem constructor called');
+                }
+
+                onUpdate(delta) {
+                    console.log(`CustomUpdateableSystem ${delta}`);
+                    
+                }
+            }
+
+            world.registerSystem(MASSIV.UpdateTransformSystem);
+            world.registerSystem(CustomSystem);
+            world.registerSystem(CustomUpdateableSystem);
+            console.log(world);
+
+            // const createGetDelta = (then = 0) => (now) => {
+            //     now *= 0.001;
+            //     const delta = now - then;
+            //     then = now;
+            //     return delta;
+            // };
+
+            // const getDelta = createGetDelta();
+
+            // const tick = (now) => {
+            //     world.update(getDelta(now));
+            //     requestAnimationFrame(tick);
+            // };
+
+            // requestAnimationFrame(tick);
         </script>
     </body>
 </html>

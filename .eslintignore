@@ -1,2 +1,4 @@
-dist/*.js
-examples/assets/*.js
+node_modules
+dist
+src.backup
+examples.backup
