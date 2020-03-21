@@ -12,7 +12,6 @@ export interface TransformData {
 
 export interface Transform extends Component {
     data: TransformData;
-    update(): void;
 }
 
 export const Transform = class implements Transform {
@@ -45,12 +44,5 @@ export const Transform = class implements Transform {
         quat.fromEuler(this.data.eulerRotationCache, eulerRotation[0], eulerRotation[1], eulerRotation[2]);
         quat.multiply(this.data.quaternion, this.data.quaternion, this.data.eulerRotationCache);
         this.data.dirty = true;
-    }
-
-    update(): void {
-        if (this.data.dirty) {
-            mat4.fromRotationTranslationScale(this.data.modelMatrix, this.data.quaternion, this.data.position, this.data.scaling);
-            this.data.dirty = false;
-        }
     }
 };

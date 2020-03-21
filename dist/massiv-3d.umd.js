@@ -778,12 +778,6 @@
           multiply(this.data.quaternion, this.data.quaternion, this.data.eulerRotationCache);
           this.data.dirty = true;
       }
-      update() {
-          if (this.data.dirty) {
-              fromRotationTranslationScale(this.data.modelMatrix, this.data.quaternion, this.data.position, this.data.scaling);
-              this.data.dirty = false;
-          }
-      }
   };
 
   const Component = class {
@@ -835,11 +829,33 @@
       }
   };
 
+  const WorldEvent = {
+      REGISTER_ENTITY: 'RegisterEntityEvent',
+      REMOVE_ENTITY: 'RemoveEntityEvent',
+  };
+  const createRegisterEntityEvent = (payload) => ({ type: WorldEvent.REGISTER_ENTITY, payload });
+  const createRemoveEntityEvent = (payload) => ({ type: WorldEvent.REMOVE_ENTITY, payload });
+
   const World = class {
       constructor() {
           this.componentsByType = {};
           this.componentsByEntityId = {};
+          this.subscriptions = {};
           this.updateableSystems = [];
+      }
+      publish(event) {
+          for (let i = 0; i < this.subscriptions[event.type].length; i++) {
+              const system = this.subscriptions[event.type][i];
+              if (system.onEvent)
+                  system.onEvent(event);
+          }
+      }
+      subscribe(system, types) {
+          types.forEach(type => {
+              if (!this.subscriptions[type])
+                  this.subscriptions[type] = [];
+              this.subscriptions[type].push(system);
+          });
       }
       registerEntity(components) {
           const entity = new Entity(this);
@@ -852,6 +868,7 @@
               component.entityId = entity.id;
               this.componentsByEntityId[entity.id].push(component);
           });
+          this.publish(createRegisterEntityEvent(entity));
           return entity;
       }
       removeEntity(entity) {
@@ -859,6 +876,7 @@
           Object.keys(this.componentsByType).forEach(type => {
               this.componentsByType[type] = this.componentsByType[type].filter(c => c.entityId !== entity.id);
           });
+          this.publish(createRemoveEntityEvent(entity));
           return this;
       }
       registerSystem(SystemClass) {
@@ -876,10 +894,17 @@
   const UpdateTransformSystem = class extends UpdateableSystem {
       constructor(world) {
           super(world);
-          this.transforms = [];
+          this.transforms = world.componentsByType.Transform;
       }
-      onUpdate(delta) {
-          console.log(`onUpdate: ${delta}`);
+      onUpdate() {
+          for (let i = 0; i < this.transforms.length; i++) {
+              const t = this.transforms[i];
+              if (t.data.dirty) {
+                  console.log('update');
+                  fromRotationTranslationScale(t.data.modelMatrix, t.data.quaternion, t.data.position, t.data.scaling);
+                  this.transforms[i].data.dirty = false;
+              }
+          }
       }
   };
 

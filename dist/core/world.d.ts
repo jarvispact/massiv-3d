@@ -1,9 +1,13 @@
 import { Component } from './component';
-import { SystemClass, UpdateableSystem } from './system';
+import { SystemClass, UpdateableSystem, System } from './system';
 import { Entity } from './entity';
+import { WorldEvent } from './event';
 export interface World {
     componentsByType: Record<string, Component[]>;
     componentsByEntityId: Record<string, Component[]>;
+    subscriptions: Record<string, System[]>;
+    publish(event: WorldEvent): void;
+    subscribe(system: System, types: string[]): void;
     updateableSystems: UpdateableSystem[];
     registerEntity(components: Component[]): Entity;
     removeEntity(entity: Entity): World;
@@ -14,7 +18,12 @@ export declare const World: {
     new (): {
         componentsByType: Record<string, Component[]>;
         componentsByEntityId: Record<string, Component[]>;
+        subscriptions: Record<string, System[]>;
         updateableSystems: UpdateableSystem[];
+        publish(event: WorldEvent): void;
+        publish(event: WorldEvent): void;
+        subscribe(system: System, types: string[]): void;
+        subscribe(system: System, types: string[]): void;
         registerEntity(components: Component[]): Entity;
         registerEntity(components: Component[]): Entity;
         removeEntity(entity: Entity): World;

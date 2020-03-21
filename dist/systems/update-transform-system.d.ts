@@ -3,7 +3,8 @@ import { Transform } from '../components/transform';
 export declare const UpdateTransformSystem: {
     new (world: World): {
         transforms: Transform[];
-        onUpdate(delta: number): void;
+        onUpdate(): void;
         world: World;
+        onEvent?(event: import("../core/event").WorldEvent): void;
     };
 };

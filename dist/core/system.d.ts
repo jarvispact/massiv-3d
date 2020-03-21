@@ -1,6 +1,8 @@
 import { World } from './world';
+import { WorldEvent } from './event';
 export interface System {
     world: World;
+    onEvent?(event: WorldEvent): void;
 }
 export interface SystemClass {
     new (world: World): System | UpdateableSystem;
@@ -8,6 +10,7 @@ export interface SystemClass {
 export declare const System: {
     new (world: World): {
         world: World;
+        onEvent?(event: WorldEvent): void;
     };
 };
 export interface UpdateableSystem extends System {
@@ -18,5 +21,6 @@ export declare const UpdateableSystem: {
         onUpdate(delta: number): void;
         onUpdate(delta: number): void;
         world: World;
+        onEvent?(event: WorldEvent): void;
     };
 };

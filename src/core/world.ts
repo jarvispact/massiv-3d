@@ -1,10 +1,14 @@
 import { Component } from './component';
-import { SystemClass, UpdateableSystem } from './system';
+import { SystemClass, UpdateableSystem, System } from './system';
 import { Entity } from './entity';
+import { WorldEvent, createRegisterEntityEvent, createRemoveEntityEvent } from './event';
 
 export interface World {
     componentsByType: Record<string, Component[]>;
     componentsByEntityId: Record<string, Component[]>;
+    subscriptions: Record<string, System[]>;
+    publish(event: WorldEvent): void;
+    subscribe(system: System, types: string[]): void;
     updateableSystems: UpdateableSystem[];
     registerEntity(components: Component[]): Entity;
     removeEntity(entity: Entity): World;
@@ -15,7 +19,22 @@ export interface World {
 export const World = class implements World {
     componentsByType: Record<string, Component[]> = {};
     componentsByEntityId: Record<string, Component[]> = {};
+    subscriptions: Record<string, System[]> = {};
     updateableSystems: UpdateableSystem[] = [];
+
+    publish(event: WorldEvent): void {
+        for (let i = 0; i < this.subscriptions[event.type].length; i++) {
+            const system = this.subscriptions[event.type][i];
+            if (system.onEvent) system.onEvent(event);
+        }
+    }
+
+    subscribe(system: System, types: string[]): void {
+        types.forEach(type => {
+            if (!this.subscriptions[type]) this.subscriptions[type] = [];
+            this.subscriptions[type].push(system);
+        });
+    }
 
     registerEntity(components: Component[]): Entity {
         const entity = new Entity(this);
@@ -29,6 +48,7 @@ export const World = class implements World {
             this.componentsByEntityId[entity.id].push(component);
         });
 
+        this.publish(createRegisterEntityEvent(entity));
         return entity;
     }
 
@@ -39,6 +59,7 @@ export const World = class implements World {
             this.componentsByType[type] = this.componentsByType[type].filter(c => c.entityId !== entity.id);
         });
 
+        this.publish(createRemoveEntityEvent(entity));
         return this;
     }
 

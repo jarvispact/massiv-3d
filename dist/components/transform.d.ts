@@ -10,7 +10,6 @@ export interface TransformData {
 }
 export interface Transform extends Component {
     data: TransformData;
-    update(): void;
 }
 export declare const Transform: {
     new (data?: Partial<TransformData> | undefined): {
@@ -20,7 +19,5 @@ export declare const Transform: {
         translate(translation: vec3): void;
         scale(scaling: vec3): void;
         rotate(eulerRotation: vec3): void;
-        update(): void;
-        update(): void;
     };
 };

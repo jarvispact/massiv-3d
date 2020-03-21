@@ -1,7 +1,9 @@
 import { World } from './world';
+import { WorldEvent } from './event';
 
 export interface System {
     world: World;
+    onEvent?(event: WorldEvent): void;
 }
 
 export interface SystemClass {
