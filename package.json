@@ -13,7 +13,8 @@
     "build": "rollup -c",
     "git-add-dist": "git add ./dist/*",
     "dev": "rollup -c -w",
-    "examples": "http-server ./examples -a 0.0.0.0 -p 8080 -c-1",
+    "examples:serve": "http-server ./examples -a 0.0.0.0 -p 8080 -c-1",
+    "examples:create": "TS_NODE_PROJECT=tsconfig.tests.json ts-node create-example.ts",
     "check-updates": "ncu",
     "update:all": "ncu -u && npm i"
   },

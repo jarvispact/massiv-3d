@@ -4,7 +4,6 @@ import pkg from './package.json';
 
 const pages = [
     '00-hello-world',
-    '01-another-one',
 ];
 
 export default [
