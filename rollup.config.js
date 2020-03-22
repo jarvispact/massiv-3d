@@ -2,25 +2,51 @@ import resolve from 'rollup-plugin-node-resolve';
 import typescript from 'rollup-plugin-typescript2';
 import pkg from './package.json';
 
-export default {
-    input: 'src/index.ts',
-    output: [
-        {
-            file: pkg.main,
-            format: 'cjs',
-        },
-        {
-            file: pkg.module,
-            format: 'es',
-        },
-        {
+const pages = [
+    '00-hello-world',
+    '01-another-one',
+];
+
+export default [
+    {
+        input: 'src/index.ts',
+        output: [
+            {
+                file: pkg.main,
+                format: 'cjs',
+            },
+            {
+                file: pkg.module,
+                format: 'es',
+            },
+            {
+                name: 'MASSIV',
+                file: pkg.browser,
+                format: 'umd',
+            },
+        ],
+        plugins: [
+            resolve(),
+            typescript(),
+        ],
+    },
+    ...pages.map(page => ({
+        input: `examples/${page}/index.ts`,
+        output: {
             name: 'MASSIV',
-            file: pkg.browser,
+            file: `examples/${page}/bundle.js`,
             format: 'umd',
         },
-    ],
-    plugins: [
-        resolve(),
-        typescript(),
-    ],
-};
+        plugins: [
+            resolve(),
+            typescript({
+                tsconfigOverride: {
+                    compilerOptions: {
+                        noEmit: true,
+                        declaration: false,
+                    },
+                },
+            }),
+        ],
+    })),
+];
