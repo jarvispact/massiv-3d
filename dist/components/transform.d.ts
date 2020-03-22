@@ -1,5 +1,10 @@
 import { mat4, vec3, quat } from 'gl-matrix';
 import { Component } from '../core/component';
+interface Arguments {
+    position?: vec3;
+    quaternion?: quat;
+    scaling?: vec3;
+}
 export interface TransformData {
     position: vec3;
     quaternion: quat;
@@ -12,11 +17,7 @@ export interface Transform extends Component {
     data: TransformData;
 }
 export declare const Transform: {
-    new (data?: {
-        position?: [number, number, number] | Float32Array | undefined;
-        quaternion?: Float32Array | [number, number, number, number] | undefined;
-        scaling?: [number, number, number] | Float32Array | undefined;
-    }): {
+    new (data?: Arguments): {
         entityId: string;
         type: string;
         data: TransformData;
@@ -26,3 +27,4 @@ export declare const Transform: {
     };
     readonly TYPE: string;
 };
+export {};

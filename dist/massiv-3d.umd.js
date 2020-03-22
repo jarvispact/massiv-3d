@@ -932,7 +932,6 @@
       onEvent(event) {
           if (event.type === WorldEvent.REGISTER_ENTITY) {
               const transform = event.payload.getComponent(Transform.TYPE);
-              // TODO: ensure that the same transform is not cached twice
               if (transform && !this.transforms.some(t => t === transform))
                   this.transforms.push(transform);
           }

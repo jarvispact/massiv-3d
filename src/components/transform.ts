@@ -1,6 +1,12 @@
 import { mat4, vec3, quat } from 'gl-matrix';
 import { Component } from '../core/component';
 
+interface Arguments {
+    position?: vec3;
+    quaternion?: quat;
+    scaling?: vec3;
+}
+
 export interface TransformData {
     position: vec3;
     quaternion: quat;
@@ -21,7 +27,7 @@ export const Transform = class implements Transform {
     type = TransformType;
     data: TransformData;
 
-    constructor(data: {position?: vec3; quaternion?: quat; scaling?: vec3} = {}) {
+    constructor(data: Arguments = {}) {
         this.data = {
             position: data.position ? data.position : [0, 0, 0],
             quaternion: data.quaternion ? data.quaternion : [0, 0, 0, 1],

@@ -21,7 +21,6 @@ export const UpdateTransformSystem = class extends UpdateableSystem implements U
     onEvent(event: WorldEvent): void {
         if (event.type === WorldEvent.REGISTER_ENTITY) {
             const transform = (event.payload as Entity).getComponent(Transform.TYPE);
-            // TODO: ensure that the same transform is not cached twice
             if (transform && !this.transforms.some(t => t === transform)) this.transforms.push(transform as Transform);
         } else if (event.type === WorldEvent.REMOVE_ENTITY) {
             const transform = (event.payload as Entity).getComponent(Transform.TYPE);
