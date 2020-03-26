@@ -61,45 +61,29 @@
   }
 
   /**
-   * Create a new mat4 with the given values
+   * Set a mat4 to the identity matrix
    *
-   * @param {Number} m00 Component in column 0, row 0 position (index 0)
-   * @param {Number} m01 Component in column 0, row 1 position (index 1)
-   * @param {Number} m02 Component in column 0, row 2 position (index 2)
-   * @param {Number} m03 Component in column 0, row 3 position (index 3)
-   * @param {Number} m10 Component in column 1, row 0 position (index 4)
-   * @param {Number} m11 Component in column 1, row 1 position (index 5)
-   * @param {Number} m12 Component in column 1, row 2 position (index 6)
-   * @param {Number} m13 Component in column 1, row 3 position (index 7)
-   * @param {Number} m20 Component in column 2, row 0 position (index 8)
-   * @param {Number} m21 Component in column 2, row 1 position (index 9)
-   * @param {Number} m22 Component in column 2, row 2 position (index 10)
-   * @param {Number} m23 Component in column 2, row 3 position (index 11)
-   * @param {Number} m30 Component in column 3, row 0 position (index 12)
-   * @param {Number} m31 Component in column 3, row 1 position (index 13)
-   * @param {Number} m32 Component in column 3, row 2 position (index 14)
-   * @param {Number} m33 Component in column 3, row 3 position (index 15)
-   * @returns {mat4} A new mat4
+   * @param {mat4} out the receiving matrix
+   * @returns {mat4} out
    */
 
-  function fromValues(m00, m01, m02, m03, m10, m11, m12, m13, m20, m21, m22, m23, m30, m31, m32, m33) {
-    var out = new ARRAY_TYPE(16);
-    out[0] = m00;
-    out[1] = m01;
-    out[2] = m02;
-    out[3] = m03;
-    out[4] = m10;
-    out[5] = m11;
-    out[6] = m12;
-    out[7] = m13;
-    out[8] = m20;
-    out[9] = m21;
-    out[10] = m22;
-    out[11] = m23;
-    out[12] = m30;
-    out[13] = m31;
-    out[14] = m32;
-    out[15] = m33;
+  function identity(out) {
+    out[0] = 1;
+    out[1] = 0;
+    out[2] = 0;
+    out[3] = 0;
+    out[4] = 0;
+    out[5] = 1;
+    out[6] = 0;
+    out[7] = 0;
+    out[8] = 0;
+    out[9] = 0;
+    out[10] = 1;
+    out[11] = 0;
+    out[12] = 0;
+    out[13] = 0;
+    out[14] = 0;
+    out[15] = 1;
     return out;
   }
   /**
@@ -159,6 +143,166 @@
     out[15] = 1;
     return out;
   }
+  /**
+   * Generates a perspective projection matrix with the given bounds.
+   * Passing null/undefined/no value for far will generate infinite projection matrix.
+   *
+   * @param {mat4} out mat4 frustum matrix will be written into
+   * @param {number} fovy Vertical field of view in radians
+   * @param {number} aspect Aspect ratio. typically viewport width/height
+   * @param {number} near Near bound of the frustum
+   * @param {number} far Far bound of the frustum, can be null or Infinity
+   * @returns {mat4} out
+   */
+
+  function perspective(out, fovy, aspect, near, far) {
+    var f = 1.0 / Math.tan(fovy / 2),
+        nf;
+    out[0] = f / aspect;
+    out[1] = 0;
+    out[2] = 0;
+    out[3] = 0;
+    out[4] = 0;
+    out[5] = f;
+    out[6] = 0;
+    out[7] = 0;
+    out[8] = 0;
+    out[9] = 0;
+    out[11] = -1;
+    out[12] = 0;
+    out[13] = 0;
+    out[15] = 0;
+
+    if (far != null && far !== Infinity) {
+      nf = 1 / (near - far);
+      out[10] = (far + near) * nf;
+      out[14] = 2 * far * near * nf;
+    } else {
+      out[10] = -1;
+      out[14] = -2 * near;
+    }
+
+    return out;
+  }
+  /**
+   * Generates a orthogonal projection matrix with the given bounds
+   *
+   * @param {mat4} out mat4 frustum matrix will be written into
+   * @param {number} left Left bound of the frustum
+   * @param {number} right Right bound of the frustum
+   * @param {number} bottom Bottom bound of the frustum
+   * @param {number} top Top bound of the frustum
+   * @param {number} near Near bound of the frustum
+   * @param {number} far Far bound of the frustum
+   * @returns {mat4} out
+   */
+
+  function ortho(out, left, right, bottom, top, near, far) {
+    var lr = 1 / (left - right);
+    var bt = 1 / (bottom - top);
+    var nf = 1 / (near - far);
+    out[0] = -2 * lr;
+    out[1] = 0;
+    out[2] = 0;
+    out[3] = 0;
+    out[4] = 0;
+    out[5] = -2 * bt;
+    out[6] = 0;
+    out[7] = 0;
+    out[8] = 0;
+    out[9] = 0;
+    out[10] = 2 * nf;
+    out[11] = 0;
+    out[12] = (left + right) * lr;
+    out[13] = (top + bottom) * bt;
+    out[14] = (far + near) * nf;
+    out[15] = 1;
+    return out;
+  }
+  /**
+   * Generates a look-at matrix with the given eye position, focal point, and up axis.
+   * If you want a matrix that actually makes an object look at another object, you should use targetTo instead.
+   *
+   * @param {mat4} out mat4 frustum matrix will be written into
+   * @param {vec3} eye Position of the viewer
+   * @param {vec3} center Point the viewer is looking at
+   * @param {vec3} up vec3 pointing up
+   * @returns {mat4} out
+   */
+
+  function lookAt(out, eye, center, up) {
+    var x0, x1, x2, y0, y1, y2, z0, z1, z2, len;
+    var eyex = eye[0];
+    var eyey = eye[1];
+    var eyez = eye[2];
+    var upx = up[0];
+    var upy = up[1];
+    var upz = up[2];
+    var centerx = center[0];
+    var centery = center[1];
+    var centerz = center[2];
+
+    if (Math.abs(eyex - centerx) < EPSILON && Math.abs(eyey - centery) < EPSILON && Math.abs(eyez - centerz) < EPSILON) {
+      return identity(out);
+    }
+
+    z0 = eyex - centerx;
+    z1 = eyey - centery;
+    z2 = eyez - centerz;
+    len = 1 / Math.hypot(z0, z1, z2);
+    z0 *= len;
+    z1 *= len;
+    z2 *= len;
+    x0 = upy * z2 - upz * z1;
+    x1 = upz * z0 - upx * z2;
+    x2 = upx * z1 - upy * z0;
+    len = Math.hypot(x0, x1, x2);
+
+    if (!len) {
+      x0 = 0;
+      x1 = 0;
+      x2 = 0;
+    } else {
+      len = 1 / len;
+      x0 *= len;
+      x1 *= len;
+      x2 *= len;
+    }
+
+    y0 = z1 * x2 - z2 * x1;
+    y1 = z2 * x0 - z0 * x2;
+    y2 = z0 * x1 - z1 * x0;
+    len = Math.hypot(y0, y1, y2);
+
+    if (!len) {
+      y0 = 0;
+      y1 = 0;
+      y2 = 0;
+    } else {
+      len = 1 / len;
+      y0 *= len;
+      y1 *= len;
+      y2 *= len;
+    }
+
+    out[0] = x0;
+    out[1] = y0;
+    out[2] = z0;
+    out[3] = 0;
+    out[4] = x1;
+    out[5] = y1;
+    out[6] = z1;
+    out[7] = 0;
+    out[8] = x2;
+    out[9] = y2;
+    out[10] = z2;
+    out[11] = 0;
+    out[12] = -(x0 * eyex + x1 * eyey + x2 * eyez);
+    out[13] = -(y0 * eyex + y1 * eyey + y2 * eyez);
+    out[14] = -(z0 * eyex + z1 * eyey + z2 * eyez);
+    out[15] = 1;
+    return out;
+  }
 
   /**
    * 3 Dimensional Vector
@@ -204,7 +348,7 @@
    * @returns {vec3} a new 3D vector
    */
 
-  function fromValues$1(x, y, z) {
+  function fromValues(x, y, z) {
     var out = new ARRAY_TYPE(3);
     out[0] = x;
     out[1] = y;
@@ -355,24 +499,6 @@
       out[3] = 0;
     }
 
-    return out;
-  }
-  /**
-   * Creates a new vec4 initialized with the given values
-   *
-   * @param {Number} x X component
-   * @param {Number} y Y component
-   * @param {Number} z Z component
-   * @param {Number} w W component
-   * @returns {vec4} a new 4D vector
-   */
-
-  function fromValues$2(x, y, z, w) {
-    var out = new ARRAY_TYPE(4);
-    out[0] = x;
-    out[1] = y;
-    out[2] = z;
-    out[3] = w;
     return out;
   }
   /**
@@ -642,18 +768,6 @@
     return out;
   }
   /**
-   * Creates a new quat initialized with the given values
-   *
-   * @param {Number} x X component
-   * @param {Number} y Y component
-   * @param {Number} z Z component
-   * @param {Number} w W component
-   * @returns {quat} a new quaternion
-   * @function
-   */
-
-  var fromValues$3 = fromValues$2;
-  /**
    * Normalize a quat
    *
    * @param {quat} out the receiving quaternion
@@ -677,8 +791,8 @@
 
   var rotationTo = function () {
     var tmpvec3 = create$1();
-    var xUnitVec3 = fromValues$1(1, 0, 0);
-    var yUnitVec3 = fromValues$1(0, 1, 0);
+    var xUnitVec3 = fromValues(1, 0, 0);
+    var yUnitVec3 = fromValues(0, 1, 0);
     return function (out, a, b) {
       var dot$1 = dot(a, b);
 
@@ -753,6 +867,70 @@
     };
   }();
 
+  const OrthographicCameraType = 'OrthographicCamera';
+  const OrthographicCamera = class {
+      constructor(data) {
+          this.type = OrthographicCameraType;
+          this.data = {
+              position: data.position,
+              lookAt: data.lookAt ? data.lookAt : [0, 0, 0],
+              upVector: data.upVector ? data.upVector : [0, 1, 0],
+              viewMatrix: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1],
+              projectionMatrix: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1],
+              dirty: {
+                  viewMatrix: true,
+                  projectionMatrix: true,
+              },
+              left: data.left,
+              right: data.right,
+              bottom: data.bottom,
+              top: data.top,
+              near: data.near,
+              far: data.far,
+          };
+      }
+      static get TYPE() {
+          return OrthographicCameraType;
+      }
+      translate(translation) {
+          add(this.data.position, this.data.position, translation);
+          this.data.dirty.viewMatrix = true;
+      }
+  };
+
+  const PerspectiveCameraType = 'PerspectiveCamera';
+  const PerspectiveCamera = class {
+      constructor(data) {
+          this.type = PerspectiveCameraType;
+          this.data = {
+              position: data.position,
+              lookAt: data.lookAt ? data.lookAt : [0, 0, 0],
+              upVector: data.upVector ? data.upVector : [0, 1, 0],
+              viewMatrix: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1],
+              projectionMatrix: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1],
+              dirty: {
+                  viewMatrix: true,
+                  projectionMatrix: true,
+              },
+              fov: data.fov || 45,
+              aspect: data.aspect,
+              near: data.near || 0.1,
+              far: data.far || 1000,
+          };
+      }
+      static get TYPE() {
+          return PerspectiveCameraType;
+      }
+      translate(translation) {
+          add(this.data.position, this.data.position, translation);
+          this.data.dirty.viewMatrix = true;
+      }
+      setAspect(aspect) {
+          this.data.aspect = aspect;
+          this.data.dirty.projectionMatrix = true;
+      }
+  };
+
   const TransformType = 'Transform';
   const Transform = class {
       constructor(data = {}) {
@@ -761,8 +939,8 @@
               position: data.position ? data.position : [0, 0, 0],
               quaternion: data.quaternion ? data.quaternion : [0, 0, 0, 1],
               scaling: data.scaling ? data.scaling : [1, 1, 1],
-              modelMatrix: fromValues(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1),
-              eulerRotationCache: fromValues$3(0, 0, 0, 1),
+              modelMatrix: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1],
+              eulerRotationCache: [0, 0, 0, 1],
               dirty: true,
           };
       }
@@ -796,10 +974,12 @@
   const WorldEvent = {
       REGISTER_ENTITY: 'RegisterEntityEvent',
       REMOVE_ENTITY: 'RemoveEntityEvent',
+      SET_ACTIVE_CAMERA: 'SetActiveCamera',
   };
   const createEvent = (type, payload) => ({ type, payload });
   const createRegisterEntityEvent = (payload) => ({ type: WorldEvent.REGISTER_ENTITY, payload });
   const createRemoveEntityEvent = (payload) => ({ type: WorldEvent.REMOVE_ENTITY, payload });
+  const createSetActiveCameraEvent = (payload) => ({ type: WorldEvent.SET_ACTIVE_CAMERA, payload });
 
   // https://gist.github.com/jcxplorer/823878
   var uuid = () => {
@@ -857,6 +1037,7 @@
           this.subscriptions = {};
           this.systems = [];
           this.updateableSystems = [];
+          this.activeCameraEntity = null;
       }
       publish(event) {
           if (!this.subscriptions[event.type])
@@ -918,8 +1099,52 @@
           }
           return this;
       }
+      setActiveCameraEntity(cameraEntity) {
+          this.activeCameraEntity = cameraEntity;
+          this.publish(createSetActiveCameraEvent(cameraEntity));
+          return this;
+      }
       update(delta) {
           this.updateableSystems.forEach((system) => system.onUpdate(delta));
+      }
+  };
+
+  const UpdateCameraSystem = class extends UpdateableSystem {
+      constructor(world) {
+          super(world);
+          this.activeCamera = null;
+          world.subscribe(this, [WorldEvent.SET_ACTIVE_CAMERA]);
+          const orthographicCameras = world.componentsByType[OrthographicCamera.TYPE];
+          const perspectiveCameras = world.componentsByType[PerspectiveCamera.TYPE];
+          if (orthographicCameras[0])
+              this.activeCamera = orthographicCameras[0];
+          if (perspectiveCameras[0])
+              this.activeCamera = perspectiveCameras[0];
+      }
+      onEvent(event) {
+          if (event.type === WorldEvent.SET_ACTIVE_CAMERA) {
+              const orthographicCamera = event.payload.getComponent(OrthographicCamera.TYPE);
+              const perspectiveCamera = event.payload.getComponent(PerspectiveCamera.TYPE);
+              if (orthographicCamera)
+                  this.activeCamera = orthographicCamera;
+              if (perspectiveCamera)
+                  this.activeCamera = perspectiveCamera;
+          }
+      }
+      onUpdate() {
+          const c = this.activeCamera;
+          if (c && c.data.dirty.viewMatrix) {
+              lookAt(c.data.viewMatrix, c.data.position, c.data.lookAt, c.data.upVector);
+              c.data.dirty.viewMatrix = false;
+          }
+          if (c && c instanceof OrthographicCamera && c.data.dirty.projectionMatrix) {
+              ortho(c.data.projectionMatrix, c.data.left, c.data.right, c.data.bottom, c.data.top, c.data.near, c.data.far);
+              c.data.dirty.projectionMatrix = false;
+          }
+          if (c && c instanceof PerspectiveCamera && c.data.dirty.projectionMatrix) {
+              perspective(c.data.projectionMatrix, c.data.fov, c.data.aspect, c.data.near, c.data.far);
+              c.data.dirty.projectionMatrix = false;
+          }
       }
   };
 
@@ -927,7 +1152,7 @@
       constructor(world) {
           super(world);
           world.subscribe(this, [WorldEvent.REGISTER_ENTITY, WorldEvent.REMOVE_ENTITY]);
-          this.transforms = world.componentsByType.Transform;
+          this.transforms = world.componentsByType[Transform.TYPE];
       }
       onEvent(event) {
           if (event.type === WorldEvent.REGISTER_ENTITY) {
@@ -956,8 +1181,11 @@
 
   exports.Component = Component;
   exports.Entity = Entity;
+  exports.OrthographicCamera = OrthographicCamera;
+  exports.PerspectiveCamera = PerspectiveCamera;
   exports.System = System;
   exports.Transform = Transform;
+  exports.UpdateCameraSystem = UpdateCameraSystem;
   exports.UpdateTransformSystem = UpdateTransformSystem;
   exports.UpdateableSystem = UpdateableSystem;
   exports.World = World;
@@ -966,6 +1194,7 @@
   exports.createEvent = createEvent;
   exports.createRegisterEntityEvent = createRegisterEntityEvent;
   exports.createRemoveEntityEvent = createRemoveEntityEvent;
+  exports.createSetActiveCameraEvent = createSetActiveCameraEvent;
 
   Object.defineProperty(exports, '__esModule', { value: true });
 

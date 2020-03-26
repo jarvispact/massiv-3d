@@ -32,8 +32,8 @@ export const Transform = class implements Transform {
             position: data.position ? data.position : [0, 0, 0],
             quaternion: data.quaternion ? data.quaternion : [0, 0, 0, 1],
             scaling: data.scaling ? data.scaling : [1, 1, 1],
-            modelMatrix: mat4.fromValues(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1),
-            eulerRotationCache: quat.fromValues(0, 0, 0, 1),
+            modelMatrix: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1],
+            eulerRotationCache: [0, 0, 0, 1],
             dirty: true,
         };
     }

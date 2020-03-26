@@ -1,5 +1,8 @@
 # TODO
 
+- update active camera
+- add renderablesystem
+
 - remove unnecessary uniform update code from components
 - simplify uniform handling further (events? frame lifecycle?)
 - dynamic lights give warnings in console

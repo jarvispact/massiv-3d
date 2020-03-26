@@ -11,7 +11,7 @@ export interface SystemClass {
 export declare const System: {
     new (world: World): {
         world: World;
-        onEvent?(event: WorldEvent): void;
+        onEvent?(event: WorldEvent<unknown>): void;
         cleanup?(): void;
     };
 };
@@ -23,7 +23,7 @@ export declare const UpdateableSystem: {
         onUpdate(delta: number): void;
         onUpdate(delta: number): void;
         world: World;
-        onEvent?(event: WorldEvent): void;
+        onEvent?(event: WorldEvent<unknown>): void;
         cleanup?(): void;
     };
 };

@@ -1,7 +1,7 @@
 import { Component } from './component';
 import { SystemClass, UpdateableSystem, System } from './system';
 import { Entity } from './entity';
-import { WorldEvent, createRegisterEntityEvent, createRemoveEntityEvent } from './event';
+import { WorldEvent, createRegisterEntityEvent, createRemoveEntityEvent, createSetActiveCameraEvent } from './event';
 
 const cleanupAndFilterSystem = (systemToRemove: System) => (system: System): boolean => {
     if (system === systemToRemove) {
@@ -17,12 +17,14 @@ export interface World {
     subscriptions: Record<string, System[]>;
     systems: System[];
     updateableSystems: UpdateableSystem[];
+    activeCameraEntity: Entity | null;
     publish(event: WorldEvent): void;
     subscribe(system: System, types: string[]): void;
     registerEntity(components: Component[]): Entity;
     removeEntity(entity: Entity): World;
     registerSystem(systemClass: SystemClass): System;
     removeSystem(system: System): World;
+    setActiveCameraEntity(cameraEntity: Entity): World;
     update(delta: number): void;
 }
 
@@ -32,6 +34,7 @@ export const World = class implements World {
     subscriptions: Record<string, System[]> = {};
     systems: System[] = [];
     updateableSystems: UpdateableSystem[] = [];
+    activeCameraEntity: Entity | null = null;
 
     publish(event: WorldEvent): void {
         if (!this.subscriptions[event.type]) this.subscriptions[event.type] = [];
@@ -99,6 +102,12 @@ export const World = class implements World {
             this.systems = this.systems.filter(cleanupAndFilterSystem(system));
         }
 
+        return this;
+    }
+
+    setActiveCameraEntity(cameraEntity: Entity): World {
+        this.activeCameraEntity = cameraEntity;
+        this.publish(createSetActiveCameraEvent(cameraEntity));
         return this;
     }
 

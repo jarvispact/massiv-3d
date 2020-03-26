@@ -15,15 +15,15 @@ export const UpdateTransformSystem = class extends UpdateableSystem implements U
     constructor(world: World) {
         super(world);
         world.subscribe(this, [WorldEvent.REGISTER_ENTITY, WorldEvent.REMOVE_ENTITY]);
-        this.transforms = world.componentsByType.Transform as Transform[];
+        this.transforms = world.componentsByType[Transform.TYPE] as Transform[];
     }
 
-    onEvent(event: WorldEvent): void {
+    onEvent(event: WorldEvent<Entity>): void {
         if (event.type === WorldEvent.REGISTER_ENTITY) {
-            const transform = (event.payload as Entity).getComponent(Transform.TYPE);
+            const transform = event.payload.getComponent(Transform.TYPE);
             if (transform && !this.transforms.some(t => t === transform)) this.transforms.push(transform as Transform);
         } else if (event.type === WorldEvent.REMOVE_ENTITY) {
-            const transform = (event.payload as Entity).getComponent(Transform.TYPE);
+            const transform = event.payload.getComponent(Transform.TYPE);
             if (transform) this.transforms = this.transforms.filter(t => t !== transform);
         }
     }

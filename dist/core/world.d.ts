@@ -8,12 +8,14 @@ export interface World {
     subscriptions: Record<string, System[]>;
     systems: System[];
     updateableSystems: UpdateableSystem[];
+    activeCameraEntity: Entity | null;
     publish(event: WorldEvent): void;
     subscribe(system: System, types: string[]): void;
     registerEntity(components: Component[]): Entity;
     removeEntity(entity: Entity): World;
     registerSystem(systemClass: SystemClass): System;
     removeSystem(system: System): World;
+    setActiveCameraEntity(cameraEntity: Entity): World;
     update(delta: number): void;
 }
 export declare const World: {
@@ -23,8 +25,9 @@ export declare const World: {
         subscriptions: Record<string, System[]>;
         systems: System[];
         updateableSystems: UpdateableSystem[];
-        publish(event: WorldEvent): void;
-        publish(event: WorldEvent): void;
+        activeCameraEntity: Entity | null;
+        publish(event: WorldEvent<unknown>): void;
+        publish(event: WorldEvent<unknown>): void;
         subscribe(system: System, types: string[]): void;
         subscribe(system: System, types: string[]): void;
         registerEntity(components: Component[]): Entity;
@@ -35,6 +38,8 @@ export declare const World: {
         registerSystem(systemClass: SystemClass): System;
         removeSystem(system: System): World;
         removeSystem(system: System): World;
+        setActiveCameraEntity(cameraEntity: Entity): World;
+        setActiveCameraEntity(cameraEntity: Entity): World;
         update(delta: number): void;
         update(delta: number): void;
     };
