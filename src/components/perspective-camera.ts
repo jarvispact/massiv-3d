@@ -1,67 +1,40 @@
 import { vec3, mat4 } from 'gl-matrix';
 import { Component } from '../core/component';
+import { CameraData, CameraArgs } from './camera';
 
-interface Arguments {
-    position: vec3;
-    lookAt?: vec3;
-    upVector?: vec3;
+const type = 'PerspectiveCamera';
 
+type Args = CameraArgs & {
     fov?: number;
     aspect: number;
     near?: number;
     far?: number;
-}
+};
 
-export interface PerspectiveCameraData {
-    position: vec3;
-    lookAt: vec3;
-    upVector: vec3;
-    viewMatrix: mat4;
-    projectionMatrix: mat4;
-    dirty: {
-        viewMatrix: boolean;
-        projectionMatrix: boolean;
-    };
-
+export type PerspectiveCameraData = CameraData & {
     fov: number;
     aspect: number;
     near: number;
     far: number;
 }
 
-export interface PerspectiveCamera extends Component {
-    data: PerspectiveCameraData;
-    translate(translation: vec3): void;
-}
-
-const PerspectiveCameraType = 'PerspectiveCamera';
-
-export const PerspectiveCamera = class implements PerspectiveCamera {
-    entityId!: string;
-    type = PerspectiveCameraType;
-    data: PerspectiveCameraData;
-
-    constructor(data: Arguments) {
-        this.data = {
-            position: data.position,
-            lookAt: data.lookAt ? data.lookAt : [0, 0, 0],
-            upVector: data.upVector ? data.upVector : [0, 1, 0],
-            viewMatrix: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1],
-            projectionMatrix: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1],
+export class PerspectiveCamera extends Component<typeof type, PerspectiveCameraData> {
+    constructor(args: Args) {
+        super(type, {
+            position: args.position,
+            lookAt: args.lookAt ? args.lookAt : vec3.fromValues(0, 0, 0),
+            upVector: args.upVector ? args.upVector : vec3.fromValues(0, 1, 0),
+            viewMatrix: mat4.fromValues(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1),
+            projectionMatrix: mat4.fromValues(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1),
             dirty: {
                 viewMatrix: true,
                 projectionMatrix: true,
             },
-
-            fov: data.fov || 45,
-            aspect: data.aspect,
-            near: data.near || 0.1,
-            far: data.far || 1000,
-        };
-    }
-
-    static get TYPE(): string {
-        return PerspectiveCameraType;
+            fov: args.fov || 45,
+            aspect: args.aspect,
+            near: args.near || 0.1,
+            far: args.far || 1000,
+        });
     }
 
     translate(translation: vec3): void {
@@ -73,4 +46,16 @@ export const PerspectiveCamera = class implements PerspectiveCamera {
         this.data.aspect = aspect;
         this.data.dirty.projectionMatrix = true;
     }
-};
+
+    update(): void {
+        if (this.data.dirty.viewMatrix) {
+            mat4.lookAt(this.data.viewMatrix, this.data.position, this.data.lookAt, this.data.upVector);
+            this.data.dirty.viewMatrix = false;
+        }
+    
+        if (this.data.dirty.projectionMatrix) {
+            mat4.perspective(this.data.projectionMatrix, this.data.fov, this.data.aspect, this.data.near, this.data.far);
+            this.data.dirty.projectionMatrix = false;
+        }
+    }
+}

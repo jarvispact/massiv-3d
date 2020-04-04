@@ -61,6 +61,48 @@
   }
 
   /**
+   * Create a new mat4 with the given values
+   *
+   * @param {Number} m00 Component in column 0, row 0 position (index 0)
+   * @param {Number} m01 Component in column 0, row 1 position (index 1)
+   * @param {Number} m02 Component in column 0, row 2 position (index 2)
+   * @param {Number} m03 Component in column 0, row 3 position (index 3)
+   * @param {Number} m10 Component in column 1, row 0 position (index 4)
+   * @param {Number} m11 Component in column 1, row 1 position (index 5)
+   * @param {Number} m12 Component in column 1, row 2 position (index 6)
+   * @param {Number} m13 Component in column 1, row 3 position (index 7)
+   * @param {Number} m20 Component in column 2, row 0 position (index 8)
+   * @param {Number} m21 Component in column 2, row 1 position (index 9)
+   * @param {Number} m22 Component in column 2, row 2 position (index 10)
+   * @param {Number} m23 Component in column 2, row 3 position (index 11)
+   * @param {Number} m30 Component in column 3, row 0 position (index 12)
+   * @param {Number} m31 Component in column 3, row 1 position (index 13)
+   * @param {Number} m32 Component in column 3, row 2 position (index 14)
+   * @param {Number} m33 Component in column 3, row 3 position (index 15)
+   * @returns {mat4} A new mat4
+   */
+
+  function fromValues(m00, m01, m02, m03, m10, m11, m12, m13, m20, m21, m22, m23, m30, m31, m32, m33) {
+    var out = new ARRAY_TYPE(16);
+    out[0] = m00;
+    out[1] = m01;
+    out[2] = m02;
+    out[3] = m03;
+    out[4] = m10;
+    out[5] = m11;
+    out[6] = m12;
+    out[7] = m13;
+    out[8] = m20;
+    out[9] = m21;
+    out[10] = m22;
+    out[11] = m23;
+    out[12] = m30;
+    out[13] = m31;
+    out[14] = m32;
+    out[15] = m33;
+    return out;
+  }
+  /**
    * Set a mat4 to the identity matrix
    *
    * @param {mat4} out the receiving matrix
@@ -348,7 +390,7 @@
    * @returns {vec3} a new 3D vector
    */
 
-  function fromValues(x, y, z) {
+  function fromValues$1(x, y, z) {
     var out = new ARRAY_TYPE(3);
     out[0] = x;
     out[1] = y;
@@ -499,6 +541,24 @@
       out[3] = 0;
     }
 
+    return out;
+  }
+  /**
+   * Creates a new vec4 initialized with the given values
+   *
+   * @param {Number} x X component
+   * @param {Number} y Y component
+   * @param {Number} z Z component
+   * @param {Number} w W component
+   * @returns {vec4} a new 4D vector
+   */
+
+  function fromValues$2(x, y, z, w) {
+    var out = new ARRAY_TYPE(4);
+    out[0] = x;
+    out[1] = y;
+    out[2] = z;
+    out[3] = w;
     return out;
   }
   /**
@@ -768,6 +828,18 @@
     return out;
   }
   /**
+   * Creates a new quat initialized with the given values
+   *
+   * @param {Number} x X component
+   * @param {Number} y Y component
+   * @param {Number} z Z component
+   * @param {Number} w W component
+   * @returns {quat} a new quaternion
+   * @function
+   */
+
+  var fromValues$3 = fromValues$2;
+  /**
    * Normalize a quat
    *
    * @param {quat} out the receiving quaternion
@@ -791,8 +863,8 @@
 
   var rotationTo = function () {
     var tmpvec3 = create$1();
-    var xUnitVec3 = fromValues(1, 0, 0);
-    var yUnitVec3 = fromValues(0, 1, 0);
+    var xUnitVec3 = fromValues$1(1, 0, 0);
+    var yUnitVec3 = fromValues$1(0, 1, 0);
     return function (out, a, b) {
       var dot$1 = dot(a, b);
 
@@ -867,59 +939,69 @@
     };
   }();
 
-  const OrthographicCameraType = 'OrthographicCamera';
-  const OrthographicCamera = class {
-      constructor(data) {
-          this.type = OrthographicCameraType;
-          this.data = {
-              position: data.position,
-              lookAt: data.lookAt ? data.lookAt : [0, 0, 0],
-              upVector: data.upVector ? data.upVector : [0, 1, 0],
-              viewMatrix: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1],
-              projectionMatrix: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1],
+  class Component {
+      constructor(type, data) {
+          this.entityId = '00000000-0000-0000-0000-000000000000';
+          this.type = type;
+          this.data = data;
+      }
+  }
+
+  const type = 'OrthographicCamera';
+  class OrthographicCamera extends Component {
+      constructor(args) {
+          super(type, {
+              position: args.position,
+              lookAt: args.lookAt ? args.lookAt : fromValues$1(0, 0, 0),
+              upVector: args.upVector ? args.upVector : fromValues$1(0, 1, 0),
+              viewMatrix: fromValues(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1),
+              projectionMatrix: fromValues(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1),
               dirty: {
                   viewMatrix: true,
                   projectionMatrix: true,
               },
-              left: data.left,
-              right: data.right,
-              bottom: data.bottom,
-              top: data.top,
-              near: data.near,
-              far: data.far,
-          };
-      }
-      static get TYPE() {
-          return OrthographicCameraType;
+              left: args.left,
+              right: args.right,
+              bottom: args.bottom,
+              top: args.top,
+              near: args.near,
+              far: args.far,
+          });
       }
       translate(translation) {
           add(this.data.position, this.data.position, translation);
           this.data.dirty.viewMatrix = true;
       }
-  };
+      update() {
+          if (this.data.dirty.viewMatrix) {
+              lookAt(this.data.viewMatrix, this.data.position, this.data.lookAt, this.data.upVector);
+              this.data.dirty.viewMatrix = false;
+          }
+          if (this.data.dirty.projectionMatrix) {
+              ortho(this.data.projectionMatrix, this.data.left, this.data.right, this.data.bottom, this.data.top, this.data.near, this.data.far);
+              this.data.dirty.projectionMatrix = false;
+          }
+      }
+  }
 
-  const PerspectiveCameraType = 'PerspectiveCamera';
-  const PerspectiveCamera = class {
-      constructor(data) {
-          this.type = PerspectiveCameraType;
-          this.data = {
-              position: data.position,
-              lookAt: data.lookAt ? data.lookAt : [0, 0, 0],
-              upVector: data.upVector ? data.upVector : [0, 1, 0],
-              viewMatrix: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1],
-              projectionMatrix: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1],
+  const type$1 = 'PerspectiveCamera';
+  class PerspectiveCamera extends Component {
+      constructor(args) {
+          super(type$1, {
+              position: args.position,
+              lookAt: args.lookAt ? args.lookAt : fromValues$1(0, 0, 0),
+              upVector: args.upVector ? args.upVector : fromValues$1(0, 1, 0),
+              viewMatrix: fromValues(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1),
+              projectionMatrix: fromValues(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1),
               dirty: {
                   viewMatrix: true,
                   projectionMatrix: true,
               },
-              fov: data.fov || 45,
-              aspect: data.aspect,
-              near: data.near || 0.1,
-              far: data.far || 1000,
-          };
-      }
-      static get TYPE() {
-          return PerspectiveCameraType;
+              fov: args.fov || 45,
+              aspect: args.aspect,
+              near: args.near || 0.1,
+              far: args.far || 1000,
+          });
       }
       translate(translation) {
           add(this.data.position, this.data.position, translation);
@@ -929,57 +1011,59 @@
           this.data.aspect = aspect;
           this.data.dirty.projectionMatrix = true;
       }
-  };
-
-  const TransformType = 'Transform';
-  const Transform = class {
-      constructor(data = {}) {
-          this.type = TransformType;
-          this.data = {
-              position: data.position ? data.position : [0, 0, 0],
-              quaternion: data.quaternion ? data.quaternion : [0, 0, 0, 1],
-              scaling: data.scaling ? data.scaling : [1, 1, 1],
-              modelMatrix: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1],
-              eulerRotationCache: [0, 0, 0, 1],
-              dirty: true,
-          };
+      update() {
+          if (this.data.dirty.viewMatrix) {
+              lookAt(this.data.viewMatrix, this.data.position, this.data.lookAt, this.data.upVector);
+              this.data.dirty.viewMatrix = false;
+          }
+          if (this.data.dirty.projectionMatrix) {
+              perspective(this.data.projectionMatrix, this.data.fov, this.data.aspect, this.data.near, this.data.far);
+              this.data.dirty.projectionMatrix = false;
+          }
       }
-      static get TYPE() {
-          return TransformType;
+  }
+
+  const type$2 = 'Transform';
+  class Transform extends Component {
+      constructor(args = {}) {
+          super(type$2, {
+              position: args.position || fromValues$1(0, 0, 0),
+              scaling: args.scaling || fromValues$1(1, 1, 1),
+              quaternion: args.quaternion || fromValues$3(0, 0, 0, 1),
+              rotationCache: create$3(),
+              modelMatrix: fromValues(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1),
+              dirty: {
+                  modelMatrix: true,
+              }
+          });
       }
       translate(translation) {
           add(this.data.position, this.data.position, translation);
-          this.data.dirty = true;
+          this.data.dirty.modelMatrix = true;
       }
       scale(scaling) {
           add(this.data.scaling, this.data.scaling, scaling);
-          this.data.dirty = true;
+          this.data.dirty.modelMatrix = true;
       }
       rotate(eulerRotation) {
-          fromEuler(this.data.eulerRotationCache, eulerRotation[0], eulerRotation[1], eulerRotation[2]);
-          multiply(this.data.quaternion, this.data.quaternion, this.data.eulerRotationCache);
-          this.data.dirty = true;
+          fromEuler(this.data.rotationCache, eulerRotation[0], eulerRotation[1], eulerRotation[2]);
+          multiply(this.data.quaternion, this.data.quaternion, this.data.rotationCache);
+          this.data.dirty.modelMatrix = true;
       }
-  };
+      update() {
+          if (this.data.dirty.modelMatrix) {
+              fromRotationTranslationScale(this.data.modelMatrix, this.data.quaternion, this.data.position, this.data.scaling);
+              this.data.dirty.modelMatrix = false;
+          }
+      }
+  }
 
-  const createComponent = (type, data) => ({ entityId: '', type, data });
-  const Component = class {
-      constructor(type, data) {
-          this.entityId = '';
+  class ECSEvent {
+      constructor(type, payload) {
           this.type = type;
-          this.data = data;
+          this.payload = payload;
       }
-  };
-
-  const WorldEvent = {
-      REGISTER_ENTITY: 'RegisterEntityEvent',
-      REMOVE_ENTITY: 'RemoveEntityEvent',
-      SET_ACTIVE_CAMERA: 'SetActiveCamera',
-  };
-  const createEvent = (type, payload) => ({ type, payload });
-  const createRegisterEntityEvent = (payload) => ({ type: WorldEvent.REGISTER_ENTITY, payload });
-  const createRemoveEntityEvent = (payload) => ({ type: WorldEvent.REMOVE_ENTITY, payload });
-  const createSetActiveCameraEvent = (payload) => ({ type: WorldEvent.SET_ACTIVE_CAMERA, payload });
+  }
 
   // https://gist.github.com/jcxplorer/823878
   var uuid = () => {
@@ -994,207 +1078,220 @@
       return uuid;
   };
 
-  const Entity = class {
+  class Entity {
       constructor(world) {
-          this.world = world;
           this.id = uuid();
+          this.world = world;
       }
       getComponents() {
           return this.world.componentsByEntityId[this.id];
       }
-      getComponent(type) {
-          return this.getComponents().find(c => c.type === type);
+      getComponent(klass) {
+          return this.world.componentsByEntityId[this.id].find(c => c.type === klass.name);
       }
-  };
+  }
 
   const System = class {
       constructor(world) {
           this.world = world;
       }
   };
-  const UpdateableSystem = class extends System {
-      constructor(world) {
-          super(world);
-      }
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      onUpdate(delta) {
-          console.log('Method not implemented');
-      }
-  };
 
   const cleanupAndFilterSystem = (systemToRemove) => (system) => {
-      if (system === systemToRemove) {
-          if (system.cleanup)
-              system.cleanup();
+      if (system === systemToRemove && system.cleanup) {
+          system.cleanup();
           return false;
       }
       return true;
   };
-  const World = class {
+  const createGetDelta = (then = 0) => (now) => {
+      now *= 0.001;
+      const delta = now - then;
+      then = now;
+      return delta;
+  };
+  class World {
       constructor() {
+          this.getDelta = createGetDelta();
           this.componentsByType = {};
           this.componentsByEntityId = {};
           this.subscriptions = {};
           this.systems = [];
-          this.updateableSystems = [];
-          this.activeCameraEntity = null;
       }
       publish(event) {
           if (!this.subscriptions[event.type])
-              this.subscriptions[event.type] = [];
-          for (let i = 0; i < this.subscriptions[event.type].length; i++) {
-              const system = this.subscriptions[event.type][i];
-              if (system.onEvent)
-                  system.onEvent(event);
-          }
+              return;
+          this.subscriptions[event.type].forEach((system) => system.on && system.on(event));
       }
       subscribe(system, types) {
-          types.forEach(type => {
+          types.forEach((type) => {
               if (!this.subscriptions[type])
                   this.subscriptions[type] = [];
               this.subscriptions[type].push(system);
           });
       }
+      getComponentsByType(klass) {
+          return this.componentsByType[klass.name];
+      }
+      getComponentsByEntityId(entityId) {
+          return this.componentsByEntityId[entityId];
+      }
       registerEntity(components) {
           const entity = new Entity(this);
           if (!this.componentsByEntityId[entity.id])
               this.componentsByEntityId[entity.id] = [];
-          components.forEach(component => {
-              if (this.componentsByEntityId[entity.id].find(c => c.type === component.type)) {
-                  throw new Error('a entity cannot have more than one component of the same type');
-              }
+          components.forEach((component) => {
+              component.entityId = entity.id;
               if (!this.componentsByType[component.type])
                   this.componentsByType[component.type] = [];
               this.componentsByType[component.type].push(component);
-              component.entityId = entity.id;
               this.componentsByEntityId[entity.id].push(component);
           });
-          this.publish(createRegisterEntityEvent(entity));
           return entity;
       }
       removeEntity(entity) {
-          this.publish(createRemoveEntityEvent(entity));
           this.componentsByEntityId[entity.id] = [];
-          Object.keys(this.componentsByType).forEach(type => {
+          Object.keys(this.componentsByType).forEach((type) => {
               this.componentsByType[type] = this.componentsByType[type].filter(c => c.entityId !== entity.id);
           });
           return this;
       }
-      registerSystem(SystemClass) {
-          const system = new SystemClass(this);
-          if (system instanceof UpdateableSystem) {
-              this.updateableSystems.push(system);
-          }
-          else {
-              this.systems.push(system);
-          }
+      registerSystem(systemClass) {
+          const system = new systemClass(this);
+          this.systems.push(system);
           return system;
       }
       removeSystem(system) {
-          if (system instanceof UpdateableSystem) {
-              this.updateableSystems = this.updateableSystems.filter(cleanupAndFilterSystem(system));
-          }
-          else {
-              this.systems = this.systems.filter(cleanupAndFilterSystem(system));
-          }
+          this.systems = this.systems.filter(cleanupAndFilterSystem(system));
           return this;
       }
-      setActiveCameraEntity(cameraEntity) {
-          this.activeCameraEntity = cameraEntity;
-          this.publish(createSetActiveCameraEvent(cameraEntity));
-          return this;
+      update(time) {
+          const delta = this.getDelta(time);
+          this.systems.forEach(system => system.update && system.update(delta, time));
       }
-      update(delta) {
-          this.updateableSystems.forEach((system) => system.onUpdate(delta));
-      }
-  };
+  }
 
-  const UpdateCameraSystem = class extends UpdateableSystem {
+  const type$3 = 'RegisterEntityEvent';
+  class RegisterEntityEvent extends ECSEvent {
+      constructor(entity) {
+          super(type$3, entity);
+      }
+  }
+
+  const type$4 = 'RemoveEntityEvent';
+  class RemoveEntityEvent extends ECSEvent {
+      constructor(entity) {
+          super(type$4, entity);
+      }
+  }
+
+  class FpsDebugSystem extends System {
       constructor(world) {
           super(world);
-          this.activeCamera = null;
-          world.subscribe(this, [WorldEvent.SET_ACTIVE_CAMERA]);
-          const orthographicCameras = world.componentsByType[OrthographicCamera.TYPE];
-          const perspectiveCameras = world.componentsByType[PerspectiveCamera.TYPE];
-          if (orthographicCameras[0])
-              this.activeCamera = orthographicCameras[0];
-          if (perspectiveCameras[0])
-              this.activeCamera = perspectiveCameras[0];
+          this.fpsDisplay = document.createElement('p');
+          this.fpsDisplay.style.position = 'fixed';
+          this.fpsDisplay.style.top = '10px';
+          this.fpsDisplay.style.left = '10px';
+          this.fpsDisplay.style.color = '#FFFFFF';
+          this.fpsDisplay.style.zIndex = '10';
+          document.body.appendChild(this.fpsDisplay);
+          this.oneSecond = Date.now() + 1000;
+          this.fps = 0;
       }
-      onEvent(event) {
-          if (event.type === WorldEvent.SET_ACTIVE_CAMERA) {
-              const orthographicCamera = event.payload.getComponent(OrthographicCamera.TYPE);
-              const perspectiveCamera = event.payload.getComponent(PerspectiveCamera.TYPE);
-              if (orthographicCamera)
-                  this.activeCamera = orthographicCamera;
-              if (perspectiveCamera)
-                  this.activeCamera = perspectiveCamera;
-          }
-      }
-      onUpdate() {
-          const c = this.activeCamera;
-          if (c && c.data.dirty.viewMatrix) {
-              lookAt(c.data.viewMatrix, c.data.position, c.data.lookAt, c.data.upVector);
-              c.data.dirty.viewMatrix = false;
-          }
-          if (c && c instanceof OrthographicCamera && c.data.dirty.projectionMatrix) {
-              ortho(c.data.projectionMatrix, c.data.left, c.data.right, c.data.bottom, c.data.top, c.data.near, c.data.far);
-              c.data.dirty.projectionMatrix = false;
-          }
-          if (c && c instanceof PerspectiveCamera && c.data.dirty.projectionMatrix) {
-              perspective(c.data.projectionMatrix, c.data.fov, c.data.aspect, c.data.near, c.data.far);
-              c.data.dirty.projectionMatrix = false;
+      update() {
+          this.fps++;
+          const currentTime = Date.now();
+          if (currentTime >= this.oneSecond) {
+              this.fpsDisplay.textContent = `FPS: ${this.fps}`;
+              this.fps = 0;
+              this.oneSecond = currentTime + 1000;
           }
       }
-  };
+  }
 
-  const UpdateTransformSystem = class extends UpdateableSystem {
-      constructor(world) {
-          super(world);
-          world.subscribe(this, [WorldEvent.REGISTER_ENTITY, WorldEvent.REMOVE_ENTITY]);
-          this.transforms = world.componentsByType[Transform.TYPE];
+  class UpdateTransformSystem extends System {
+      update() {
+          const transforms = this.world.getComponentsByType(Transform);
+          for (let i = 0; i < transforms.length; i++)
+              transforms[i].update();
       }
-      onEvent(event) {
-          if (event.type === WorldEvent.REGISTER_ENTITY) {
-              const transform = event.payload.getComponent(Transform.TYPE);
-              if (transform && !this.transforms.some(t => t === transform))
-                  this.transforms.push(transform);
-          }
-          else if (event.type === WorldEvent.REMOVE_ENTITY) {
-              const transform = event.payload.getComponent(Transform.TYPE);
-              if (transform)
-                  this.transforms = this.transforms.filter(t => t !== transform);
-          }
+  }
+
+  const createShader = (gl, type, source) => {
+      const shader = gl.createShader(type);
+      if (!shader)
+          throw new Error('could not create shader');
+      gl.shaderSource(shader, source);
+      gl.compileShader(shader);
+      const success = gl.getShaderParameter(shader, gl.COMPILE_STATUS);
+      if (!success) {
+          console.error(gl.getShaderInfoLog(shader));
+          gl.deleteShader(shader);
+          throw new Error('could not create shader');
       }
-      onUpdate() {
-          for (let i = 0; i < this.transforms.length; i++) {
-              const t = this.transforms[i];
-              if (t.data.dirty) {
-                  fromRotationTranslationScale(t.data.modelMatrix, t.data.quaternion, t.data.position, t.data.scaling);
-                  this.transforms[i].data.dirty = false;
-              }
-          }
+      return shader;
+  };
+  const createProgram = (gl, vertexShader, fragmentShader) => {
+      const program = gl.createProgram();
+      if (!program)
+          throw new Error('could not create program');
+      gl.attachShader(program, vertexShader);
+      gl.attachShader(program, fragmentShader);
+      gl.linkProgram(program);
+      const success = gl.getProgramParameter(program, gl.LINK_STATUS);
+      if (!success) {
+          console.error(gl.getProgramInfoLog(program));
+          gl.deleteProgram(program);
+          throw new Error('could not create program');
       }
+      return program;
+  };
+  const createArrayBuffer = (gl, data, location, bufferSize) => {
+      const buffer = gl.createBuffer();
+      if (!buffer)
+          throw new Error('could not create array buffer');
+      gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+      gl.bufferData(gl.ARRAY_BUFFER, data, gl.STATIC_DRAW);
+      gl.enableVertexAttribArray(location);
+      gl.vertexAttribPointer(location, bufferSize, gl.FLOAT, false, 0, 0);
+      return buffer;
+  };
+  const createElementArrayBuffer = (gl, indices) => {
+      const buffer = gl.createBuffer();
+      if (!buffer)
+          throw new Error('could not create element array buffer');
+      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, buffer);
+      gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, indices, gl.STATIC_DRAW);
+      return buffer;
+  };
+  const createVertexArray = (gl, cb) => {
+      const vao = gl.createVertexArray();
+      if (!vao)
+          throw new Error('could not create vertex array object');
+      gl.bindVertexArray(vao);
+      const buffers = cb();
+      return [vao, buffers];
   };
 
   setMatrixArrayType(Array);
 
   exports.Component = Component;
+  exports.ECSEvent = ECSEvent;
   exports.Entity = Entity;
+  exports.FpsDebugSystem = FpsDebugSystem;
   exports.OrthographicCamera = OrthographicCamera;
   exports.PerspectiveCamera = PerspectiveCamera;
+  exports.RegisterEntityEvent = RegisterEntityEvent;
+  exports.RemoveEntityEvent = RemoveEntityEvent;
   exports.System = System;
   exports.Transform = Transform;
-  exports.UpdateCameraSystem = UpdateCameraSystem;
   exports.UpdateTransformSystem = UpdateTransformSystem;
-  exports.UpdateableSystem = UpdateableSystem;
   exports.World = World;
-  exports.WorldEvent = WorldEvent;
-  exports.createComponent = createComponent;
-  exports.createEvent = createEvent;
-  exports.createRegisterEntityEvent = createRegisterEntityEvent;
-  exports.createRemoveEntityEvent = createRemoveEntityEvent;
-  exports.createSetActiveCameraEvent = createSetActiveCameraEvent;
+  exports.createArrayBuffer = createArrayBuffer;
+  exports.createElementArrayBuffer = createElementArrayBuffer;
+  exports.createProgram = createProgram;
+  exports.createShader = createShader;
+  exports.createVertexArray = createVertexArray;
 
   Object.defineProperty(exports, '__esModule', { value: true });
 

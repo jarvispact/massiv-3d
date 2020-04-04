@@ -1,17 +1,14 @@
-import { Entity } from './entity';
-
-export const WorldEvent = {
-    REGISTER_ENTITY: 'RegisterEntityEvent',
-    REMOVE_ENTITY: 'RemoveEntityEvent',
-    SET_ACTIVE_CAMERA: 'SetActiveCamera',
-};
-
-export type WorldEvent<T = unknown> = {
-    type: string;
-    payload: T;
+export interface ECSEvent<Type extends string = string, Payload extends unknown = unknown> {
+    type: Type;
+    payload: Payload;
 }
 
-export const createEvent = <T>(type: string, payload: T): WorldEvent<T> => ({ type, payload });
-export const createRegisterEntityEvent = (payload: Entity): WorldEvent<Entity> => ({ type: WorldEvent.REGISTER_ENTITY, payload });
-export const createRemoveEntityEvent = (payload: Entity): WorldEvent<Entity> => ({ type: WorldEvent.REMOVE_ENTITY, payload });
-export const createSetActiveCameraEvent = (payload: Entity): WorldEvent<Entity> => ({ type: WorldEvent.SET_ACTIVE_CAMERA, payload });
+export class ECSEvent<Type extends string, Payload extends unknown> {
+    type: Type;
+    payload: Payload;
+
+    constructor(type: Type, payload: Payload) {
+        this.type = type;
+        this.payload = payload;
+    }
+}

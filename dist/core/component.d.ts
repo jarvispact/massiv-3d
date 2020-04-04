@@ -1,13 +1,11 @@
-export interface Component {
+export interface Component<Type extends string = string, Data extends unknown = unknown> {
     entityId: string;
-    type: string;
-    data: unknown;
+    type: Type;
+    data: Data;
 }
-export declare const createComponent: (type: string, data: unknown) => Component;
-export declare const Component: {
-    new (type: string, data: unknown): {
-        entityId: string;
-        type: string;
-        data: unknown;
-    };
-};
+export declare class Component<Type extends string, Data extends unknown> {
+    entityId: string;
+    type: Type;
+    data: Data;
+    constructor(type: Type, data: Data);
+}

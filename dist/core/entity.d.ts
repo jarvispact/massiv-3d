@@ -1,18 +1,10 @@
 import { World } from './world';
 import { Component } from './component';
-export interface Entity {
+import { Class } from '../types';
+export declare class Entity {
     id: string;
     world: World;
+    constructor(world: World);
     getComponents(): Component[];
-    getComponent(type: string): Component | undefined;
+    getComponent<T extends Component>(klass: Class<T>): T;
 }
-export declare const Entity: {
-    new (world: World): {
-        id: string;
-        world: World;
-        getComponents(): Component[];
-        getComponents(): Component[];
-        getComponent(type: string): Component | undefined;
-        getComponent(type: string): Component | undefined;
-    };
-};

@@ -1,60 +1,59 @@
-import { mat4, vec3, quat } from 'gl-matrix';
+import { vec3, quat, mat4 } from 'gl-matrix';
 import { Component } from '../core/component';
 
-interface Arguments {
+const type = 'Transform';
+
+type Args = {
     position?: vec3;
-    quaternion?: quat;
     scaling?: vec3;
-}
+    quaternion?: quat;
+};
 
-export interface TransformData {
+type TransformData = {
     position: vec3;
-    quaternion: quat;
     scaling: vec3;
+    quaternion: quat;
+    rotationCache: quat;
     modelMatrix: mat4;
-    eulerRotationCache: quat;
-    dirty: boolean;
-}
+    dirty: {
+        modelMatrix: boolean;
+    };
+};
 
-export interface Transform extends Component {
-    data: TransformData;
-}
-
-const TransformType = 'Transform';
-
-export const Transform = class implements Transform {
-    entityId!: string;
-    type = TransformType;
-    data: TransformData;
-
-    constructor(data: Arguments = {}) {
-        this.data = {
-            position: data.position ? data.position : [0, 0, 0],
-            quaternion: data.quaternion ? data.quaternion : [0, 0, 0, 1],
-            scaling: data.scaling ? data.scaling : [1, 1, 1],
-            modelMatrix: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1],
-            eulerRotationCache: [0, 0, 0, 1],
-            dirty: true,
-        };
-    }
-
-    static get TYPE(): string {
-        return TransformType;
+export class Transform extends Component<typeof type, TransformData> {
+    constructor(args: Args = {}) {
+        super(type, {
+            position: args.position || vec3.fromValues(0, 0, 0),
+            scaling: args.scaling || vec3.fromValues(1, 1, 1),
+            quaternion: args.quaternion || quat.fromValues(0, 0, 0, 1),
+            rotationCache: quat.create(),
+            modelMatrix: mat4.fromValues(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1),
+            dirty: {
+                modelMatrix: true,
+            }
+        });
     }
 
     translate(translation: vec3): void {
         vec3.add(this.data.position, this.data.position, translation);
-        this.data.dirty = true;
+        this.data.dirty.modelMatrix = true;
     }
 
     scale(scaling: vec3): void {
         vec3.add(this.data.scaling, this.data.scaling, scaling);
-        this.data.dirty = true;
+        this.data.dirty.modelMatrix = true;
     }
 
     rotate(eulerRotation: vec3): void {
-        quat.fromEuler(this.data.eulerRotationCache, eulerRotation[0], eulerRotation[1], eulerRotation[2]);
-        quat.multiply(this.data.quaternion, this.data.quaternion, this.data.eulerRotationCache);
-        this.data.dirty = true;
+        quat.fromEuler(this.data.rotationCache, eulerRotation[0], eulerRotation[1], eulerRotation[2]);
+        quat.multiply(this.data.quaternion, this.data.quaternion, this.data.rotationCache);
+        this.data.dirty.modelMatrix = true;
     }
-};
+
+    update(): void {
+        if (this.data.dirty.modelMatrix) {
+            mat4.fromRotationTranslationScale(this.data.modelMatrix, this.data.quaternion, this.data.position, this.data.scaling);
+            this.data.dirty.modelMatrix = false;
+        }
+    }
+}

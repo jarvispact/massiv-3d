@@ -1,6 +1,10 @@
 import fs from 'fs';
 
 const folderName = process.argv[2];
+if (!folderName) {
+    console.error('you need to specify a foldername for your new example');
+    process.exit(1);
+}
 
 (async (): Promise<void> => {
     try {

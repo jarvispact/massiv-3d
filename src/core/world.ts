@@ -1,117 +1,95 @@
 import { Component } from './component';
-import { SystemClass, UpdateableSystem, System } from './system';
 import { Entity } from './entity';
-import { WorldEvent, createRegisterEntityEvent, createRemoveEntityEvent, createSetActiveCameraEvent } from './event';
+import { System, SystemClass } from './system';
+import { ECSEvent } from './event';
+import { Class } from '../types';
 
 const cleanupAndFilterSystem = (systemToRemove: System) => (system: System): boolean => {
-    if (system === systemToRemove) {
-        if (system.cleanup) system.cleanup();
+    if (system === systemToRemove && system.cleanup) {
+        system.cleanup();
         return false;
     }
     return true;
 }
 
-export interface World {
+const createGetDelta = (then = 0) => (now: number): number => {
+    now *= 0.001;
+    const delta = now - then;
+    then = now;
+    return delta;
+};
+
+export class World {
     componentsByType: Record<string, Component[]>;
     componentsByEntityId: Record<string, Component[]>;
     subscriptions: Record<string, System[]>;
     systems: System[];
-    updateableSystems: UpdateableSystem[];
-    activeCameraEntity: Entity | null;
-    publish(event: WorldEvent): void;
-    subscribe(system: System, types: string[]): void;
-    registerEntity(components: Component[]): Entity;
-    removeEntity(entity: Entity): World;
-    registerSystem(systemClass: SystemClass): System;
-    removeSystem(system: System): World;
-    setActiveCameraEntity(cameraEntity: Entity): World;
-    update(delta: number): void;
-}
+    getDelta = createGetDelta();
 
-export const World = class implements World {
-    componentsByType: Record<string, Component[]> = {};
-    componentsByEntityId: Record<string, Component[]> = {};
-    subscriptions: Record<string, System[]> = {};
-    systems: System[] = [];
-    updateableSystems: UpdateableSystem[] = [];
-    activeCameraEntity: Entity | null = null;
+    constructor() {
+        this.componentsByType = {};
+        this.componentsByEntityId = {};
+        this.subscriptions = {};
+        this.systems = [];
+    }
 
-    publish(event: WorldEvent): void {
-        if (!this.subscriptions[event.type]) this.subscriptions[event.type] = [];
-
-        for (let i = 0; i < this.subscriptions[event.type].length; i++) {
-            const system = this.subscriptions[event.type][i];
-            if (system.onEvent) system.onEvent(event);
-        }
+    publish(event: ECSEvent): void {
+        if (!this.subscriptions[event.type]) return;
+        this.subscriptions[event.type].forEach((system) => system.on && system.on(event));
     }
 
     subscribe(system: System, types: string[]): void {
-        types.forEach(type => {
+        types.forEach((type) => {
             if (!this.subscriptions[type]) this.subscriptions[type] = [];
             this.subscriptions[type].push(system);
         });
     }
 
+    getComponentsByType<T extends Component>(klass: Class<T>): T[] {
+        return this.componentsByType[klass.name] as T[];
+    }
+
+    getComponentsByEntityId(entityId: string): Component[] {
+        return this.componentsByEntityId[entityId];
+    }
+
     registerEntity(components: Component[]): Entity {
         const entity = new Entity(this);
+
         if (!this.componentsByEntityId[entity.id]) this.componentsByEntityId[entity.id] = [];
 
-        components.forEach(component => {
-            if (this.componentsByEntityId[entity.id].find(c => c.type === component.type)) {
-                throw new Error('a entity cannot have more than one component of the same type');
-            }
-
+        components.forEach((component) => {
+            component.entityId = entity.id;
             if (!this.componentsByType[component.type]) this.componentsByType[component.type] = [];
             this.componentsByType[component.type].push(component);
-
-            component.entityId = entity.id;
             this.componentsByEntityId[entity.id].push(component);
         });
 
-        this.publish(createRegisterEntityEvent(entity));
         return entity;
     }
 
     removeEntity(entity: Entity): World {
-        this.publish(createRemoveEntityEvent(entity));
         this.componentsByEntityId[entity.id] = [];
-
-        Object.keys(this.componentsByType).forEach(type => {
+        Object.keys(this.componentsByType).forEach((type) => {
             this.componentsByType[type] = this.componentsByType[type].filter(c => c.entityId !== entity.id);
         });
 
         return this;
     }
 
-    registerSystem(SystemClass: SystemClass): System {
-        const system = new SystemClass(this);
-
-        if (system instanceof UpdateableSystem) {
-            this.updateableSystems.push(system);
-        } else {
-            this.systems.push(system);
-        }
-        
+    registerSystem(systemClass: SystemClass): System {
+        const system = new systemClass(this);
+        this.systems.push(system);
         return system;
     }
 
     removeSystem(system: System): World {
-        if (system instanceof UpdateableSystem) {
-            this.updateableSystems = this.updateableSystems.filter(cleanupAndFilterSystem(system));
-        } else {
-            this.systems = this.systems.filter(cleanupAndFilterSystem(system));
-        }
-
+        this.systems = this.systems.filter(cleanupAndFilterSystem(system));
         return this;
     }
 
-    setActiveCameraEntity(cameraEntity: Entity): World {
-        this.activeCameraEntity = cameraEntity;
-        this.publish(createSetActiveCameraEvent(cameraEntity));
-        return this;
+    update(time: number): void {
+        const delta = this.getDelta(time);
+        this.systems.forEach(system => system.update && system.update(delta, time));
     }
-
-    update(delta: number): void {
-        this.updateableSystems.forEach((system) => system.onUpdate(delta));
-    }
-};
+}

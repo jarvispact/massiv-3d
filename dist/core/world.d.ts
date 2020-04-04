@@ -1,46 +1,22 @@
 import { Component } from './component';
-import { SystemClass, UpdateableSystem, System } from './system';
 import { Entity } from './entity';
-import { WorldEvent } from './event';
-export interface World {
+import { System, SystemClass } from './system';
+import { ECSEvent } from './event';
+import { Class } from '../types';
+export declare class World {
     componentsByType: Record<string, Component[]>;
     componentsByEntityId: Record<string, Component[]>;
     subscriptions: Record<string, System[]>;
     systems: System[];
-    updateableSystems: UpdateableSystem[];
-    activeCameraEntity: Entity | null;
-    publish(event: WorldEvent): void;
+    getDelta: (now: number) => number;
+    constructor();
+    publish(event: ECSEvent): void;
     subscribe(system: System, types: string[]): void;
+    getComponentsByType<T extends Component>(klass: Class<T>): T[];
+    getComponentsByEntityId(entityId: string): Component[];
     registerEntity(components: Component[]): Entity;
     removeEntity(entity: Entity): World;
     registerSystem(systemClass: SystemClass): System;
     removeSystem(system: System): World;
-    setActiveCameraEntity(cameraEntity: Entity): World;
-    update(delta: number): void;
+    update(time: number): void;
 }
-export declare const World: {
-    new (): {
-        componentsByType: Record<string, Component[]>;
-        componentsByEntityId: Record<string, Component[]>;
-        subscriptions: Record<string, System[]>;
-        systems: System[];
-        updateableSystems: UpdateableSystem[];
-        activeCameraEntity: Entity | null;
-        publish(event: WorldEvent<unknown>): void;
-        publish(event: WorldEvent<unknown>): void;
-        subscribe(system: System, types: string[]): void;
-        subscribe(system: System, types: string[]): void;
-        registerEntity(components: Component[]): Entity;
-        registerEntity(components: Component[]): Entity;
-        removeEntity(entity: Entity): World;
-        removeEntity(entity: Entity): World;
-        registerSystem(SystemClass: SystemClass): System;
-        registerSystem(systemClass: SystemClass): System;
-        removeSystem(system: System): World;
-        removeSystem(system: System): World;
-        setActiveCameraEntity(cameraEntity: Entity): World;
-        setActiveCameraEntity(cameraEntity: Entity): World;
-        update(delta: number): void;
-        update(delta: number): void;
-    };
-};
