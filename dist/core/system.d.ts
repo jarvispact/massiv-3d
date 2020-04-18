@@ -2,18 +2,21 @@ import { World } from './world';
 import { ECSEvent } from './event';
 export interface System {
     world: World;
+    init?(): void;
     on?(event: ECSEvent): void;
-    update?(delta: number, time: number): void;
     cleanup?(): void;
+    update(delta: number, time: number): void;
 }
-export interface SystemClass {
-    new (world: World): System;
+export declare class System implements System {
+    world: World;
 }
-export declare const System: {
-    new (world: World): {
-        world: World;
-        on?(event: ECSEvent<string, unknown>): void;
-        update?(delta: number, time: number): void;
-        cleanup?(): void;
-    };
-};
+export interface RenderSystem {
+    world: World;
+    init?(): void;
+    on?(event: ECSEvent): void;
+    cleanup?(): void;
+    render(delta: number, time: number): void;
+}
+export declare class RenderSystem implements RenderSystem {
+    world: World;
+}

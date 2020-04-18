@@ -1,7 +1,8 @@
-(function (factory) {
-  typeof define === 'function' && define.amd ? define(factory) :
-  factory();
-}((function () { 'use strict';
+(function (global, factory) {
+  typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
+  typeof define === 'function' && define.amd ? define(['exports'], factory) :
+  (global = global || self, factory(global.MASSIV = {}));
+}(this, (function (exports) { 'use strict';
 
   /**
    * Common utilities
@@ -13,7 +14,7 @@
   /**
    * Sets the type of array used when creating new vectors and matrices
    *
-   * @param {Type} type Array type, such as Float32Array or Array
+   * @param {Float32ArrayConstructor | ArrayConstructor} type Array type, such as Float32Array or Array
    */
 
   function setMatrixArrayType(type) {
@@ -59,41 +60,6 @@
     return out;
   }
 
-  /**
-   * 4x4 Matrix<br>Format: column-major, when typed out it looks like row-major<br>The matrices are being post multiplied.
-   * @module mat4
-   */
-
-  /**
-   * Creates a new identity mat4
-   *
-   * @returns {mat4} a new 4x4 matrix
-   */
-
-  function create$1() {
-    var out = new ARRAY_TYPE(16);
-
-    if (ARRAY_TYPE != Float32Array) {
-      out[1] = 0;
-      out[2] = 0;
-      out[3] = 0;
-      out[4] = 0;
-      out[6] = 0;
-      out[7] = 0;
-      out[8] = 0;
-      out[9] = 0;
-      out[11] = 0;
-      out[12] = 0;
-      out[13] = 0;
-      out[14] = 0;
-    }
-
-    out[0] = 1;
-    out[5] = 1;
-    out[10] = 1;
-    out[15] = 1;
-    return out;
-  }
   /**
    * Create a new mat4 with the given values
    *
@@ -166,8 +132,8 @@
    * Multiplies two mat4s
    *
    * @param {mat4} out the receiving matrix
-   * @param {mat4} a the first operand
-   * @param {mat4} b the second operand
+   * @param {ReadonlyMat4} a the first operand
+   * @param {ReadonlyMat4} b the second operand
    * @returns {mat4} out
    */
 
@@ -236,8 +202,8 @@
    *
    * @param {mat4} out mat4 receiving operation result
    * @param {quat4} q Rotation quaternion
-   * @param {vec3} v Translation vector
-   * @param {vec3} s Scaling vector
+   * @param {ReadonlyVec3} v Translation vector
+   * @param {ReadonlyVec3} s Scaling vector
    * @returns {mat4} out
    */
 
@@ -322,13 +288,48 @@
     return out;
   }
   /**
+   * Generates a orthogonal projection matrix with the given bounds
+   *
+   * @param {mat4} out mat4 frustum matrix will be written into
+   * @param {number} left Left bound of the frustum
+   * @param {number} right Right bound of the frustum
+   * @param {number} bottom Bottom bound of the frustum
+   * @param {number} top Top bound of the frustum
+   * @param {number} near Near bound of the frustum
+   * @param {number} far Far bound of the frustum
+   * @returns {mat4} out
+   */
+
+  function ortho(out, left, right, bottom, top, near, far) {
+    var lr = 1 / (left - right);
+    var bt = 1 / (bottom - top);
+    var nf = 1 / (near - far);
+    out[0] = -2 * lr;
+    out[1] = 0;
+    out[2] = 0;
+    out[3] = 0;
+    out[4] = 0;
+    out[5] = -2 * bt;
+    out[6] = 0;
+    out[7] = 0;
+    out[8] = 0;
+    out[9] = 0;
+    out[10] = 2 * nf;
+    out[11] = 0;
+    out[12] = (left + right) * lr;
+    out[13] = (top + bottom) * bt;
+    out[14] = (far + near) * nf;
+    out[15] = 1;
+    return out;
+  }
+  /**
    * Generates a look-at matrix with the given eye position, focal point, and up axis.
    * If you want a matrix that actually makes an object look at another object, you should use targetTo instead.
    *
    * @param {mat4} out mat4 frustum matrix will be written into
-   * @param {vec3} eye Position of the viewer
-   * @param {vec3} center Point the viewer is looking at
-   * @param {vec3} up vec3 pointing up
+   * @param {ReadonlyVec3} eye Position of the viewer
+   * @param {ReadonlyVec3} center Point the viewer is looking at
+   * @param {ReadonlyVec3} up vec3 pointing up
    * @returns {mat4} out
    */
 
@@ -417,7 +418,7 @@
    * @returns {vec3} a new 3D vector
    */
 
-  function create$2() {
+  function create$1() {
     var out = new ARRAY_TYPE(3);
 
     if (ARRAY_TYPE != Float32Array) {
@@ -431,7 +432,7 @@
   /**
    * Calculates the length of a vec3
    *
-   * @param {vec3} a vector to calculate length of
+   * @param {ReadonlyVec3} a vector to calculate length of
    * @returns {Number} length of a
    */
 
@@ -461,8 +462,8 @@
    * Adds two vec3's
    *
    * @param {vec3} out the receiving vector
-   * @param {vec3} a the first operand
-   * @param {vec3} b the second operand
+   * @param {ReadonlyVec3} a the first operand
+   * @param {ReadonlyVec3} b the second operand
    * @returns {vec3} out
    */
 
@@ -476,7 +477,7 @@
    * Normalize a vec3
    *
    * @param {vec3} out the receiving vector
-   * @param {vec3} a vector to normalize
+   * @param {ReadonlyVec3} a vector to normalize
    * @returns {vec3} out
    */
 
@@ -499,8 +500,8 @@
   /**
    * Calculates the dot product of two vec3's
    *
-   * @param {vec3} a the first operand
-   * @param {vec3} b the second operand
+   * @param {ReadonlyVec3} a the first operand
+   * @param {ReadonlyVec3} b the second operand
    * @returns {Number} dot product of a and b
    */
 
@@ -511,8 +512,8 @@
    * Computes the cross product of two vec3's
    *
    * @param {vec3} out the receiving vector
-   * @param {vec3} a the first operand
-   * @param {vec3} b the second operand
+   * @param {ReadonlyVec3} a the first operand
+   * @param {ReadonlyVec3} b the second operand
    * @returns {vec3} out
    */
 
@@ -548,7 +549,7 @@
    */
 
   var forEach = function () {
-    var vec = create$2();
+    var vec = create$1();
     return function (a, stride, offset, count, fn, arg) {
       var i, l;
 
@@ -591,7 +592,7 @@
    * @returns {vec4} a new 4D vector
    */
 
-  function create$3() {
+  function create$2() {
     var out = new ARRAY_TYPE(4);
 
     if (ARRAY_TYPE != Float32Array) {
@@ -625,7 +626,7 @@
    * Normalize a vec4
    *
    * @param {vec4} out the receiving vector
-   * @param {vec4} a vector to normalize
+   * @param {ReadonlyVec4} a vector to normalize
    * @returns {vec4} out
    */
 
@@ -660,7 +661,7 @@
    */
 
   var forEach$1 = function () {
-    var vec = create$3();
+    var vec = create$2();
     return function (a, stride, offset, count, fn, arg) {
       var i, l;
 
@@ -705,7 +706,7 @@
    * @returns {quat} a new quaternion
    */
 
-  function create$4() {
+  function create$3() {
     var out = new ARRAY_TYPE(4);
 
     if (ARRAY_TYPE != Float32Array) {
@@ -722,7 +723,7 @@
    * then returns it.
    *
    * @param {quat} out the receiving quaternion
-   * @param {vec3} axis the axis around which to rotate
+   * @param {ReadonlyVec3} axis the axis around which to rotate
    * @param {Number} rad the angle in radians
    * @returns {quat} out
    **/
@@ -740,8 +741,8 @@
    * Multiplies two quat's
    *
    * @param {quat} out the receiving quaternion
-   * @param {quat} a the first operand
-   * @param {quat} b the second operand
+   * @param {ReadonlyQuat} a the first operand
+   * @param {ReadonlyQuat} b the second operand
    * @returns {quat} out
    */
 
@@ -764,8 +765,8 @@
    * Performs a spherical linear interpolation between two quat
    *
    * @param {quat} out the receiving quaternion
-   * @param {quat} a the first operand
-   * @param {quat} b the second operand
+   * @param {ReadonlyQuat} a the first operand
+   * @param {ReadonlyQuat} b the second operand
    * @param {Number} t interpolation amount, in the range [0-1], between the two inputs
    * @returns {quat} out
    */
@@ -821,7 +822,7 @@
    * to renormalize the quaternion yourself where necessary.
    *
    * @param {quat} out the receiving quaternion
-   * @param {mat3} m rotation matrix
+   * @param {ReadonlyMat3} m rotation matrix
    * @returns {quat} out
    * @function
    */
@@ -903,7 +904,7 @@
    * Normalize a quat
    *
    * @param {quat} out the receiving quaternion
-   * @param {quat} a quaternion to normalize
+   * @param {ReadonlyQuat} a quaternion to normalize
    * @returns {quat} out
    * @function
    */
@@ -916,13 +917,13 @@
    * Both vectors are assumed to be unit length.
    *
    * @param {quat} out the receiving quaternion.
-   * @param {vec3} a the initial vector
-   * @param {vec3} b the destination vector
+   * @param {ReadonlyVec3} a the initial vector
+   * @param {ReadonlyVec3} b the destination vector
    * @returns {quat} out
    */
 
   var rotationTo = function () {
-    var tmpvec3 = create$2();
+    var tmpvec3 = create$1();
     var xUnitVec3 = fromValues$1(1, 0, 0);
     var yUnitVec3 = fromValues$1(0, 1, 0);
     return function (out, a, b) {
@@ -954,17 +955,17 @@
    * Performs a spherical linear interpolation with two control points
    *
    * @param {quat} out the receiving quaternion
-   * @param {quat} a the first operand
-   * @param {quat} b the second operand
-   * @param {quat} c the third operand
-   * @param {quat} d the fourth operand
+   * @param {ReadonlyQuat} a the first operand
+   * @param {ReadonlyQuat} b the second operand
+   * @param {ReadonlyQuat} c the third operand
+   * @param {ReadonlyQuat} d the fourth operand
    * @param {Number} t interpolation amount, in the range [0-1], between the two inputs
    * @returns {quat} out
    */
 
   var sqlerp = function () {
-    var temp1 = create$4();
-    var temp2 = create$4();
+    var temp1 = create$3();
+    var temp2 = create$3();
     return function (out, a, b, c, d, t) {
       slerp(temp1, a, d, t);
       slerp(temp2, b, c, t);
@@ -977,9 +978,9 @@
    * axes. Each axis is a vec3 and is expected to be unit length and
    * perpendicular to all other specified axes.
    *
-   * @param {vec3} view  the vector representing the viewing direction
-   * @param {vec3} right the vector representing the local "right" direction
-   * @param {vec3} up    the vector representing the local "up" direction
+   * @param {ReadonlyVec3} view  the vector representing the viewing direction
+   * @param {ReadonlyVec3} right the vector representing the local "right" direction
+   * @param {ReadonlyVec3} up    the vector representing the local "up" direction
    * @returns {quat} out
    */
 
@@ -1007,10 +1008,47 @@
       }
   }
 
-  const type = 'PerspectiveCamera';
-  class PerspectiveCamera extends Component {
+  const type = 'OrthographicCamera';
+  class OrthographicCamera extends Component {
       constructor(args) {
           super(type, {
+              position: args.position,
+              lookAt: args.lookAt ? args.lookAt : fromValues$1(0, 0, 0),
+              upVector: args.upVector ? args.upVector : fromValues$1(0, 1, 0),
+              viewMatrix: fromValues(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1),
+              projectionMatrix: fromValues(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1),
+              dirty: {
+                  viewMatrix: true,
+                  projectionMatrix: true,
+              },
+              left: args.left,
+              right: args.right,
+              bottom: args.bottom,
+              top: args.top,
+              near: args.near,
+              far: args.far,
+          });
+      }
+      translate(translation) {
+          add(this.data.position, this.data.position, translation);
+          this.data.dirty.viewMatrix = true;
+      }
+      update() {
+          if (this.data.dirty.viewMatrix) {
+              lookAt(this.data.viewMatrix, this.data.position, this.data.lookAt, this.data.upVector);
+              this.data.dirty.viewMatrix = false;
+          }
+          if (this.data.dirty.projectionMatrix) {
+              ortho(this.data.projectionMatrix, this.data.left, this.data.right, this.data.bottom, this.data.top, this.data.near, this.data.far);
+              this.data.dirty.projectionMatrix = false;
+          }
+      }
+  }
+
+  const type$1 = 'PerspectiveCamera';
+  class PerspectiveCamera extends Component {
+      constructor(args) {
+          super(type$1, {
               position: args.position,
               lookAt: args.lookAt ? args.lookAt : fromValues$1(0, 0, 0),
               upVector: args.upVector ? args.upVector : fromValues$1(0, 1, 0),
@@ -1046,14 +1084,21 @@
       }
   }
 
-  const type$1 = 'Transform';
+  const type$2 = 'Renderable';
+  class Renderable extends Component {
+      constructor(args) {
+          super(type$2, args);
+      }
+  }
+
+  const type$3 = 'Transform';
   class Transform extends Component {
       constructor(args = {}) {
-          super(type$1, {
+          super(type$3, {
               position: args.position || fromValues$1(0, 0, 0),
               scaling: args.scaling || fromValues$1(1, 1, 1),
               quaternion: args.quaternion || fromValues$3(0, 0, 0, 1),
-              rotationCache: create$4(),
+              rotationCache: create$3(),
               modelMatrix: fromValues(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1),
               dirty: {
                   modelMatrix: true,
@@ -1107,11 +1152,32 @@
       }
   }
 
-  const System = class {
-      constructor(world) {
-          this.world = world;
+  class ECSEvent {
+      constructor(type, payload) {
+          this.type = type;
+          this.payload = payload;
       }
-  };
+  }
+
+  class Geometry {
+      constructor(args = {}) {
+          this.positions = args.positions || [];
+          this.uvs = args.uvs || [];
+          this.normals = args.normals || [];
+          this.indices = args.indices || [];
+          this.colors = args.colors || [];
+      }
+  }
+
+  class Material {
+      constructor() {
+          this.blendEnabled = false;
+          this.cullFaceEnabled = false;
+      }
+  }
+
+  class RenderSystem {
+  }
 
   const cleanupAndFilterSystem = (systemToRemove) => (system) => {
       if (system === systemToRemove && system.cleanup) {
@@ -1133,17 +1199,18 @@
           this.componentsByEntityId = {};
           this.subscriptions = {};
           this.systems = [];
+          this.renderSystems = [];
       }
       publish(event) {
           if (!this.subscriptions[event.type])
               return;
           this.subscriptions[event.type].forEach((system) => system.on && system.on(event));
       }
-      subscribe(system, types) {
-          types.forEach((type) => {
-              if (!this.subscriptions[type])
-                  this.subscriptions[type] = [];
-              this.subscriptions[type].push(system);
+      subscribe(system, events) {
+          events.forEach((event) => {
+              if (!this.subscriptions[event.name])
+                  this.subscriptions[event.name] = [];
+              this.subscriptions[event.name].push(system);
           });
       }
       getComponentsByType(klass) {
@@ -1151,6 +1218,9 @@
       }
       getComponentsByEntityId(entityId) {
           return this.componentsByEntityId[entityId];
+      }
+      getComponentByEntityIdAndType(entityId, klass) {
+          return this.getComponentsByEntityId(entityId).find(c => c.type === klass.name);
       }
       registerEntity(components) {
           const entity = new Entity(this);
@@ -1172,53 +1242,124 @@
           });
           return this;
       }
-      registerSystem(systemClass) {
-          const system = new systemClass(this);
+      registerSystem(system) {
+          system.world = this;
+          if (system.init)
+              system.init();
           this.systems.push(system);
-          return system;
+          return this;
       }
       removeSystem(system) {
           this.systems = this.systems.filter(cleanupAndFilterSystem(system));
           return this;
       }
+      registerRenderSystem(renderSystem) {
+          renderSystem.world = this;
+          if (renderSystem.init)
+              renderSystem.init();
+          this.renderSystems.push(renderSystem);
+          return this;
+      }
+      removeRenderSystem(system) {
+          this.renderSystems = this.renderSystems.filter(cleanupAndFilterSystem(system));
+          return this;
+      }
       update(time) {
           const delta = this.getDelta(time);
-          this.systems.forEach(system => system.update && system.update(delta, time));
+          for (let i = 0; i < this.systems.length; i++)
+              this.systems[i].update(delta, time);
+      }
+      render(time) {
+          const delta = this.getDelta(time);
+          for (let i = 0; i < this.renderSystems.length; i++)
+              this.renderSystems[i].render(delta, time);
       }
   }
 
-  class FpsDebugSystem extends System {
-      constructor(world) {
-          super(world);
-          this.fpsDisplay = document.createElement('p');
-          this.fpsDisplay.style.position = 'fixed';
-          this.fpsDisplay.style.top = '10px';
-          this.fpsDisplay.style.left = '10px';
-          this.fpsDisplay.style.color = '#FFFFFF';
-          this.fpsDisplay.style.zIndex = '10';
-          document.body.appendChild(this.fpsDisplay);
-          this.oneSecond = Date.now() + 1000;
-          this.fps = 0;
-      }
-      update() {
-          this.fps++;
-          const currentTime = Date.now();
-          if (currentTime >= this.oneSecond) {
-              this.fpsDisplay.textContent = `FPS: ${this.fps}`;
-              this.fps = 0;
-              this.oneSecond = currentTime + 1000;
-          }
+  const type$4 = 'RegisterEntityEvent';
+  class RegisterEntityEvent extends ECSEvent {
+      constructor(entity) {
+          super(type$4, entity);
       }
   }
 
-  class UpdateTransformSystem extends System {
-      update() {
-          const transforms = this.world.getComponentsByType(Transform);
-          for (let i = 0; i < transforms.length; i++)
-              transforms[i].update();
+  const type$5 = 'RemoveEntityEvent';
+  class RemoveEntityEvent extends ECSEvent {
+      constructor(entity) {
+          super(type$5, entity);
       }
   }
 
+  class QuadGeometry extends Geometry {
+      constructor() {
+          super({
+              positions: [-0.5, -0.5, 0, 0.5, -0.5, 0, 0.5, 0.5, 0, -0.5, 0.5, 0],
+              indices: [0, 1, 2, 0, 2, 3],
+          });
+      }
+  }
+
+  class UnlitMaterial extends Material {
+      constructor(args = {}) {
+          super();
+          this.color = args.color || [1, 1, 1];
+          this.opacity = args.opacity || 1.0;
+      }
+  }
+
+  const defaultContextAttributeOptions = {
+      premultipliedAlpha: false,
+      alpha: false,
+      powerPreference: 'high-performance',
+      antialias: false,
+      desynchronized: true,
+  };
+  const getDefaultWebGL2Options = (gl) => ({
+      depthFunc: gl.LEQUAL,
+      blendEquation: gl.FUNC_ADD,
+      blendFuncSFactor: gl.SRC_ALPHA,
+      blendFuncDFactor: gl.ONE_MINUS_SRC_ALPHA,
+      cullFace: gl.BACK,
+      depthTestEnabled: true,
+      blendEnabled: false,
+      cullFaceEnabled: false,
+  });
+  const getWebGL2Context = (canvas, contextAttributeOptions, getWebGL2Options) => {
+      const gl = canvas.getContext('webgl2', Object.assign(Object.assign({}, defaultContextAttributeOptions), contextAttributeOptions || {}));
+      if (!gl)
+          throw new Error('cannot get webgl2 context');
+      const options = Object.assign(Object.assign({}, getDefaultWebGL2Options(gl)), getWebGL2Options ? getWebGL2Options(gl) : {});
+      gl.viewport(0, 0, canvas.width, canvas.height);
+      gl.clearColor(0, 0, 0, 1);
+      gl.colorMask(true, true, true, false);
+      gl.depthFunc(options.depthFunc);
+      gl.blendEquation(options.blendEquation);
+      gl.blendFunc(options.blendFuncSFactor, options.blendFuncDFactor);
+      gl.cullFace(options.cullFace);
+      if (options.depthTestEnabled) {
+          gl.enable(gl.DEPTH_TEST);
+      }
+      else {
+          gl.disable(gl.DEPTH_TEST);
+      }
+      if (options.blendEnabled) {
+          gl.enable(gl.BLEND);
+      }
+      else {
+          gl.disable(gl.BLEND);
+      }
+      if (options.cullFaceEnabled) {
+          gl.enable(gl.CULL_FACE);
+      }
+      else {
+          gl.disable(gl.CULL_FACE);
+      }
+      return gl;
+  };
+  // export const glsl = (sourceCode: TemplateStringsArray, ...interpolations: unknown[]) => {
+  //     console.log({ sourceCode, interpolations });
+  //     return sourceCode;
+  // };
   const createShader = (gl, type, source) => {
       const shader = gl.createShader(type);
       if (!shader)
@@ -1275,32 +1416,6 @@
       return [vao, buffers];
   };
 
-  setMatrixArrayType(Array);
-
-  // /* eslint-disable @typescript-eslint/no-empty-function */
-  const canvas = document.getElementById('canvas');
-  canvas.width = canvas.clientWidth;
-  canvas.height = canvas.clientHeight;
-  const gl = canvas.getContext('webgl2');
-  gl.viewport(0, 0, canvas.width, canvas.height);
-  gl.clearColor(0, 0, 0, 1);
-  gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-  const renderableType = 'Renderable';
-  const Renderable = class extends Component {
-      constructor() {
-          super(renderableType, {
-              positions: [-0.5, -0.5, 0, 0.5, -0.5, 0, 0.5, 0.5, 0, -0.5, 0.5, 0],
-              indices: [0, 1, 2, 0, 2, 3],
-              colors: [1, 0, 0, 0, 1, 0, 0, 0, 1, 1, 1, 0],
-          });
-      }
-  };
-  const rotationType = 'Rotation';
-  const Rotation = class extends Component {
-      constructor() {
-          super(rotationType, [0, 1, 0]);
-      }
-  };
   const vShaderSource = `
     #version 300 es
 
@@ -1308,14 +1423,10 @@
     precision highp int;
 
     layout(location = 0) in vec3 position;
-    layout(location = 1) in vec3 color;
 
     uniform mat4 mvp;
 
-    out vec3 aColor;
-
     void main() {
-        aColor = color;
         gl_Position = mvp * vec4(position, 1.0);
     }
 `.trim();
@@ -1325,87 +1436,167 @@
     precision highp float;
     precision highp int;
 
-    in vec3 aColor;
-
     out vec4 fragmentColor;
 
     void main() {
-        fragmentColor = vec4(aColor, 1.0);
+        fragmentColor = vec4(1.0, 1.0, 1.0, 1.0);
     }
 `.trim();
-  const RenderSystem = class extends System {
-      constructor(world) {
-          super(world);
-          window.addEventListener('unload', () => {
-              this.cleanup();
+  class CachedRenderable {
+      constructor(gl, renderable, transform, frameState) {
+          this.gl = gl;
+          this.renderable = renderable;
+          this.transform = transform;
+          this.frameState = frameState;
+          this.vertexShader = createShader(gl, gl.VERTEX_SHADER, vShaderSource);
+          this.fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, fShaderSource);
+          this.program = createProgram(gl, this.vertexShader, this.fragmentShader);
+          const [vao, buffers] = createVertexArray(gl, () => {
+              const positionBuffer = createArrayBuffer(gl, Float32Array.from(renderable.data.geometry.positions), 0, 3);
+              return [positionBuffer];
           });
+          this.vao = vao;
+          this.buffers = buffers;
+          this.indexBuffer = createElementArrayBuffer(gl, Uint32Array.from(renderable.data.geometry.indices));
+          this.mvpLocation = gl.getUniformLocation(this.program, 'mvp');
       }
-      update() {
-          const renderable = this.world.getComponentsByType(Renderable)[0];
-          const transform = this.world.getComponentsByType(Transform)[0];
-          const camera = this.world.getComponentsByType(PerspectiveCamera)[0];
-          if (!this.cached) {
-              this.vertexShader = createShader(gl, gl.VERTEX_SHADER, vShaderSource);
-              this.fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, fShaderSource);
-              this.program = createProgram(gl, this.vertexShader, this.fragmentShader);
-              const [vao, buffers] = createVertexArray(gl, () => {
-                  const positionBuffer = createArrayBuffer(gl, Float32Array.from(renderable.data.positions), 0, 3);
-                  const colorBuffer = createArrayBuffer(gl, Float32Array.from(renderable.data.colors), 1, 3);
-                  return [positionBuffer, colorBuffer];
-              });
-              this.vao = vao;
-              this.buffers = buffers;
-              this.indices = createElementArrayBuffer(gl, Uint32Array.from(renderable.data.indices));
-              this.uniforms = {
-                  mvp: { location: gl.getUniformLocation(this.program, 'mvp'), value: create$1() },
-              };
-              if (!this.uniforms.mvp.location) {
-                  throw new Error('could not get uniform location');
-              }
-              this.cached = true;
-              gl.useProgram(this.program);
-              gl.bindVertexArray(this.vao);
-              gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.indices);
-          }
-          else {
-              gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-              camera.update();
-              multiply(this.uniforms.mvp.value, camera.data.viewMatrix, transform.data.modelMatrix);
-              multiply(this.uniforms.mvp.value, camera.data.projectionMatrix, this.uniforms.mvp.value);
-              gl.uniformMatrix4fv(this.uniforms.mvp.location, false, this.uniforms.mvp.value);
-              // gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.indices);
-              gl.drawElements(gl.TRIANGLES, renderable.data.indices.length, gl.UNSIGNED_INT, 0);
-          }
+      render(camera) {
+          const gl = this.gl;
+          const frameState = this.frameState;
+          gl.useProgram(this.program);
+          gl.bindVertexArray(this.vao);
+          camera.update();
+          multiply(frameState.matrixCache.modelView, camera.data.viewMatrix, this.transform.data.modelMatrix);
+          multiply(frameState.matrixCache.modelViewProjection, camera.data.projectionMatrix, frameState.matrixCache.modelView);
+          gl.uniformMatrix4fv(this.mvpLocation, false, frameState.matrixCache.modelViewProjection);
+          gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.indexBuffer);
+          gl.drawElements(gl.TRIANGLES, this.renderable.data.geometry.indices.length, gl.UNSIGNED_INT, 0);
       }
       cleanup() {
+          const gl = this.gl;
           gl.deleteShader(this.vertexShader);
           gl.deleteShader(this.fragmentShader);
           gl.deleteProgram(this.program);
           this.buffers.forEach(buffer => gl.deleteBuffer(buffer));
           gl.deleteVertexArray(this.vao);
-          gl.deleteBuffer(this.indices);
+          gl.deleteBuffer(this.indexBuffer);
       }
-  };
-  const RotationSystem = class extends System {
-      update() {
-          const transforms = this.world.getComponentsByType(Transform);
-          for (const t of transforms) {
-              const rotation = this.world.getComponentsByEntityId(t.entityId).find(c => c.type === Rotation.name);
-              t.rotate(rotation.data);
+  }
+
+  class FrameState {
+      constructor(gl) {
+          this.gl = gl;
+          this.blendEnabled = gl.isEnabled(gl.BLEND);
+          this.cullFaceEnabled = gl.isEnabled(gl.CULL_FACE);
+          this.matrixCache = {
+              modelView: fromValues(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1),
+              modelViewProjection: fromValues(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1),
+          };
+      }
+      setBlendEnabled(flag) {
+          const gl = this.gl;
+          if (this.blendEnabled !== flag) {
+              this.blendEnabled = flag;
+              if (this.blendEnabled) {
+                  gl.enable(gl.BLEND);
+              }
+              else {
+                  gl.disable(gl.BLEND);
+              }
           }
       }
+      setCullFaceEnabled(flag) {
+          const gl = this.gl;
+          if (this.cullFaceEnabled !== flag) {
+              this.cullFaceEnabled = flag;
+              if (this.cullFaceEnabled) {
+                  gl.enable(gl.CULL_FACE);
+              }
+              else {
+                  gl.disable(gl.CULL_FACE);
+              }
+          }
+      }
+  }
+
+  const defaultOptions = {
+      autoClear: true,
   };
+  class WebGL2RenderSystem extends RenderSystem {
+      constructor(canvas, cameraEntity, options = {}) {
+          super();
+          this.canvas = canvas;
+          this.cameraEntity = cameraEntity;
+          this.activeCamera = cameraEntity.getComponent(PerspectiveCamera) || cameraEntity.getComponent(OrthographicCamera);
+          this.options = Object.assign(Object.assign({}, defaultOptions), options);
+          this.gl = getWebGL2Context(canvas, options.contextAttributeOptions, options.getWebGL2Options);
+          this.frameState = new FrameState(this.gl);
+          this.cachedRenderables = {};
+          window.addEventListener('unload', () => {
+              Object.keys(this.cachedRenderables).forEach(key => this.cachedRenderables[key].cleanup());
+          });
+      }
+      setActiveCameraEntity(cameraEntity) {
+          this.cameraEntity = cameraEntity;
+          this.activeCamera = cameraEntity.getComponent(PerspectiveCamera) || cameraEntity.getComponent(OrthographicCamera);
+          return this;
+      }
+      getCachedRenderable(renderable, transform) {
+          if (this.cachedRenderables[renderable.entityId])
+              return this.cachedRenderables[renderable.entityId];
+          console.log(`creating a new cached version of renderable: ${renderable.entityId}`);
+          const cachedRenderable = new CachedRenderable(this.gl, renderable, transform, this.frameState);
+          this.cachedRenderables[renderable.entityId] = cachedRenderable;
+          return cachedRenderable;
+      }
+      init() {
+          this.world.subscribe(this, [RegisterEntityEvent, RemoveEntityEvent]);
+      }
+      on(event) {
+          if (event.type === 'RegisterEntityEvent') ;
+          else if (event.type === 'RemoveEntityEvent') ;
+      }
+      render() {
+          const gl = this.gl;
+          const options = this.options;
+          const frameState = this.frameState;
+          const activeCamera = this.activeCamera;
+          if (options.autoClear)
+              gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+          frameState.setBlendEnabled(false);
+          frameState.setCullFaceEnabled(false);
+          const renderables = this.world.getComponentsByType(Renderable);
+          const renderablesCount = renderables.length;
+          for (let i = 0; i < renderablesCount; i++) {
+              const renderable = renderables[i];
+              const transform = this.world.getComponentByEntityIdAndType(renderable.entityId, Transform);
+              const cachedRenderable = this.getCachedRenderable(renderable, transform);
+              cachedRenderable.render(activeCamera);
+          }
+      }
+  }
+
+  setMatrixArrayType(Array);
+
+  const canvas = document.getElementById('canvas');
+  canvas.width = canvas.clientWidth;
+  canvas.height = canvas.clientHeight;
   const world = new World();
-  world.registerEntity([new Transform(), new Rotation(), new Renderable()]);
-  world.registerEntity([new PerspectiveCamera({ position: [0, 0, 2], aspect: canvas.width / canvas.height })]);
-  world.registerSystem(UpdateTransformSystem);
-  world.registerSystem(RotationSystem);
-  world.registerSystem(RenderSystem);
-  world.registerSystem(FpsDebugSystem);
-  const tick = (now) => {
+  const cameraEntity = world.registerEntity([
+      new PerspectiveCamera({ position: [0, 0, 2], aspect: canvas.width / canvas.height })
+  ]);
+  world.registerEntity([
+      new Transform(),
+      new Renderable({ material: new UnlitMaterial(), geometry: new QuadGeometry() }),
+  ]);
+  world.registerRenderSystem(new WebGL2RenderSystem(canvas, cameraEntity));
+  window.requestAnimationFrame((now) => {
       world.update(now);
-      window.requestAnimationFrame(tick);
-  };
-  window.requestAnimationFrame(tick);
+      world.render(now);
+  });
+
+  exports.canvas = canvas;
+
+  Object.defineProperty(exports, '__esModule', { value: true });
 
 })));

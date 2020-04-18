@@ -1,10 +1,10 @@
 import { Component } from './component';
 import { Entity } from './entity';
-import { System, SystemClass } from './system';
+import { System, RenderSystem } from './system';
 import { ECSEvent } from './event';
 import { Class } from '../types';
 
-const cleanupAndFilterSystem = (systemToRemove: System) => (system: System): boolean => {
+const cleanupAndFilterSystem = (systemToRemove: System | RenderSystem) => (system: System | RenderSystem): boolean => {
     if (system === systemToRemove && system.cleanup) {
         system.cleanup();
         return false;
@@ -22,8 +22,9 @@ const createGetDelta = (then = 0) => (now: number): number => {
 export class World {
     componentsByType: Record<string, Component[]>;
     componentsByEntityId: Record<string, Component[]>;
-    subscriptions: Record<string, System[]>;
+    subscriptions: Record<string, (System | RenderSystem)[]>;
     systems: System[];
+    renderSystems: RenderSystem[];
     getDelta = createGetDelta();
 
     constructor() {
@@ -31,6 +32,7 @@ export class World {
         this.componentsByEntityId = {};
         this.subscriptions = {};
         this.systems = [];
+        this.renderSystems = [];
     }
 
     publish(event: ECSEvent): void {
@@ -38,10 +40,10 @@ export class World {
         this.subscriptions[event.type].forEach((system) => system.on && system.on(event));
     }
 
-    subscribe(system: System, types: string[]): void {
-        types.forEach((type) => {
-            if (!this.subscriptions[type]) this.subscriptions[type] = [];
-            this.subscriptions[type].push(system);
+    subscribe<T extends Class<ECSEvent>[]>(system: System | RenderSystem, events: T): void {
+        events.forEach((event) => {
+            if (!this.subscriptions[event.name]) this.subscriptions[event.name] = [];
+            this.subscriptions[event.name].push(system);
         });
     }
 
@@ -51,6 +53,10 @@ export class World {
 
     getComponentsByEntityId(entityId: string): Component[] {
         return this.componentsByEntityId[entityId];
+    }
+
+    getComponentByEntityIdAndType<T extends Component>(entityId: string, klass: Class<T>): T {
+        return this.getComponentsByEntityId(entityId).find(c => c.type === klass.name) as T;
     }
 
     registerEntity(components: Component[]): Entity {
@@ -77,10 +83,11 @@ export class World {
         return this;
     }
 
-    registerSystem(systemClass: SystemClass): System {
-        const system = new systemClass(this);
+    registerSystem(system: System): World {
+        system.world = this;
+        if (system.init) system.init();
         this.systems.push(system);
-        return system;
+        return this;
     }
 
     removeSystem(system: System): World {
@@ -88,8 +95,25 @@ export class World {
         return this;
     }
 
+    registerRenderSystem(renderSystem: RenderSystem): World {
+        renderSystem.world = this;
+        if (renderSystem.init) renderSystem.init();
+        this.renderSystems.push(renderSystem);
+        return this;
+    }
+
+    removeRenderSystem(system: RenderSystem): World {
+        this.renderSystems = this.renderSystems.filter(cleanupAndFilterSystem(system));
+        return this;
+    }
+
     update(time: number): void {
         const delta = this.getDelta(time);
-        this.systems.forEach(system => system.update && system.update(delta, time));
+        for (let i = 0; i < this.systems.length; i++) this.systems[i].update(delta, time);
+    }
+
+    render(time: number): void {
+        const delta = this.getDelta(time);
+        for (let i = 0; i < this.renderSystems.length; i++) this.renderSystems[i].render(delta, time);
     }
 }

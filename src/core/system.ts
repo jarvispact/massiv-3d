@@ -3,19 +3,24 @@ import { ECSEvent } from './event';
 
 export interface System {
     world: World;
+    init?(): void;
     on?(event: ECSEvent): void;
-    update?(delta: number, time: number): void;
     cleanup?(): void;
+    update(delta: number, time: number): void;
 }
 
-export interface SystemClass {
-    new(world: World): System;
+export class System implements System {
+    world!: World;
 }
 
-export const System = class implements System {
+export interface RenderSystem {
     world: World;
+    init?(): void;
+    on?(event: ECSEvent): void;
+    cleanup?(): void;
+    render(delta: number, time: number): void;
+}
 
-    constructor(world: World) {
-        this.world = world;
-    }
+export class RenderSystem implements RenderSystem {
+    world!: World;
 }

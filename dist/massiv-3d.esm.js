@@ -8,7 +8,7 @@ var ARRAY_TYPE = typeof Float32Array !== 'undefined' ? Float32Array : Array;
 /**
  * Sets the type of array used when creating new vectors and matrices
  *
- * @param {Type} type Array type, such as Float32Array or Array
+ * @param {Float32ArrayConstructor | ArrayConstructor} type Array type, such as Float32Array or Array
  */
 
 function setMatrixArrayType(type) {
@@ -123,6 +123,67 @@ function identity(out) {
   return out;
 }
 /**
+ * Multiplies two mat4s
+ *
+ * @param {mat4} out the receiving matrix
+ * @param {ReadonlyMat4} a the first operand
+ * @param {ReadonlyMat4} b the second operand
+ * @returns {mat4} out
+ */
+
+function multiply(out, a, b) {
+  var a00 = a[0],
+      a01 = a[1],
+      a02 = a[2],
+      a03 = a[3];
+  var a10 = a[4],
+      a11 = a[5],
+      a12 = a[6],
+      a13 = a[7];
+  var a20 = a[8],
+      a21 = a[9],
+      a22 = a[10],
+      a23 = a[11];
+  var a30 = a[12],
+      a31 = a[13],
+      a32 = a[14],
+      a33 = a[15]; // Cache only the current line of the second matrix
+
+  var b0 = b[0],
+      b1 = b[1],
+      b2 = b[2],
+      b3 = b[3];
+  out[0] = b0 * a00 + b1 * a10 + b2 * a20 + b3 * a30;
+  out[1] = b0 * a01 + b1 * a11 + b2 * a21 + b3 * a31;
+  out[2] = b0 * a02 + b1 * a12 + b2 * a22 + b3 * a32;
+  out[3] = b0 * a03 + b1 * a13 + b2 * a23 + b3 * a33;
+  b0 = b[4];
+  b1 = b[5];
+  b2 = b[6];
+  b3 = b[7];
+  out[4] = b0 * a00 + b1 * a10 + b2 * a20 + b3 * a30;
+  out[5] = b0 * a01 + b1 * a11 + b2 * a21 + b3 * a31;
+  out[6] = b0 * a02 + b1 * a12 + b2 * a22 + b3 * a32;
+  out[7] = b0 * a03 + b1 * a13 + b2 * a23 + b3 * a33;
+  b0 = b[8];
+  b1 = b[9];
+  b2 = b[10];
+  b3 = b[11];
+  out[8] = b0 * a00 + b1 * a10 + b2 * a20 + b3 * a30;
+  out[9] = b0 * a01 + b1 * a11 + b2 * a21 + b3 * a31;
+  out[10] = b0 * a02 + b1 * a12 + b2 * a22 + b3 * a32;
+  out[11] = b0 * a03 + b1 * a13 + b2 * a23 + b3 * a33;
+  b0 = b[12];
+  b1 = b[13];
+  b2 = b[14];
+  b3 = b[15];
+  out[12] = b0 * a00 + b1 * a10 + b2 * a20 + b3 * a30;
+  out[13] = b0 * a01 + b1 * a11 + b2 * a21 + b3 * a31;
+  out[14] = b0 * a02 + b1 * a12 + b2 * a22 + b3 * a32;
+  out[15] = b0 * a03 + b1 * a13 + b2 * a23 + b3 * a33;
+  return out;
+}
+/**
  * Creates a matrix from a quaternion rotation, vector translation and vector scale
  * This is equivalent to (but much faster than):
  *
@@ -135,8 +196,8 @@ function identity(out) {
  *
  * @param {mat4} out mat4 receiving operation result
  * @param {quat4} q Rotation quaternion
- * @param {vec3} v Translation vector
- * @param {vec3} s Scaling vector
+ * @param {ReadonlyVec3} v Translation vector
+ * @param {ReadonlyVec3} s Scaling vector
  * @returns {mat4} out
  */
 
@@ -260,9 +321,9 @@ function ortho(out, left, right, bottom, top, near, far) {
  * If you want a matrix that actually makes an object look at another object, you should use targetTo instead.
  *
  * @param {mat4} out mat4 frustum matrix will be written into
- * @param {vec3} eye Position of the viewer
- * @param {vec3} center Point the viewer is looking at
- * @param {vec3} up vec3 pointing up
+ * @param {ReadonlyVec3} eye Position of the viewer
+ * @param {ReadonlyVec3} center Point the viewer is looking at
+ * @param {ReadonlyVec3} up vec3 pointing up
  * @returns {mat4} out
  */
 
@@ -365,7 +426,7 @@ function create$1() {
 /**
  * Calculates the length of a vec3
  *
- * @param {vec3} a vector to calculate length of
+ * @param {ReadonlyVec3} a vector to calculate length of
  * @returns {Number} length of a
  */
 
@@ -395,8 +456,8 @@ function fromValues$1(x, y, z) {
  * Adds two vec3's
  *
  * @param {vec3} out the receiving vector
- * @param {vec3} a the first operand
- * @param {vec3} b the second operand
+ * @param {ReadonlyVec3} a the first operand
+ * @param {ReadonlyVec3} b the second operand
  * @returns {vec3} out
  */
 
@@ -410,7 +471,7 @@ function add(out, a, b) {
  * Normalize a vec3
  *
  * @param {vec3} out the receiving vector
- * @param {vec3} a vector to normalize
+ * @param {ReadonlyVec3} a vector to normalize
  * @returns {vec3} out
  */
 
@@ -433,8 +494,8 @@ function normalize(out, a) {
 /**
  * Calculates the dot product of two vec3's
  *
- * @param {vec3} a the first operand
- * @param {vec3} b the second operand
+ * @param {ReadonlyVec3} a the first operand
+ * @param {ReadonlyVec3} b the second operand
  * @returns {Number} dot product of a and b
  */
 
@@ -445,8 +506,8 @@ function dot(a, b) {
  * Computes the cross product of two vec3's
  *
  * @param {vec3} out the receiving vector
- * @param {vec3} a the first operand
- * @param {vec3} b the second operand
+ * @param {ReadonlyVec3} a the first operand
+ * @param {ReadonlyVec3} b the second operand
  * @returns {vec3} out
  */
 
@@ -559,7 +620,7 @@ function fromValues$2(x, y, z, w) {
  * Normalize a vec4
  *
  * @param {vec4} out the receiving vector
- * @param {vec4} a vector to normalize
+ * @param {ReadonlyVec4} a vector to normalize
  * @returns {vec4} out
  */
 
@@ -656,7 +717,7 @@ function create$3() {
  * then returns it.
  *
  * @param {quat} out the receiving quaternion
- * @param {vec3} axis the axis around which to rotate
+ * @param {ReadonlyVec3} axis the axis around which to rotate
  * @param {Number} rad the angle in radians
  * @returns {quat} out
  **/
@@ -674,12 +735,12 @@ function setAxisAngle(out, axis, rad) {
  * Multiplies two quat's
  *
  * @param {quat} out the receiving quaternion
- * @param {quat} a the first operand
- * @param {quat} b the second operand
+ * @param {ReadonlyQuat} a the first operand
+ * @param {ReadonlyQuat} b the second operand
  * @returns {quat} out
  */
 
-function multiply(out, a, b) {
+function multiply$1(out, a, b) {
   var ax = a[0],
       ay = a[1],
       az = a[2],
@@ -698,8 +759,8 @@ function multiply(out, a, b) {
  * Performs a spherical linear interpolation between two quat
  *
  * @param {quat} out the receiving quaternion
- * @param {quat} a the first operand
- * @param {quat} b the second operand
+ * @param {ReadonlyQuat} a the first operand
+ * @param {ReadonlyQuat} b the second operand
  * @param {Number} t interpolation amount, in the range [0-1], between the two inputs
  * @returns {quat} out
  */
@@ -755,7 +816,7 @@ function slerp(out, a, b, t) {
  * to renormalize the quaternion yourself where necessary.
  *
  * @param {quat} out the receiving quaternion
- * @param {mat3} m rotation matrix
+ * @param {ReadonlyMat3} m rotation matrix
  * @returns {quat} out
  * @function
  */
@@ -837,7 +898,7 @@ var fromValues$3 = fromValues$2;
  * Normalize a quat
  *
  * @param {quat} out the receiving quaternion
- * @param {quat} a quaternion to normalize
+ * @param {ReadonlyQuat} a quaternion to normalize
  * @returns {quat} out
  * @function
  */
@@ -850,8 +911,8 @@ var normalize$2 = normalize$1;
  * Both vectors are assumed to be unit length.
  *
  * @param {quat} out the receiving quaternion.
- * @param {vec3} a the initial vector
- * @param {vec3} b the destination vector
+ * @param {ReadonlyVec3} a the initial vector
+ * @param {ReadonlyVec3} b the destination vector
  * @returns {quat} out
  */
 
@@ -888,10 +949,10 @@ var rotationTo = function () {
  * Performs a spherical linear interpolation with two control points
  *
  * @param {quat} out the receiving quaternion
- * @param {quat} a the first operand
- * @param {quat} b the second operand
- * @param {quat} c the third operand
- * @param {quat} d the fourth operand
+ * @param {ReadonlyQuat} a the first operand
+ * @param {ReadonlyQuat} b the second operand
+ * @param {ReadonlyQuat} c the third operand
+ * @param {ReadonlyQuat} d the fourth operand
  * @param {Number} t interpolation amount, in the range [0-1], between the two inputs
  * @returns {quat} out
  */
@@ -911,9 +972,9 @@ var sqlerp = function () {
  * axes. Each axis is a vec3 and is expected to be unit length and
  * perpendicular to all other specified axes.
  *
- * @param {vec3} view  the vector representing the viewing direction
- * @param {vec3} right the vector representing the local "right" direction
- * @param {vec3} up    the vector representing the local "up" direction
+ * @param {ReadonlyVec3} view  the vector representing the viewing direction
+ * @param {ReadonlyVec3} right the vector representing the local "right" direction
+ * @param {ReadonlyVec3} up    the vector representing the local "up" direction
  * @returns {quat} out
  */
 
@@ -1017,10 +1078,17 @@ class PerspectiveCamera extends Component {
     }
 }
 
-const type$2 = 'Transform';
+const type$2 = 'Renderable';
+class Renderable extends Component {
+    constructor(args) {
+        super(type$2, args);
+    }
+}
+
+const type$3 = 'Transform';
 class Transform extends Component {
     constructor(args = {}) {
-        super(type$2, {
+        super(type$3, {
             position: args.position || fromValues$1(0, 0, 0),
             scaling: args.scaling || fromValues$1(1, 1, 1),
             quaternion: args.quaternion || fromValues$3(0, 0, 0, 1),
@@ -1041,7 +1109,7 @@ class Transform extends Component {
     }
     rotate(eulerRotation) {
         fromEuler(this.data.rotationCache, eulerRotation[0], eulerRotation[1], eulerRotation[2]);
-        multiply(this.data.quaternion, this.data.quaternion, this.data.rotationCache);
+        multiply$1(this.data.quaternion, this.data.quaternion, this.data.rotationCache);
         this.data.dirty.modelMatrix = true;
     }
     update() {
@@ -1049,13 +1117,6 @@ class Transform extends Component {
             fromRotationTranslationScale(this.data.modelMatrix, this.data.quaternion, this.data.position, this.data.scaling);
             this.data.dirty.modelMatrix = false;
         }
-    }
-}
-
-class ECSEvent {
-    constructor(type, payload) {
-        this.type = type;
-        this.payload = payload;
     }
 }
 
@@ -1085,11 +1146,34 @@ class Entity {
     }
 }
 
-const System = class {
-    constructor(world) {
-        this.world = world;
+class ECSEvent {
+    constructor(type, payload) {
+        this.type = type;
+        this.payload = payload;
     }
-};
+}
+
+class Geometry {
+    constructor(args = {}) {
+        this.positions = args.positions || [];
+        this.uvs = args.uvs || [];
+        this.normals = args.normals || [];
+        this.indices = args.indices || [];
+        this.colors = args.colors || [];
+    }
+}
+
+class Material {
+    constructor() {
+        this.blendEnabled = false;
+        this.cullFaceEnabled = false;
+    }
+}
+
+class System {
+}
+class RenderSystem {
+}
 
 const cleanupAndFilterSystem = (systemToRemove) => (system) => {
     if (system === systemToRemove && system.cleanup) {
@@ -1111,17 +1195,18 @@ class World {
         this.componentsByEntityId = {};
         this.subscriptions = {};
         this.systems = [];
+        this.renderSystems = [];
     }
     publish(event) {
         if (!this.subscriptions[event.type])
             return;
         this.subscriptions[event.type].forEach((system) => system.on && system.on(event));
     }
-    subscribe(system, types) {
-        types.forEach((type) => {
-            if (!this.subscriptions[type])
-                this.subscriptions[type] = [];
-            this.subscriptions[type].push(system);
+    subscribe(system, events) {
+        events.forEach((event) => {
+            if (!this.subscriptions[event.name])
+                this.subscriptions[event.name] = [];
+            this.subscriptions[event.name].push(system);
         });
     }
     getComponentsByType(klass) {
@@ -1129,6 +1214,9 @@ class World {
     }
     getComponentsByEntityId(entityId) {
         return this.componentsByEntityId[entityId];
+    }
+    getComponentByEntityIdAndType(entityId, klass) {
+        return this.getComponentsByEntityId(entityId).find(c => c.type === klass.name);
     }
     registerEntity(components) {
         const entity = new Entity(this);
@@ -1150,38 +1238,83 @@ class World {
         });
         return this;
     }
-    registerSystem(systemClass) {
-        const system = new systemClass(this);
+    registerSystem(system) {
+        system.world = this;
+        if (system.init)
+            system.init();
         this.systems.push(system);
-        return system;
+        return this;
     }
     removeSystem(system) {
         this.systems = this.systems.filter(cleanupAndFilterSystem(system));
         return this;
     }
+    registerRenderSystem(renderSystem) {
+        renderSystem.world = this;
+        if (renderSystem.init)
+            renderSystem.init();
+        this.renderSystems.push(renderSystem);
+        return this;
+    }
+    removeRenderSystem(system) {
+        this.renderSystems = this.renderSystems.filter(cleanupAndFilterSystem(system));
+        return this;
+    }
     update(time) {
         const delta = this.getDelta(time);
-        this.systems.forEach(system => system.update && system.update(delta, time));
+        for (let i = 0; i < this.systems.length; i++)
+            this.systems[i].update(delta, time);
+    }
+    render(time) {
+        const delta = this.getDelta(time);
+        for (let i = 0; i < this.renderSystems.length; i++)
+            this.renderSystems[i].render(delta, time);
     }
 }
 
-const type$3 = 'RegisterEntityEvent';
+const type$4 = 'RegisterEntityEvent';
 class RegisterEntityEvent extends ECSEvent {
-    constructor(entity) {
-        super(type$3, entity);
-    }
-}
-
-const type$4 = 'RemoveEntityEvent';
-class RemoveEntityEvent extends ECSEvent {
     constructor(entity) {
         super(type$4, entity);
     }
 }
 
-class FpsDebugSystem extends System {
-    constructor(world) {
-        super(world);
+const type$5 = 'RemoveEntityEvent';
+class RemoveEntityEvent extends ECSEvent {
+    constructor(entity) {
+        super(type$5, entity);
+    }
+}
+
+class QuadGeometry extends Geometry {
+    constructor() {
+        super({
+            positions: [-0.5, -0.5, 0, 0.5, -0.5, 0, 0.5, 0.5, 0, -0.5, 0.5, 0],
+            indices: [0, 1, 2, 0, 2, 3],
+        });
+    }
+}
+
+const ImageLoader = {
+    load: async (imageSrcUrl) => new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => resolve(img);
+        img.onerror = () => reject(new Error(`error loading image from url: "${imageSrcUrl}"`));
+        img.src = imageSrcUrl;
+    }),
+};
+
+class UnlitMaterial extends Material {
+    constructor(args = {}) {
+        super();
+        this.color = args.color || [1, 1, 1];
+        this.opacity = args.opacity || 1.0;
+    }
+}
+
+class FpsDebugSystem extends RenderSystem {
+    constructor() {
+        super();
         this.fpsDisplay = document.createElement('p');
         this.fpsDisplay.style.position = 'fixed';
         this.fpsDisplay.style.top = '10px';
@@ -1192,7 +1325,7 @@ class FpsDebugSystem extends System {
         this.oneSecond = Date.now() + 1000;
         this.fps = 0;
     }
-    update() {
+    render() {
         this.fps++;
         const currentTime = Date.now();
         if (currentTime >= this.oneSecond) {
@@ -1211,6 +1344,59 @@ class UpdateTransformSystem extends System {
     }
 }
 
+const defaultContextAttributeOptions = {
+    premultipliedAlpha: false,
+    alpha: false,
+    powerPreference: 'high-performance',
+    antialias: false,
+    desynchronized: true,
+};
+const getDefaultWebGL2Options = (gl) => ({
+    depthFunc: gl.LEQUAL,
+    blendEquation: gl.FUNC_ADD,
+    blendFuncSFactor: gl.SRC_ALPHA,
+    blendFuncDFactor: gl.ONE_MINUS_SRC_ALPHA,
+    cullFace: gl.BACK,
+    depthTestEnabled: true,
+    blendEnabled: false,
+    cullFaceEnabled: false,
+});
+const getWebGL2Context = (canvas, contextAttributeOptions, getWebGL2Options) => {
+    const gl = canvas.getContext('webgl2', Object.assign(Object.assign({}, defaultContextAttributeOptions), contextAttributeOptions || {}));
+    if (!gl)
+        throw new Error('cannot get webgl2 context');
+    const options = Object.assign(Object.assign({}, getDefaultWebGL2Options(gl)), getWebGL2Options ? getWebGL2Options(gl) : {});
+    gl.viewport(0, 0, canvas.width, canvas.height);
+    gl.clearColor(0, 0, 0, 1);
+    gl.colorMask(true, true, true, false);
+    gl.depthFunc(options.depthFunc);
+    gl.blendEquation(options.blendEquation);
+    gl.blendFunc(options.blendFuncSFactor, options.blendFuncDFactor);
+    gl.cullFace(options.cullFace);
+    if (options.depthTestEnabled) {
+        gl.enable(gl.DEPTH_TEST);
+    }
+    else {
+        gl.disable(gl.DEPTH_TEST);
+    }
+    if (options.blendEnabled) {
+        gl.enable(gl.BLEND);
+    }
+    else {
+        gl.disable(gl.BLEND);
+    }
+    if (options.cullFaceEnabled) {
+        gl.enable(gl.CULL_FACE);
+    }
+    else {
+        gl.disable(gl.CULL_FACE);
+    }
+    return gl;
+};
+// export const glsl = (sourceCode: TemplateStringsArray, ...interpolations: unknown[]) => {
+//     console.log({ sourceCode, interpolations });
+//     return sourceCode;
+// };
 const createShader = (gl, type, source) => {
     const shader = gl.createShader(type);
     if (!shader)
@@ -1266,7 +1452,177 @@ const createVertexArray = (gl, cb) => {
     const buffers = cb();
     return [vao, buffers];
 };
+const createTexture2D = (gl, image, options) => {
+    const texture = gl.createTexture();
+    if (!texture)
+        throw new Error('could not create texture');
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+    const defaultOptions = {
+        level: 0,
+        internalFormat: gl.RGBA,
+        srcFormat: gl.RGBA,
+        srcType: gl.UNSIGNED_BYTE,
+        generateMipmaps: true,
+    };
+    const texOptions = Object.assign(Object.assign({}, defaultOptions), options);
+    gl.texImage2D(gl.TEXTURE_2D, texOptions.level, texOptions.internalFormat, texOptions.srcFormat, texOptions.srcType, image);
+    if (texOptions.generateMipmaps)
+        gl.generateMipmap(gl.TEXTURE_2D);
+    return texture;
+};
+
+const vShaderSource = `
+    #version 300 es
+
+    precision highp float;
+    precision highp int;
+
+    layout(location = 0) in vec3 position;
+
+    uniform mat4 mvp;
+
+    void main() {
+        gl_Position = mvp * vec4(position, 1.0);
+    }
+`.trim();
+const fShaderSource = `
+    #version 300 es
+
+    precision highp float;
+    precision highp int;
+
+    out vec4 fragmentColor;
+
+    void main() {
+        fragmentColor = vec4(1.0, 1.0, 1.0, 1.0);
+    }
+`.trim();
+class CachedRenderable {
+    constructor(gl, renderable, transform, frameState) {
+        this.gl = gl;
+        this.renderable = renderable;
+        this.transform = transform;
+        this.frameState = frameState;
+        this.vertexShader = createShader(gl, gl.VERTEX_SHADER, vShaderSource);
+        this.fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, fShaderSource);
+        this.program = createProgram(gl, this.vertexShader, this.fragmentShader);
+        const [vao, buffers] = createVertexArray(gl, () => {
+            const positionBuffer = createArrayBuffer(gl, Float32Array.from(renderable.data.geometry.positions), 0, 3);
+            return [positionBuffer];
+        });
+        this.vao = vao;
+        this.buffers = buffers;
+        this.indexBuffer = createElementArrayBuffer(gl, Uint32Array.from(renderable.data.geometry.indices));
+        this.mvpLocation = gl.getUniformLocation(this.program, 'mvp');
+    }
+    render(camera) {
+        const gl = this.gl;
+        const frameState = this.frameState;
+        gl.useProgram(this.program);
+        gl.bindVertexArray(this.vao);
+        camera.update();
+        multiply(frameState.matrixCache.modelView, camera.data.viewMatrix, this.transform.data.modelMatrix);
+        multiply(frameState.matrixCache.modelViewProjection, camera.data.projectionMatrix, frameState.matrixCache.modelView);
+        gl.uniformMatrix4fv(this.mvpLocation, false, frameState.matrixCache.modelViewProjection);
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.indexBuffer);
+        gl.drawElements(gl.TRIANGLES, this.renderable.data.geometry.indices.length, gl.UNSIGNED_INT, 0);
+    }
+    cleanup() {
+        const gl = this.gl;
+        gl.deleteShader(this.vertexShader);
+        gl.deleteShader(this.fragmentShader);
+        gl.deleteProgram(this.program);
+        this.buffers.forEach(buffer => gl.deleteBuffer(buffer));
+        gl.deleteVertexArray(this.vao);
+        gl.deleteBuffer(this.indexBuffer);
+    }
+}
+
+class FrameState {
+    constructor(gl) {
+        this.gl = gl;
+        this.blendEnabled = gl.isEnabled(gl.BLEND);
+        this.cullFaceEnabled = gl.isEnabled(gl.CULL_FACE);
+        this.matrixCache = {
+            modelView: fromValues(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1),
+            modelViewProjection: fromValues(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1),
+        };
+    }
+    setBlendEnabled(flag) {
+        const gl = this.gl;
+        if (this.blendEnabled !== flag) {
+            this.blendEnabled = flag;
+            if (this.blendEnabled) {
+                gl.enable(gl.BLEND);
+            }
+            else {
+                gl.disable(gl.BLEND);
+            }
+        }
+    }
+    setCullFaceEnabled(flag) {
+        const gl = this.gl;
+        if (this.cullFaceEnabled !== flag) {
+            this.cullFaceEnabled = flag;
+            if (this.cullFaceEnabled) {
+                gl.enable(gl.CULL_FACE);
+            }
+            else {
+                gl.disable(gl.CULL_FACE);
+            }
+        }
+    }
+}
+
+const defaultOptions = {
+    autoClear: true,
+};
+class WebGL2RenderSystem extends RenderSystem {
+    constructor(canvas, cameraEntity, options = {}) {
+        super();
+        this.canvas = canvas;
+        this.cameraEntity = cameraEntity;
+        this.activeCamera = cameraEntity.getComponent(PerspectiveCamera) || cameraEntity.getComponent(OrthographicCamera);
+        this.options = Object.assign(Object.assign({}, defaultOptions), options);
+        this.gl = getWebGL2Context(canvas, options.contextAttributeOptions, options.getWebGL2Options);
+        this.frameState = new FrameState(this.gl);
+        this.cachedRenderables = {};
+        window.addEventListener('unload', () => {
+            Object.keys(this.cachedRenderables).forEach(key => this.cachedRenderables[key].cleanup());
+        });
+    }
+    setActiveCameraEntity(cameraEntity) {
+        this.cameraEntity = cameraEntity;
+        this.activeCamera = cameraEntity.getComponent(PerspectiveCamera) || cameraEntity.getComponent(OrthographicCamera);
+        return this;
+    }
+    getCachedRenderable(renderable, transform) {
+        if (this.cachedRenderables[renderable.entityId])
+            return this.cachedRenderables[renderable.entityId];
+        const cachedRenderable = new CachedRenderable(this.gl, renderable, transform, this.frameState);
+        this.cachedRenderables[renderable.entityId] = cachedRenderable;
+        return cachedRenderable;
+    }
+    render() {
+        const gl = this.gl;
+        const options = this.options;
+        const frameState = this.frameState;
+        const activeCamera = this.activeCamera;
+        if (options.autoClear)
+            gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+        frameState.setBlendEnabled(false);
+        frameState.setCullFaceEnabled(false);
+        const renderables = this.world.getComponentsByType(Renderable);
+        const renderablesCount = renderables.length;
+        for (let i = 0; i < renderablesCount; i++) {
+            const renderable = renderables[i];
+            const transform = this.world.getComponentByEntityIdAndType(renderable.entityId, Transform);
+            const cachedRenderable = this.getCachedRenderable(renderable, transform);
+            cachedRenderable.render(activeCamera);
+        }
+    }
+}
 
 setMatrixArrayType(Array);
 
-export { Component, ECSEvent, Entity, FpsDebugSystem, OrthographicCamera, PerspectiveCamera, RegisterEntityEvent, RemoveEntityEvent, System, Transform, UpdateTransformSystem, World, createArrayBuffer, createElementArrayBuffer, createProgram, createShader, createVertexArray };
+export { Component, ECSEvent, Entity, FpsDebugSystem, Geometry, ImageLoader, Material, OrthographicCamera, PerspectiveCamera, QuadGeometry, RegisterEntityEvent, RemoveEntityEvent, RenderSystem, Renderable, System, Transform, UnlitMaterial, UpdateTransformSystem, WebGL2RenderSystem, World, createArrayBuffer, createElementArrayBuffer, createProgram, createShader, createTexture2D, createVertexArray, defaultContextAttributeOptions, getDefaultWebGL2Options, getWebGL2Context };

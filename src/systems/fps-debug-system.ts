@@ -1,13 +1,12 @@
-import { System } from '../core/system';
-import { World } from '../core/world';
+import { RenderSystem } from '../core/system';
 
-export class FpsDebugSystem extends System {
+export class FpsDebugSystem extends RenderSystem {
     fpsDisplay: HTMLElement;
     oneSecond: number;
     fps: number;
 
-    constructor(world: World) {
-        super(world);
+    constructor() {
+        super();
         this.fpsDisplay = document.createElement('p');
         this.fpsDisplay.style.position = 'fixed';
         this.fpsDisplay.style.top = '10px';
@@ -19,7 +18,7 @@ export class FpsDebugSystem extends System {
         this.fps = 0;
     }
 
-    update(): void {
+    render(): void {
         this.fps++;
         const currentTime = Date.now();
         if (currentTime >= this.oneSecond) {
