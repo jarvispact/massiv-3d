@@ -12,7 +12,6 @@
     "clean": "rm -rf ./dist/*",
     "build": "rollup -c",
     "git-add-dist": "git add ./dist/*",
-    "git-add-examples": "git add ./examples/**/*.js",
     "dev": "rollup -c -w",
     "examples:serve": "http-server ./examples -a 0.0.0.0 -p 9090 -c-1",
     "examples:create": "TS_NODE_PROJECT=tsconfig.tests.json ts-node create-example.ts",
@@ -40,8 +39,7 @@
     "lint",
     "clean",
     "build",
-    "git-add-dist",
-    "git-add-examples"
+    "git-add-dist"
   ],
   "devDependencies": {
     "@rollup/plugin-typescript": "^4.0.0",

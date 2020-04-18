@@ -1,5 +1,4 @@
 import { System } from '../../src';
-import Renderable from './renderable';
 
 export class NormalDebugSystem extends System {
     gl: WebGL2RenderingContext;
@@ -9,7 +8,6 @@ export class NormalDebugSystem extends System {
         this.gl = gl;
     }
 
-    update(): void {
-        const renderables = this.world.getComponentsByType(Renderable);
-    }
+    // eslint-disable-next-line @typescript-eslint/no-empty-function
+    update(): void {}
 }
