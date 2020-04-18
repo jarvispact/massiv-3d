@@ -6,7 +6,7 @@
   "module": "dist/massiv-3d.esm.js",
   "browser": "dist/massiv-3d.umd.js",
   "scripts": {
-    "test": "TS_NODE_PROJECT=tsconfig.tests.json mocha -r ts-node/register tests/**/*.test.ts",
+    "test": "TS_NODE_PROJECT=tsconfig.node.json mocha -r ts-node/register tests/**/*.test.ts",
     "lint": "eslint . --ext .ts",
     "tsc:check": "tsc --noEmit",
     "clean": "rm -rf ./dist/*",
@@ -14,7 +14,7 @@
     "git-add-dist": "git add ./dist/*",
     "dev": "rollup -c -w",
     "examples:serve": "http-server ./examples -a 0.0.0.0 -p 9090 -c-1",
-    "examples:create": "TS_NODE_PROJECT=tsconfig.tests.json ts-node create-example.ts",
+    "examples:create": "TS_NODE_PROJECT=tsconfig.node.json ts-node create-example.ts",
     "check-updates": "ncu",
     "update:all": "ncu -u && npm i"
   },
