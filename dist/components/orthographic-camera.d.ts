@@ -1,6 +1,5 @@
 import { CameraArgs, CameraData } from './camera';
 import { Component } from '../core/component';
-import { vec3 } from 'gl-matrix';
 declare const type = "OrthographicCamera";
 declare type Args = CameraArgs & {
     left: number;
@@ -20,7 +19,6 @@ export declare type OrthographicCameraData = CameraData & {
 };
 export declare class OrthographicCamera extends Component<typeof type, OrthographicCameraData> {
     constructor(args: Args);
-    translate(translation: vec3): void;
-    update(): void;
+    translate(x: number, y: number, z: number): void;
 }
 export {};

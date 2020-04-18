@@ -10,10 +10,12 @@ declare type TransformData = {
     translation: vec3;
     scaling: vec3;
     quaternion: quat;
-    translationCache: vec3;
-    scalingCache: vec3;
-    rotationCache: quat;
     modelMatrix: mat4;
+    cache: {
+        translation: vec3;
+        scaling: vec3;
+        quaternion: quat;
+    };
     dirty: {
         modelMatrix: boolean;
     };

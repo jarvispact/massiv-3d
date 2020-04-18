@@ -48,11 +48,12 @@ export class World {
     }
 
     getComponentsByType<T extends Component>(klass: Class<T>): T[] {
+        if (!this.componentsByType[klass.name]) return [];
         return this.componentsByType[klass.name] as T[];
     }
 
     getComponentsByEntityId(entityId: string): Component[] {
-        return this.componentsByEntityId[entityId];
+        return this.componentsByEntityId[entityId] || [];
     }
 
     getComponentByEntityIdAndType<T extends Component>(entityId: string, klass: Class<T>): T {

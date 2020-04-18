@@ -78,7 +78,6 @@ export class CachedRenderable {
         gl.useProgram(this.program);
         gl.bindVertexArray(this.vao);
 
-        camera.update();
         mat4.multiply(frameState.matrixCache.modelView, camera.data.viewMatrix, this.transform.data.modelMatrix);
         mat4.multiply(frameState.matrixCache.modelViewProjection, camera.data.projectionMatrix, frameState.matrixCache.modelView);
         gl.uniformMatrix4fv(this.mvpLocation, false, frameState.matrixCache.modelViewProjection);

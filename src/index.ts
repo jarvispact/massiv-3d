@@ -25,6 +25,7 @@ export * from './loader/image-loader';
 export * from './materials/unlit-material';
 
 export * from './systems/fps-debug-system';
+export * from './systems/update-camera-system';
 export * from './systems/update-transform-system';
 
 export * from './webgl2/webgl-2-utils';

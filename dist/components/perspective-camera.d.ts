@@ -1,4 +1,3 @@
-import { vec3 } from 'gl-matrix';
 import { Component } from '../core/component';
 import { CameraData, CameraArgs } from './camera';
 declare const type = "PerspectiveCamera";
@@ -16,8 +15,7 @@ export declare type PerspectiveCameraData = CameraData & {
 };
 export declare class PerspectiveCamera extends Component<typeof type, PerspectiveCameraData> {
     constructor(args: Args);
-    translate(translation: vec3): void;
+    translate(x: number, y: number, z: number): void;
     setAspect(aspect: number): void;
-    update(): void;
 }
 export {};

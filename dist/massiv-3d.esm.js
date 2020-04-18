@@ -1006,11 +1006,14 @@ const type = 'OrthographicCamera';
 class OrthographicCamera extends Component {
     constructor(args) {
         super(type, {
-            position: args.position,
+            translation: args.translation,
             lookAt: args.lookAt ? args.lookAt : fromValues$1(0, 0, 0),
             upVector: args.upVector ? args.upVector : fromValues$1(0, 1, 0),
             viewMatrix: fromValues(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1),
             projectionMatrix: fromValues(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1),
+            cache: {
+                translation: create$1(),
+            },
             dirty: {
                 viewMatrix: true,
                 projectionMatrix: true,
@@ -1023,19 +1026,13 @@ class OrthographicCamera extends Component {
             far: args.far,
         });
     }
-    translate(translation) {
-        add(this.data.position, this.data.position, translation);
+    translate(x, y, z) {
+        const t = this.data.cache.translation;
+        t[0] = x;
+        t[1] = y;
+        t[2] = z;
+        add(this.data.translation, this.data.translation, t);
         this.data.dirty.viewMatrix = true;
-    }
-    update() {
-        if (this.data.dirty.viewMatrix) {
-            lookAt(this.data.viewMatrix, this.data.position, this.data.lookAt, this.data.upVector);
-            this.data.dirty.viewMatrix = false;
-        }
-        if (this.data.dirty.projectionMatrix) {
-            ortho(this.data.projectionMatrix, this.data.left, this.data.right, this.data.bottom, this.data.top, this.data.near, this.data.far);
-            this.data.dirty.projectionMatrix = false;
-        }
     }
 }
 
@@ -1043,11 +1040,14 @@ const type$1 = 'PerspectiveCamera';
 class PerspectiveCamera extends Component {
     constructor(args) {
         super(type$1, {
-            position: args.position,
+            translation: args.translation,
             lookAt: args.lookAt ? args.lookAt : fromValues$1(0, 0, 0),
             upVector: args.upVector ? args.upVector : fromValues$1(0, 1, 0),
             viewMatrix: fromValues(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1),
             projectionMatrix: fromValues(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1),
+            cache: {
+                translation: create$1(),
+            },
             dirty: {
                 viewMatrix: true,
                 projectionMatrix: true,
@@ -1058,23 +1058,17 @@ class PerspectiveCamera extends Component {
             far: args.far || 1000,
         });
     }
-    translate(translation) {
-        add(this.data.position, this.data.position, translation);
+    translate(x, y, z) {
+        const t = this.data.cache.translation;
+        t[0] = x;
+        t[1] = y;
+        t[2] = z;
+        add(this.data.translation, this.data.translation, t);
         this.data.dirty.viewMatrix = true;
     }
     setAspect(aspect) {
         this.data.aspect = aspect;
         this.data.dirty.projectionMatrix = true;
-    }
-    update() {
-        if (this.data.dirty.viewMatrix) {
-            lookAt(this.data.viewMatrix, this.data.position, this.data.lookAt, this.data.upVector);
-            this.data.dirty.viewMatrix = false;
-        }
-        if (this.data.dirty.projectionMatrix) {
-            perspective(this.data.projectionMatrix, this.data.fov, this.data.aspect, this.data.near, this.data.far);
-            this.data.dirty.projectionMatrix = false;
-        }
     }
 }
 
@@ -1092,17 +1086,19 @@ class Transform extends Component {
             translation: args.translation || fromValues$1(0, 0, 0),
             scaling: args.scaling || fromValues$1(1, 1, 1),
             quaternion: args.quaternion || fromValues$3(0, 0, 0, 1),
-            translationCache: create$1(),
-            scalingCache: create$1(),
-            rotationCache: create$3(),
             modelMatrix: fromValues(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1),
+            cache: {
+                translation: create$1(),
+                scaling: create$1(),
+                quaternion: create$3(),
+            },
             dirty: {
                 modelMatrix: true,
             }
         });
     }
     translate(x, y, z) {
-        const t = this.data.translationCache;
+        const t = this.data.cache.translation;
         t[0] = x;
         t[1] = y;
         t[2] = z;
@@ -1110,7 +1106,7 @@ class Transform extends Component {
         this.data.dirty.modelMatrix = true;
     }
     scale(x, y, z) {
-        const s = this.data.scalingCache;
+        const s = this.data.cache.scaling;
         s[0] = x;
         s[1] = y;
         s[2] = z;
@@ -1118,8 +1114,9 @@ class Transform extends Component {
         this.data.dirty.modelMatrix = true;
     }
     rotate(x, y, z) {
-        fromEuler(this.data.rotationCache, x, y, z);
-        multiply$1(this.data.quaternion, this.data.quaternion, this.data.rotationCache);
+        const q = this.data.cache.quaternion;
+        fromEuler(q, x, y, z);
+        multiply$1(this.data.quaternion, this.data.quaternion, q);
         this.data.dirty.modelMatrix = true;
     }
 }
@@ -1214,10 +1211,12 @@ class World {
         });
     }
     getComponentsByType(klass) {
+        if (!this.componentsByType[klass.name])
+            return [];
         return this.componentsByType[klass.name];
     }
     getComponentsByEntityId(entityId) {
-        return this.componentsByEntityId[entityId];
+        return this.componentsByEntityId[entityId] || [];
     }
     getComponentByEntityIdAndType(entityId, klass) {
         return this.getComponentsByEntityId(entityId).find(c => c.type === klass.name);
@@ -1336,6 +1335,35 @@ class FpsDebugSystem extends RenderSystem {
             this.fpsDisplay.textContent = `FPS: ${this.fps}`;
             this.fps = 0;
             this.oneSecond = currentTime + 1000;
+        }
+    }
+}
+
+class UpdateCameraSystem extends System {
+    update() {
+        const perspectiveCameras = this.world.getComponentsByType(PerspectiveCamera);
+        const orthographicCameras = this.world.getComponentsByType(OrthographicCamera);
+        for (let i = 0; i < perspectiveCameras.length; i++) {
+            const c = perspectiveCameras[i];
+            if (c.data.dirty.viewMatrix) {
+                lookAt(c.data.viewMatrix, c.data.translation, c.data.lookAt, c.data.upVector);
+                c.data.dirty.viewMatrix = false;
+            }
+            if (c.data.dirty.projectionMatrix) {
+                perspective(c.data.projectionMatrix, c.data.fov, c.data.aspect, c.data.near, c.data.far);
+                c.data.dirty.projectionMatrix = false;
+            }
+        }
+        for (let i = 0; i < orthographicCameras.length; i++) {
+            const c = orthographicCameras[i];
+            if (c.data.dirty.viewMatrix) {
+                lookAt(c.data.viewMatrix, c.data.translation, c.data.lookAt, c.data.upVector);
+                c.data.dirty.viewMatrix = false;
+            }
+            if (c.data.dirty.projectionMatrix) {
+                ortho(c.data.projectionMatrix, c.data.left, c.data.right, c.data.bottom, c.data.top, c.data.near, c.data.far);
+                c.data.dirty.projectionMatrix = false;
+            }
         }
     }
 }
@@ -1529,7 +1557,6 @@ class CachedRenderable {
         const frameState = this.frameState;
         gl.useProgram(this.program);
         gl.bindVertexArray(this.vao);
-        camera.update();
         multiply(frameState.matrixCache.modelView, camera.data.viewMatrix, this.transform.data.modelMatrix);
         multiply(frameState.matrixCache.modelViewProjection, camera.data.projectionMatrix, frameState.matrixCache.modelView);
         gl.uniformMatrix4fv(this.mvpLocation, false, frameState.matrixCache.modelViewProjection);
@@ -1634,4 +1661,4 @@ class WebGL2RenderSystem extends RenderSystem {
 
 setMatrixArrayType(Array);
 
-export { Component, ECSEvent, Entity, FpsDebugSystem, Geometry, ImageLoader, Material, OrthographicCamera, PerspectiveCamera, QuadGeometry, RegisterEntityEvent, RemoveEntityEvent, RenderSystem, Renderable, System, Transform, UnlitMaterial, UpdateTransformSystem, WebGL2RenderSystem, World, createArrayBuffer, createElementArrayBuffer, createProgram, createShader, createTexture2D, createVertexArray, defaultContextAttributeOptions, getDefaultWebGL2Options, getWebGL2Context };
+export { Component, ECSEvent, Entity, FpsDebugSystem, Geometry, ImageLoader, Material, OrthographicCamera, PerspectiveCamera, QuadGeometry, RegisterEntityEvent, RemoveEntityEvent, RenderSystem, Renderable, System, Transform, UnlitMaterial, UpdateCameraSystem, UpdateTransformSystem, WebGL2RenderSystem, World, createArrayBuffer, createElementArrayBuffer, createProgram, createShader, createTexture2D, createVertexArray, defaultContextAttributeOptions, getDefaultWebGL2Options, getWebGL2Context };

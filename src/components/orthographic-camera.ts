@@ -25,11 +25,14 @@ export type OrthographicCameraData = CameraData & {
 export class OrthographicCamera extends Component<typeof type, OrthographicCameraData> {
     constructor(args: Args) {
         super(type, {
-            position: args.position,
+            translation: args.translation,
             lookAt: args.lookAt ? args.lookAt : vec3.fromValues(0, 0, 0),
             upVector: args.upVector ? args.upVector : vec3.fromValues(0, 1, 0),
             viewMatrix: mat4.fromValues(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1),
             projectionMatrix: mat4.fromValues(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1),
+            cache: {
+                translation: vec3.create(),
+            },
             dirty: {
                 viewMatrix: true,
                 projectionMatrix: true,
@@ -43,20 +46,10 @@ export class OrthographicCamera extends Component<typeof type, OrthographicCamer
         });
     }
 
-    translate(translation: vec3): void {
-        vec3.add(this.data.position, this.data.position, translation);
+    translate(x: number, y: number, z: number): void {
+        const t = this.data.cache.translation;
+        t[0] = x; t[1] = y; t[2] = z;
+        vec3.add(this.data.translation, this.data.translation, t);
         this.data.dirty.viewMatrix = true;
-    }
-
-    update(): void {
-        if (this.data.dirty.viewMatrix) {
-            mat4.lookAt(this.data.viewMatrix, this.data.position, this.data.lookAt, this.data.upVector);
-            this.data.dirty.viewMatrix = false;
-        }
-    
-        if (this.data.dirty.projectionMatrix) {
-            mat4.ortho(this.data.projectionMatrix, this.data.left, this.data.right, this.data.bottom, this.data.top, this.data.near, this.data.far);
-            this.data.dirty.projectionMatrix = false;
-        }
     }
 }
