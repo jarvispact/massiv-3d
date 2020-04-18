@@ -1152,13 +1152,6 @@
       }
   }
 
-  class ECSEvent {
-      constructor(type, payload) {
-          this.type = type;
-          this.payload = payload;
-      }
-  }
-
   class Geometry {
       constructor(args = {}) {
           this.positions = args.positions || [];
@@ -1273,20 +1266,6 @@
           const delta = this.getDelta(time);
           for (let i = 0; i < this.renderSystems.length; i++)
               this.renderSystems[i].render(delta, time);
-      }
-  }
-
-  const type$4 = 'RegisterEntityEvent';
-  class RegisterEntityEvent extends ECSEvent {
-      constructor(entity) {
-          super(type$4, entity);
-      }
-  }
-
-  const type$5 = 'RemoveEntityEvent';
-  class RemoveEntityEvent extends ECSEvent {
-      constructor(entity) {
-          super(type$5, entity);
       }
   }
 
@@ -1544,17 +1523,9 @@
       getCachedRenderable(renderable, transform) {
           if (this.cachedRenderables[renderable.entityId])
               return this.cachedRenderables[renderable.entityId];
-          console.log(`creating a new cached version of renderable: ${renderable.entityId}`);
           const cachedRenderable = new CachedRenderable(this.gl, renderable, transform, this.frameState);
           this.cachedRenderables[renderable.entityId] = cachedRenderable;
           return cachedRenderable;
-      }
-      init() {
-          this.world.subscribe(this, [RegisterEntityEvent, RemoveEntityEvent]);
-      }
-      on(event) {
-          if (event.type === 'RegisterEntityEvent') ;
-          else if (event.type === 'RemoveEntityEvent') ;
       }
       render() {
           const gl = this.gl;
