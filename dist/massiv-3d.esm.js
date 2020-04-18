@@ -1089,9 +1089,11 @@ const type$3 = 'Transform';
 class Transform extends Component {
     constructor(args = {}) {
         super(type$3, {
-            position: args.position || fromValues$1(0, 0, 0),
+            translation: args.translation || fromValues$1(0, 0, 0),
             scaling: args.scaling || fromValues$1(1, 1, 1),
             quaternion: args.quaternion || fromValues$3(0, 0, 0, 1),
+            translationCache: create$1(),
+            scalingCache: create$1(),
             rotationCache: create$3(),
             modelMatrix: fromValues(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1),
             dirty: {
@@ -1099,24 +1101,26 @@ class Transform extends Component {
             }
         });
     }
-    translate(translation) {
-        add(this.data.position, this.data.position, translation);
+    translate(x, y, z) {
+        const t = this.data.translationCache;
+        t[0] = x;
+        t[1] = y;
+        t[2] = z;
+        add(this.data.translation, this.data.translation, t);
         this.data.dirty.modelMatrix = true;
     }
-    scale(scaling) {
-        add(this.data.scaling, this.data.scaling, scaling);
+    scale(x, y, z) {
+        const s = this.data.scalingCache;
+        s[0] = x;
+        s[1] = y;
+        s[2] = z;
+        add(this.data.scaling, this.data.scaling, s);
         this.data.dirty.modelMatrix = true;
     }
-    rotate(eulerRotation) {
-        fromEuler(this.data.rotationCache, eulerRotation[0], eulerRotation[1], eulerRotation[2]);
+    rotate(x, y, z) {
+        fromEuler(this.data.rotationCache, x, y, z);
         multiply$1(this.data.quaternion, this.data.quaternion, this.data.rotationCache);
         this.data.dirty.modelMatrix = true;
-    }
-    update() {
-        if (this.data.dirty.modelMatrix) {
-            fromRotationTranslationScale(this.data.modelMatrix, this.data.quaternion, this.data.position, this.data.scaling);
-            this.data.dirty.modelMatrix = false;
-        }
     }
 }
 
@@ -1339,8 +1343,13 @@ class FpsDebugSystem extends RenderSystem {
 class UpdateTransformSystem extends System {
     update() {
         const transforms = this.world.getComponentsByType(Transform);
-        for (let i = 0; i < transforms.length; i++)
-            transforms[i].update();
+        for (let i = 0; i < transforms.length; i++) {
+            const t = transforms[i];
+            if (t.data.dirty.modelMatrix) {
+                fromRotationTranslationScale(t.data.modelMatrix, t.data.quaternion, t.data.translation, t.data.scaling);
+                t.data.dirty.modelMatrix = false;
+            }
+        }
     }
 }
 

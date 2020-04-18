@@ -2,14 +2,16 @@ import { vec3, quat, mat4 } from 'gl-matrix';
 import { Component } from '../core/component';
 declare const type = "Transform";
 declare type Args = {
-    position?: vec3;
+    translation?: vec3;
     scaling?: vec3;
     quaternion?: quat;
 };
 declare type TransformData = {
-    position: vec3;
+    translation: vec3;
     scaling: vec3;
     quaternion: quat;
+    translationCache: vec3;
+    scalingCache: vec3;
     rotationCache: quat;
     modelMatrix: mat4;
     dirty: {
@@ -18,9 +20,8 @@ declare type TransformData = {
 };
 export declare class Transform extends Component<typeof type, TransformData> {
     constructor(args?: Args);
-    translate(translation: vec3): void;
-    scale(scaling: vec3): void;
-    rotate(eulerRotation: vec3): void;
-    update(): void;
+    translate(x: number, y: number, z: number): void;
+    scale(x: number, y: number, z: number): void;
+    rotate(x: number, y: number, z: number): void;
 }
 export {};
