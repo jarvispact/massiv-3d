@@ -1295,6 +1295,13 @@
       }
   }
 
+  const type$6 = 'ResizeCanvasEvent';
+  class ResizeCanvasEvent extends ECSEvent {
+      constructor(payload) {
+          super(type$6, payload);
+      }
+  }
+
   class QuadGeometry extends Geometry {
       constructor() {
           super({
@@ -1346,6 +1353,17 @@
   }
 
   class UpdateCameraSystem extends System {
+      init() {
+          this.world.subscribe(this, [ResizeCanvasEvent]);
+      }
+      on(event) {
+          const perspectiveCameras = this.world.getComponentsByType(PerspectiveCamera);
+          for (let i = 0; i < perspectiveCameras.length; i++) {
+              const c = perspectiveCameras[i];
+              c.setAspect(event.payload.width / event.payload.height);
+          }
+          this.update();
+      }
       update() {
           const perspectiveCameras = this.world.getComponentsByType(PerspectiveCamera);
           const orthographicCameras = this.world.getComponentsByType(OrthographicCamera);
@@ -1633,6 +1651,18 @@
               Object.keys(this.cachedRenderables).forEach(key => this.cachedRenderables[key].cleanup());
           });
       }
+      init() {
+          this.world.subscribe(this, [ResizeCanvasEvent]);
+      }
+      on(event) {
+          this.canvas.width = event.payload.width;
+          this.canvas.height = event.payload.height;
+          this.gl.viewport(0, 0, this.canvas.width, this.canvas.height);
+          if (this.activeCamera.type === 'PerspectiveCamera') {
+              this.activeCamera.setAspect(this.canvas.width / this.canvas.height);
+          }
+          this.render();
+      }
       setActiveCameraEntity(cameraEntity) {
           this.cameraEntity = cameraEntity;
           this.activeCamera = cameraEntity.getComponent(PerspectiveCamera) || cameraEntity.getComponent(OrthographicCamera);
@@ -1681,6 +1711,7 @@
   exports.RemoveEntityEvent = RemoveEntityEvent;
   exports.RenderSystem = RenderSystem;
   exports.Renderable = Renderable;
+  exports.ResizeCanvasEvent = ResizeCanvasEvent;
   exports.System = System;
   exports.Transform = Transform;
   exports.UnlitMaterial = UnlitMaterial;

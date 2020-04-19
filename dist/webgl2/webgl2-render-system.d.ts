@@ -7,6 +7,7 @@ import { FrameState } from './frame-state';
 import { PerspectiveCamera } from '../components/perspective-camera';
 import { OrthographicCamera } from '../components/orthographic-camera';
 import { Transform } from '../components/transform';
+import { ResizeCanvasEvent } from '../events/resize-canvas-event';
 declare type WebGL2RendererOptions = {
     contextAttributeOptions?: Partial<WebGLContextAttributeOptions>;
     getWebGL2Options?: (gl: WebGL2RenderingContext) => Partial<WebGL2Options>;
@@ -21,6 +22,8 @@ export declare class WebGL2RenderSystem extends RenderSystem {
     frameState: FrameState;
     cachedRenderables: Record<string, CachedRenderable>;
     constructor(canvas: HTMLCanvasElement, cameraEntity: Entity, options?: WebGL2RendererOptions);
+    init(): void;
+    on(event: ResizeCanvasEvent): void;
     setActiveCameraEntity(cameraEntity: Entity): WebGL2RenderSystem;
     getCachedRenderable(renderable: Renderable, transform: Transform): CachedRenderable;
     render(): void;

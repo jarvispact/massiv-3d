@@ -2,11 +2,26 @@ import { mat4 } from 'gl-matrix';
 import { System } from '../core/system';
 import { PerspectiveCamera } from '../components/perspective-camera';
 import { OrthographicCamera } from '../components/orthographic-camera';
+import { ResizeCanvasEvent } from '../events/resize-canvas-event';
 
 export class UpdateCameraSystem extends System {
+    init(): void {
+        this.world.subscribe(this, [ResizeCanvasEvent]);
+    }
+
+    on(event: ResizeCanvasEvent): void {
+        const perspectiveCameras = this.world.getComponentsByType(PerspectiveCamera);
+        for (let i = 0; i < perspectiveCameras.length; i++) {
+            const c = perspectiveCameras[i];
+            c.setAspect(event.payload.width / event.payload.height);
+        }
+
+        this.update();
+    }
+
     update(): void {
         const perspectiveCameras = this.world.getComponentsByType(PerspectiveCamera);
-        const orthographicCameras = this.world.getComponentsByType(OrthographicCamera);        
+        const orthographicCameras = this.world.getComponentsByType(OrthographicCamera);
 
         for (let i = 0; i < perspectiveCameras.length; i++) {
             const c = perspectiveCameras[i];

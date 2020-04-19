@@ -7,6 +7,7 @@ import { FrameState } from './frame-state';
 import { PerspectiveCamera } from '../components/perspective-camera';
 import { OrthographicCamera } from '../components/orthographic-camera';
 import { Transform } from '../components/transform';
+import { ResizeCanvasEvent } from '../events/resize-canvas-event';
 
 type WebGL2RendererOptions = {
     contextAttributeOptions?: Partial<WebGLContextAttributeOptions>;
@@ -40,6 +41,22 @@ export class WebGL2RenderSystem extends RenderSystem {
         window.addEventListener('unload', () => {
             Object.keys(this.cachedRenderables).forEach(key => this.cachedRenderables[key].cleanup());
         });
+    }
+
+    init(): void {
+        this.world.subscribe(this, [ResizeCanvasEvent]);
+    }
+
+    on(event: ResizeCanvasEvent): void {
+        this.canvas.width = event.payload.width;
+        this.canvas.height = event.payload.height;
+        this.gl.viewport(0, 0, this.canvas.width, this.canvas.height);
+
+        if (this.activeCamera.type === 'PerspectiveCamera') {
+            this.activeCamera.setAspect(this.canvas.width / this.canvas.height);
+        }
+
+        this.render();
     }
 
     setActiveCameraEntity(cameraEntity: Entity): WebGL2RenderSystem {

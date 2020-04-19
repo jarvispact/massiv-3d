@@ -17,6 +17,7 @@ export * from './core/world';
 
 export * from './events/register-entity-event';
 export * from './events/remove-entity-event';
+export * from './events/resize-canvas-event';
 
 export * from './geometry/quad-geometry';
 
