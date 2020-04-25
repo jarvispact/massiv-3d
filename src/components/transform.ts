@@ -38,7 +38,7 @@ export class Transform extends Component<typeof type, TransformData> {
             },
             dirty: {
                 modelMatrix: true,
-            }
+            },
         });
     }
 

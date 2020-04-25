@@ -21,7 +21,7 @@ export const defaultContextAttributeOptions: WebGLContextAttributeOptions = {
     premultipliedAlpha: false,
     alpha: false,
     powerPreference: 'high-performance',
-    antialias: false,
+    antialias: true,
     desynchronized: true,
 };
 
@@ -131,6 +131,30 @@ export const createVertexArray = (gl: WebGL2RenderingContext, cb: () => WebGLBuf
     const buffers = cb();
     return [vao, buffers];
 };
+
+export const UNIFORM_TYPE = {
+    MAT4: 'mat4',
+    MAT3: 'mat3',
+    VEC2: 'vec2',
+    VEC3: 'vec3',
+    VEC4: 'vec4',
+    FLOAT: 'float',
+    INT: 'int',
+} as const;
+
+export const uniformTypeValues = Object.values(UNIFORM_TYPE);
+export type UniformType = typeof uniformTypeValues[0];
+export type UniformTypeLookupTable = Record<number, UniformType>;
+
+export const createUniformTypeLookupTable = (gl: WebGL2RenderingContext): UniformTypeLookupTable => ({
+    [gl.FLOAT_MAT4]: UNIFORM_TYPE.MAT4,
+    [gl.FLOAT_MAT3]: UNIFORM_TYPE.MAT3,
+    [gl.FLOAT_VEC2]: UNIFORM_TYPE.VEC2,
+    [gl.FLOAT_VEC3]: UNIFORM_TYPE.VEC3,
+    [gl.FLOAT_VEC4]: UNIFORM_TYPE.VEC4,
+    [gl.FLOAT]: UNIFORM_TYPE.FLOAT,
+    [gl.INT]: UNIFORM_TYPE.INT,
+});
 
 type TextureOptions = {
     level: number;

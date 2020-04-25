@@ -3,7 +3,7 @@ declare type MatrixCache = {
     modelView: mat4;
     modelViewProjection: mat4;
 };
-export declare class FrameState {
+export declare class WebGL2FrameState {
     gl: WebGL2RenderingContext;
     blendEnabled: boolean;
     cullFaceEnabled: boolean;

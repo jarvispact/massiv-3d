@@ -23,6 +23,19 @@ export declare const createProgram: (gl: WebGL2RenderingContext, vertexShader: W
 export declare const createArrayBuffer: (gl: WebGL2RenderingContext, data: Float32Array, location: number, bufferSize: number) => WebGLBuffer;
 export declare const createElementArrayBuffer: (gl: WebGL2RenderingContext, indices: Uint32Array) => WebGLBuffer;
 export declare const createVertexArray: (gl: WebGL2RenderingContext, cb: () => WebGLBuffer[]) => [WebGLVertexArrayObject, WebGLBuffer[]];
+export declare const UNIFORM_TYPE: {
+    readonly MAT4: "mat4";
+    readonly MAT3: "mat3";
+    readonly VEC2: "vec2";
+    readonly VEC3: "vec3";
+    readonly VEC4: "vec4";
+    readonly FLOAT: "float";
+    readonly INT: "int";
+};
+export declare const uniformTypeValues: ("mat4" | "mat3" | "vec2" | "vec3" | "vec4" | "float" | "int")[];
+export declare type UniformType = typeof uniformTypeValues[0];
+export declare type UniformTypeLookupTable = Record<number, UniformType>;
+export declare const createUniformTypeLookupTable: (gl: WebGL2RenderingContext) => Record<number, "mat4" | "mat3" | "vec2" | "vec3" | "vec4" | "float" | "int">;
 declare type TextureOptions = {
     level: number;
     internalFormat: number;

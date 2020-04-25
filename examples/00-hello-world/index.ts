@@ -1,4 +1,4 @@
-import { World, Transform, PerspectiveCamera, UnlitMaterial, WebGL2RenderSystem, QuadGeometry, Renderable, UpdateCameraSystem } from '../../src';
+import { World, Transform, PerspectiveCamera, UpdateCameraSystem, Geometry } from '../../src';
 
 export const canvas = document.getElementById('canvas') as HTMLCanvasElement;
 canvas.width = canvas.clientWidth;
@@ -12,11 +12,13 @@ const cameraEntity = world.registerEntity([
 
 world.registerEntity([
     new Transform(),
-    new Renderable({ material: new UnlitMaterial(), geometry: new QuadGeometry() }),
+    new Geometry({
+        positions: [-0.5, -0.5, 0, 0.5, -0.5, 0, 0.5, 0.5, 0, -0.5, 0.5, 0],
+        indices: [0, 1, 2, 0, 2, 3],
+    }),
 ]);
 
 world.registerSystem(new UpdateCameraSystem());
-world.registerRenderSystem(new WebGL2RenderSystem(canvas, cameraEntity));
 
 window.requestAnimationFrame((now: number) => {
     world.update(now);

@@ -1,4 +1,4 @@
-import { World, Transform, PerspectiveCamera, UnlitMaterial, WebGL2RenderSystem, QuadGeometry, Renderable, UpdateTransformSystem, UpdateCameraSystem } from '../../src';
+import { World, Transform, PerspectiveCamera, UpdateTransformSystem, UpdateCameraSystem, Geometry } from '../../src';
 import Rotation from './rotation';
 import RotationSystem from './rotation-system';
 
@@ -15,13 +15,15 @@ const cameraEntity = world.registerEntity([
 world.registerEntity([
     new Transform(),
     new Rotation(),
-    new Renderable({ material: new UnlitMaterial(), geometry: new QuadGeometry() }),
+    new Geometry({
+        positions: [-0.5, -0.5, 0, 0.5, -0.5, 0, 0.5, 0.5, 0, -0.5, 0.5, 0],
+        indices: [0, 1, 2, 0, 2, 3],
+    }),
 ]);
 
 world.registerSystem(new RotationSystem());
 world.registerSystem(new UpdateTransformSystem());
 world.registerSystem(new UpdateCameraSystem());
-world.registerRenderSystem(new WebGL2RenderSystem(canvas, cameraEntity));
 
 const tick = (now: number): void => {
     world.update(now);

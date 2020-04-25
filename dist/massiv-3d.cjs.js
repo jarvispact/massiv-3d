@@ -127,67 +127,6 @@ function identity(out) {
   return out;
 }
 /**
- * Multiplies two mat4s
- *
- * @param {mat4} out the receiving matrix
- * @param {ReadonlyMat4} a the first operand
- * @param {ReadonlyMat4} b the second operand
- * @returns {mat4} out
- */
-
-function multiply(out, a, b) {
-  var a00 = a[0],
-      a01 = a[1],
-      a02 = a[2],
-      a03 = a[3];
-  var a10 = a[4],
-      a11 = a[5],
-      a12 = a[6],
-      a13 = a[7];
-  var a20 = a[8],
-      a21 = a[9],
-      a22 = a[10],
-      a23 = a[11];
-  var a30 = a[12],
-      a31 = a[13],
-      a32 = a[14],
-      a33 = a[15]; // Cache only the current line of the second matrix
-
-  var b0 = b[0],
-      b1 = b[1],
-      b2 = b[2],
-      b3 = b[3];
-  out[0] = b0 * a00 + b1 * a10 + b2 * a20 + b3 * a30;
-  out[1] = b0 * a01 + b1 * a11 + b2 * a21 + b3 * a31;
-  out[2] = b0 * a02 + b1 * a12 + b2 * a22 + b3 * a32;
-  out[3] = b0 * a03 + b1 * a13 + b2 * a23 + b3 * a33;
-  b0 = b[4];
-  b1 = b[5];
-  b2 = b[6];
-  b3 = b[7];
-  out[4] = b0 * a00 + b1 * a10 + b2 * a20 + b3 * a30;
-  out[5] = b0 * a01 + b1 * a11 + b2 * a21 + b3 * a31;
-  out[6] = b0 * a02 + b1 * a12 + b2 * a22 + b3 * a32;
-  out[7] = b0 * a03 + b1 * a13 + b2 * a23 + b3 * a33;
-  b0 = b[8];
-  b1 = b[9];
-  b2 = b[10];
-  b3 = b[11];
-  out[8] = b0 * a00 + b1 * a10 + b2 * a20 + b3 * a30;
-  out[9] = b0 * a01 + b1 * a11 + b2 * a21 + b3 * a31;
-  out[10] = b0 * a02 + b1 * a12 + b2 * a22 + b3 * a32;
-  out[11] = b0 * a03 + b1 * a13 + b2 * a23 + b3 * a33;
-  b0 = b[12];
-  b1 = b[13];
-  b2 = b[14];
-  b3 = b[15];
-  out[12] = b0 * a00 + b1 * a10 + b2 * a20 + b3 * a30;
-  out[13] = b0 * a01 + b1 * a11 + b2 * a21 + b3 * a31;
-  out[14] = b0 * a02 + b1 * a12 + b2 * a22 + b3 * a32;
-  out[15] = b0 * a03 + b1 * a13 + b2 * a23 + b3 * a33;
-  return out;
-}
-/**
  * Creates a matrix from a quaternion rotation, vector translation and vector scale
  * This is equivalent to (but much faster than):
  *
@@ -744,7 +683,7 @@ function setAxisAngle(out, axis, rad) {
  * @returns {quat} out
  */
 
-function multiply$1(out, a, b) {
+function multiply(out, a, b) {
   var ax = a[0],
       ay = a[1],
       az = a[2],
@@ -1006,10 +945,23 @@ class Component {
     }
 }
 
-const type = 'OrthographicCamera';
-class OrthographicCamera extends Component {
+const type = 'Geometry';
+class Geometry extends Component {
     constructor(args) {
         super(type, {
+            positions: args.positions || [],
+            uvs: args.uvs || [],
+            normals: args.normals || [],
+            indices: args.indices || [],
+            colors: args.colors || [],
+        });
+    }
+}
+
+const type$1 = 'OrthographicCamera';
+class OrthographicCamera extends Component {
+    constructor(args) {
+        super(type$1, {
             translation: args.translation,
             lookAt: args.lookAt ? args.lookAt : fromValues$1(0, 0, 0),
             upVector: args.upVector ? args.upVector : fromValues$1(0, 1, 0),
@@ -1040,10 +992,10 @@ class OrthographicCamera extends Component {
     }
 }
 
-const type$1 = 'PerspectiveCamera';
+const type$2 = 'PerspectiveCamera';
 class PerspectiveCamera extends Component {
     constructor(args) {
-        super(type$1, {
+        super(type$2, {
             translation: args.translation,
             lookAt: args.lookAt ? args.lookAt : fromValues$1(0, 0, 0),
             upVector: args.upVector ? args.upVector : fromValues$1(0, 1, 0),
@@ -1076,13 +1028,6 @@ class PerspectiveCamera extends Component {
     }
 }
 
-const type$2 = 'Renderable';
-class Renderable extends Component {
-    constructor(args) {
-        super(type$2, args);
-    }
-}
-
 const type$3 = 'Transform';
 class Transform extends Component {
     constructor(args = {}) {
@@ -1098,7 +1043,7 @@ class Transform extends Component {
             },
             dirty: {
                 modelMatrix: true,
-            }
+            },
         });
     }
     translate(x, y, z) {
@@ -1120,7 +1065,7 @@ class Transform extends Component {
     rotate(x, y, z) {
         const q = this.data.cache.quaternion;
         fromEuler(q, x, y, z);
-        multiply$1(this.data.quaternion, this.data.quaternion, q);
+        multiply(this.data.quaternion, this.data.quaternion, q);
         this.data.dirty.modelMatrix = true;
     }
 }
@@ -1155,23 +1100,6 @@ class ECSEvent {
     constructor(type, payload) {
         this.type = type;
         this.payload = payload;
-    }
-}
-
-class Geometry {
-    constructor(args = {}) {
-        this.positions = args.positions || [];
-        this.uvs = args.uvs || [];
-        this.normals = args.normals || [];
-        this.indices = args.indices || [];
-        this.colors = args.colors || [];
-    }
-}
-
-class Material {
-    constructor() {
-        this.blendEnabled = false;
-        this.cullFaceEnabled = false;
     }
 }
 
@@ -1300,12 +1228,57 @@ class ResizeCanvasEvent extends ECSEvent {
     }
 }
 
-class QuadGeometry extends Geometry {
-    constructor() {
-        super({
-            positions: [-0.5, -0.5, 0, 0.5, -0.5, 0, 0.5, 0.5, 0, -0.5, 0.5, 0],
-            indices: [0, 1, 2, 0, 2, 3],
-        });
+const KEY = {
+    NUM_0: '0',
+    NUM_1: '1',
+    NUM_2: '2',
+    NUM_3: '3',
+    NUM_4: '4',
+    NUM_5: '5',
+    NUM_6: '6',
+    NUM_7: '7',
+    NUM_8: '8',
+    NUM_9: '9',
+    SPACE: ' ',
+    ARROW_UP: 'ArrowUp',
+    ARROW_LEFT: 'ArrowLeft',
+    ARROW_RIGHT: 'ArrowRight',
+    ARROW_DOWN: 'ArrowDown',
+};
+class KeyboardInput {
+    constructor(canvas) {
+        this.canvas = canvas;
+        this.canvas.setAttribute('tabIndex', '1');
+        if (document.activeElement !== canvas)
+            canvas.focus();
+        this.keyDownMap = Object.values(KeyboardInput.KEY).reduce((accum, value) => {
+            accum[value] = false;
+            return accum;
+        }, {});
+        this.keyPressedMap = Object.values(KeyboardInput.KEY).reduce((accum, value) => {
+            accum[value] = false;
+            return accum;
+        }, {});
+        const keyDownHandler = (event) => {
+            this.keyDownMap[event.key] = true;
+        };
+        const keyUpHandler = (event) => {
+            this.keyDownMap[event.key] = false;
+            this.keyPressedMap[event.key] = true;
+        };
+        this.canvas.addEventListener('keydown', keyDownHandler);
+        this.canvas.addEventListener('keyup', keyUpHandler);
+    }
+    static get KEY() {
+        return KEY;
+    }
+    isKeyDown(key) {
+        return this.keyDownMap[key];
+    }
+    keyPressed(key) {
+        const val = this.keyPressedMap[key];
+        this.keyPressedMap[key] = false;
+        return val;
     }
 }
 
@@ -1317,14 +1290,6 @@ const ImageLoader = {
         img.src = imageSrcUrl;
     }),
 };
-
-class UnlitMaterial extends Material {
-    constructor(args = {}) {
-        super();
-        this.color = args.color || [1, 1, 1];
-        this.opacity = args.opacity || 1.0;
-    }
-}
 
 class FpsDebugSystem extends RenderSystem {
     constructor() {
@@ -1403,11 +1368,47 @@ class UpdateTransformSystem extends System {
     }
 }
 
+class WebGL2FrameState {
+    constructor(gl) {
+        this.gl = gl;
+        this.blendEnabled = gl.isEnabled(gl.BLEND);
+        this.cullFaceEnabled = gl.isEnabled(gl.CULL_FACE);
+        this.matrixCache = {
+            modelView: fromValues(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1),
+            modelViewProjection: fromValues(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1),
+        };
+    }
+    setBlendEnabled(flag) {
+        const gl = this.gl;
+        if (this.blendEnabled !== flag) {
+            this.blendEnabled = flag;
+            if (this.blendEnabled) {
+                gl.enable(gl.BLEND);
+            }
+            else {
+                gl.disable(gl.BLEND);
+            }
+        }
+    }
+    setCullFaceEnabled(flag) {
+        const gl = this.gl;
+        if (this.cullFaceEnabled !== flag) {
+            this.cullFaceEnabled = flag;
+            if (this.cullFaceEnabled) {
+                gl.enable(gl.CULL_FACE);
+            }
+            else {
+                gl.disable(gl.CULL_FACE);
+            }
+        }
+    }
+}
+
 const defaultContextAttributeOptions = {
     premultipliedAlpha: false,
     alpha: false,
     powerPreference: 'high-performance',
-    antialias: false,
+    antialias: true,
     desynchronized: true,
 };
 const getDefaultWebGL2Options = (gl) => ({
@@ -1511,6 +1512,25 @@ const createVertexArray = (gl, cb) => {
     const buffers = cb();
     return [vao, buffers];
 };
+const UNIFORM_TYPE = {
+    MAT4: 'mat4',
+    MAT3: 'mat3',
+    VEC2: 'vec2',
+    VEC3: 'vec3',
+    VEC4: 'vec4',
+    FLOAT: 'float',
+    INT: 'int',
+};
+const uniformTypeValues = Object.values(UNIFORM_TYPE);
+const createUniformTypeLookupTable = (gl) => ({
+    [gl.FLOAT_MAT4]: UNIFORM_TYPE.MAT4,
+    [gl.FLOAT_MAT3]: UNIFORM_TYPE.MAT3,
+    [gl.FLOAT_VEC2]: UNIFORM_TYPE.VEC2,
+    [gl.FLOAT_VEC3]: UNIFORM_TYPE.VEC3,
+    [gl.FLOAT_VEC4]: UNIFORM_TYPE.VEC4,
+    [gl.FLOAT]: UNIFORM_TYPE.FLOAT,
+    [gl.INT]: UNIFORM_TYPE.INT,
+});
 const createTexture2D = (gl, image, options) => {
     const texture = gl.createTexture();
     if (!texture)
@@ -1530,169 +1550,6 @@ const createTexture2D = (gl, image, options) => {
     return texture;
 };
 
-const vShaderSource = `
-    #version 300 es
-
-    precision highp float;
-    precision highp int;
-
-    layout(location = 0) in vec3 position;
-
-    uniform mat4 mvp;
-
-    void main() {
-        gl_Position = mvp * vec4(position, 1.0);
-    }
-`.trim();
-const fShaderSource = `
-    #version 300 es
-
-    precision highp float;
-    precision highp int;
-
-    out vec4 fragmentColor;
-
-    void main() {
-        fragmentColor = vec4(1.0, 1.0, 1.0, 1.0);
-    }
-`.trim();
-class CachedRenderable {
-    constructor(gl, renderable, transform, frameState) {
-        this.gl = gl;
-        this.renderable = renderable;
-        this.transform = transform;
-        this.frameState = frameState;
-        this.vertexShader = createShader(gl, gl.VERTEX_SHADER, vShaderSource);
-        this.fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, fShaderSource);
-        this.program = createProgram(gl, this.vertexShader, this.fragmentShader);
-        const [vao, buffers] = createVertexArray(gl, () => {
-            const positionBuffer = createArrayBuffer(gl, Float32Array.from(renderable.data.geometry.positions), 0, 3);
-            return [positionBuffer];
-        });
-        this.vao = vao;
-        this.buffers = buffers;
-        this.indexBuffer = createElementArrayBuffer(gl, Uint32Array.from(renderable.data.geometry.indices));
-        this.mvpLocation = gl.getUniformLocation(this.program, 'mvp');
-    }
-    render(camera) {
-        const gl = this.gl;
-        const frameState = this.frameState;
-        gl.useProgram(this.program);
-        gl.bindVertexArray(this.vao);
-        multiply(frameState.matrixCache.modelView, camera.data.viewMatrix, this.transform.data.modelMatrix);
-        multiply(frameState.matrixCache.modelViewProjection, camera.data.projectionMatrix, frameState.matrixCache.modelView);
-        gl.uniformMatrix4fv(this.mvpLocation, false, frameState.matrixCache.modelViewProjection);
-        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.indexBuffer);
-        gl.drawElements(gl.TRIANGLES, this.renderable.data.geometry.indices.length, gl.UNSIGNED_INT, 0);
-    }
-    cleanup() {
-        const gl = this.gl;
-        gl.deleteShader(this.vertexShader);
-        gl.deleteShader(this.fragmentShader);
-        gl.deleteProgram(this.program);
-        this.buffers.forEach(buffer => gl.deleteBuffer(buffer));
-        gl.deleteVertexArray(this.vao);
-        gl.deleteBuffer(this.indexBuffer);
-    }
-}
-
-class FrameState {
-    constructor(gl) {
-        this.gl = gl;
-        this.blendEnabled = gl.isEnabled(gl.BLEND);
-        this.cullFaceEnabled = gl.isEnabled(gl.CULL_FACE);
-        this.matrixCache = {
-            modelView: fromValues(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1),
-            modelViewProjection: fromValues(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1),
-        };
-    }
-    setBlendEnabled(flag) {
-        const gl = this.gl;
-        if (this.blendEnabled !== flag) {
-            this.blendEnabled = flag;
-            if (this.blendEnabled) {
-                gl.enable(gl.BLEND);
-            }
-            else {
-                gl.disable(gl.BLEND);
-            }
-        }
-    }
-    setCullFaceEnabled(flag) {
-        const gl = this.gl;
-        if (this.cullFaceEnabled !== flag) {
-            this.cullFaceEnabled = flag;
-            if (this.cullFaceEnabled) {
-                gl.enable(gl.CULL_FACE);
-            }
-            else {
-                gl.disable(gl.CULL_FACE);
-            }
-        }
-    }
-}
-
-const defaultOptions = {
-    autoClear: true,
-};
-class WebGL2RenderSystem extends RenderSystem {
-    constructor(canvas, cameraEntity, options = {}) {
-        super();
-        this.canvas = canvas;
-        this.cameraEntity = cameraEntity;
-        this.activeCamera = cameraEntity.getComponent(PerspectiveCamera) || cameraEntity.getComponent(OrthographicCamera);
-        this.options = Object.assign(Object.assign({}, defaultOptions), options);
-        this.gl = getWebGL2Context(canvas, options.contextAttributeOptions, options.getWebGL2Options);
-        this.frameState = new FrameState(this.gl);
-        this.cachedRenderables = {};
-        window.addEventListener('unload', () => {
-            Object.keys(this.cachedRenderables).forEach(key => this.cachedRenderables[key].cleanup());
-        });
-    }
-    init() {
-        this.world.subscribe(this, [ResizeCanvasEvent]);
-    }
-    on(event) {
-        this.canvas.width = event.payload.width;
-        this.canvas.height = event.payload.height;
-        this.gl.viewport(0, 0, this.canvas.width, this.canvas.height);
-        if (this.activeCamera.type === 'PerspectiveCamera') {
-            this.activeCamera.setAspect(this.canvas.width / this.canvas.height);
-        }
-        this.render();
-    }
-    setActiveCameraEntity(cameraEntity) {
-        this.cameraEntity = cameraEntity;
-        this.activeCamera = cameraEntity.getComponent(PerspectiveCamera) || cameraEntity.getComponent(OrthographicCamera);
-        return this;
-    }
-    getCachedRenderable(renderable, transform) {
-        if (this.cachedRenderables[renderable.entityId])
-            return this.cachedRenderables[renderable.entityId];
-        const cachedRenderable = new CachedRenderable(this.gl, renderable, transform, this.frameState);
-        this.cachedRenderables[renderable.entityId] = cachedRenderable;
-        return cachedRenderable;
-    }
-    render() {
-        const gl = this.gl;
-        const options = this.options;
-        const frameState = this.frameState;
-        const activeCamera = this.activeCamera;
-        if (options.autoClear)
-            gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-        frameState.setBlendEnabled(false);
-        frameState.setCullFaceEnabled(false);
-        const renderables = this.world.getComponentsByType(Renderable);
-        const renderablesCount = renderables.length;
-        for (let i = 0; i < renderablesCount; i++) {
-            const renderable = renderables[i];
-            const transform = this.world.getComponentByEntityIdAndType(renderable.entityId, Transform);
-            const cachedRenderable = this.getCachedRenderable(renderable, transform);
-            cachedRenderable.render(activeCamera);
-        }
-    }
-}
-
 setMatrixArrayType(Array);
 
 exports.Component = Component;
@@ -1701,28 +1558,28 @@ exports.Entity = Entity;
 exports.FpsDebugSystem = FpsDebugSystem;
 exports.Geometry = Geometry;
 exports.ImageLoader = ImageLoader;
-exports.Material = Material;
+exports.KeyboardInput = KeyboardInput;
 exports.OrthographicCamera = OrthographicCamera;
 exports.PerspectiveCamera = PerspectiveCamera;
-exports.QuadGeometry = QuadGeometry;
 exports.RegisterEntityEvent = RegisterEntityEvent;
 exports.RemoveEntityEvent = RemoveEntityEvent;
 exports.RenderSystem = RenderSystem;
-exports.Renderable = Renderable;
 exports.ResizeCanvasEvent = ResizeCanvasEvent;
 exports.System = System;
 exports.Transform = Transform;
-exports.UnlitMaterial = UnlitMaterial;
+exports.UNIFORM_TYPE = UNIFORM_TYPE;
 exports.UpdateCameraSystem = UpdateCameraSystem;
 exports.UpdateTransformSystem = UpdateTransformSystem;
-exports.WebGL2RenderSystem = WebGL2RenderSystem;
+exports.WebGL2FrameState = WebGL2FrameState;
 exports.World = World;
 exports.createArrayBuffer = createArrayBuffer;
 exports.createElementArrayBuffer = createElementArrayBuffer;
 exports.createProgram = createProgram;
 exports.createShader = createShader;
 exports.createTexture2D = createTexture2D;
+exports.createUniformTypeLookupTable = createUniformTypeLookupTable;
 exports.createVertexArray = createVertexArray;
 exports.defaultContextAttributeOptions = defaultContextAttributeOptions;
 exports.getDefaultWebGL2Options = getDefaultWebGL2Options;
 exports.getWebGL2Context = getWebGL2Context;
+exports.uniformTypeValues = uniformTypeValues;

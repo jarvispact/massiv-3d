@@ -5,7 +5,7 @@ type MatrixCache = {
     modelViewProjection: mat4;
 };
 
-export class FrameState {
+export class WebGL2FrameState {
     gl: WebGL2RenderingContext;
     blendEnabled: boolean;
     cullFaceEnabled: boolean;

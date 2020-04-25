@@ -8,5 +8,6 @@ export declare class UnlitMaterial extends Material {
     color: vec3;
     opacity: number;
     constructor(args?: Args);
+    setColor(r: number, g: number, b: number): void;
 }
 export {};
