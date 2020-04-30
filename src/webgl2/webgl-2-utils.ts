@@ -1,3 +1,5 @@
+import { mat3, mat4, vec2, vec3, vec4 } from 'gl-matrix';
+
 export type WebGLContextAttributeOptions = {
     premultipliedAlpha: boolean;
     alpha: boolean;
@@ -124,17 +126,16 @@ export const createElementArrayBuffer = (gl: WebGL2RenderingContext, indices: Ui
     return buffer;
 };
 
-export const createVertexArray = (gl: WebGL2RenderingContext, cb: () => WebGLBuffer[]): [WebGLVertexArrayObject, WebGLBuffer[]] => {
+export const createVertexArray = (gl: WebGL2RenderingContext): WebGLVertexArrayObject => {
     const vao = gl.createVertexArray();
     if (!vao) throw new Error('could not create vertex array object');
     gl.bindVertexArray(vao);
-    const buffers = cb();
-    return [vao, buffers];
+    return vao;
 };
 
-export const UNIFORM_TYPE = {
-    MAT4: 'mat4',
+export const WEBGL2_DATA_TYPE = {
     MAT3: 'mat3',
+    MAT4: 'mat4',
     VEC2: 'vec2',
     VEC3: 'vec3',
     VEC4: 'vec4',
@@ -142,19 +143,94 @@ export const UNIFORM_TYPE = {
     INT: 'int',
 } as const;
 
-export const uniformTypeValues = Object.values(UNIFORM_TYPE);
-export type UniformType = typeof uniformTypeValues[0];
-export type UniformTypeLookupTable = Record<number, UniformType>;
+export const UNIFORM = {
+    MODEL_MATRIX: 'modelMatrix',
+    VIEW_MATRIX: 'viewMatrix',
+    PROJECTION_MATRIX: 'projectionMatrix',
+    MODEL_VIEW_MATRIX: 'modelViewMatrix',
+    MODEL_VIEW_PROJECTION_MATRIX: 'modelViewProjectionMatrix',
+    CAMERA_POSITION: 'cameraPosition',
+} as const;
 
-export const createUniformTypeLookupTable = (gl: WebGL2RenderingContext): UniformTypeLookupTable => ({
-    [gl.FLOAT_MAT4]: UNIFORM_TYPE.MAT4,
-    [gl.FLOAT_MAT3]: UNIFORM_TYPE.MAT3,
-    [gl.FLOAT_VEC2]: UNIFORM_TYPE.VEC2,
-    [gl.FLOAT_VEC3]: UNIFORM_TYPE.VEC3,
-    [gl.FLOAT_VEC4]: UNIFORM_TYPE.VEC4,
-    [gl.FLOAT]: UNIFORM_TYPE.FLOAT,
-    [gl.INT]: UNIFORM_TYPE.INT,
+export const webgl2TypeValues = Object.values(WEBGL2_DATA_TYPE);
+export type WebGL2DataType = typeof webgl2TypeValues[0];
+
+export const createUniformTypeLookupTable = (gl: WebGL2RenderingContext): Record<number, WebGL2DataType> => ({
+    [gl.FLOAT_MAT3]: WEBGL2_DATA_TYPE.MAT3,
+    [gl.FLOAT_MAT4]: WEBGL2_DATA_TYPE.MAT4,
+    [gl.FLOAT_VEC2]: WEBGL2_DATA_TYPE.VEC2,
+    [gl.FLOAT_VEC3]: WEBGL2_DATA_TYPE.VEC3,
+    [gl.FLOAT_VEC4]: WEBGL2_DATA_TYPE.VEC4,
+    [gl.FLOAT]: WEBGL2_DATA_TYPE.FLOAT,
+    [gl.INT]: WEBGL2_DATA_TYPE.INT,
 });
+
+export type ActiveAttribute = {
+    name: string;
+    type: WebGL2DataType;
+};
+
+export type ActiveUniform = {
+    name: string;
+    type: WebGL2DataType;
+    location: WebGLUniformLocation;
+};
+
+export type UniformTypeToUpdateUniformFunction = Record<WebGL2DataType, Function>;
+
+export const uniformTypeToUpdateUniformFunction: UniformTypeToUpdateUniformFunction = {
+    mat3: (gl: WebGL2RenderingContext, location: WebGLUniformLocation, value: unknown): void => gl.uniformMatrix3fv(location, false, value as mat3),
+    mat4: (gl: WebGL2RenderingContext, location: WebGLUniformLocation, value: unknown): void => gl.uniformMatrix4fv(location, false, value as mat4),
+    vec2: (gl: WebGL2RenderingContext, location: WebGLUniformLocation, value: unknown): void => gl.uniform2fv(location, value as vec2),
+    vec3: (gl: WebGL2RenderingContext, location: WebGLUniformLocation, value: unknown): void => gl.uniform3fv(location, value as vec3),
+    vec4: (gl: WebGL2RenderingContext, location: WebGLUniformLocation, value: unknown): void => gl.uniform4fv(location, value as vec4),
+    float: (gl: WebGL2RenderingContext, location: WebGLUniformLocation, value: unknown): void => Array.isArray(value) ? gl.uniform1fv(location, value) : gl.uniform1f(location, value as number),
+    int: (gl: WebGL2RenderingContext, location: WebGLUniformLocation, value: unknown): void => Array.isArray(value) ? gl.uniform1iv(location, value) : gl.uniform1i(location, value as number),
+};
+
+export const getActiveAttributes = (gl: WebGL2RenderingContext, program: WebGLProgram): ActiveAttribute[] => {
+    const lookupTable = createUniformTypeLookupTable(gl);
+    const activeAttributesCount = gl.getProgramParameter(program, gl.ACTIVE_ATTRIBUTES);
+    const attribs: ActiveAttribute[] = [];
+
+    for (let i = 0; i < activeAttributesCount; i++) {
+        const attributeInfo = gl.getActiveAttrib(program, i) as WebGLActiveInfo;
+        attribs.push({
+            name: attributeInfo.name,
+            type: lookupTable[attributeInfo.type],
+        });
+    }
+
+    return attribs;
+};
+
+export const getActiveUniforms = (gl: WebGL2RenderingContext, program: WebGLProgram): ActiveUniform[] => {
+    const lookupTable = createUniformTypeLookupTable(gl);
+    const activeUniformsCount = gl.getProgramParameter(program, gl.ACTIVE_UNIFORMS);
+    const uniforms: ActiveUniform[] = [];
+
+    for (let i = 0; i < activeUniformsCount; i++) {
+        const uniformInfo = gl.getActiveUniform(program, i) as WebGLActiveInfo;
+        uniforms.push({
+            name: uniformInfo.name,
+            type: lookupTable[uniformInfo.type],
+            location: gl.getUniformLocation(program, uniformInfo.name) as WebGLUniformLocation,
+        });
+    }
+
+    return uniforms;
+};
+
+// const type = webglUniformTypeToUniformType[uniformInfo.type];
+// const location = gl.getUniformLocation(program, uniformInfo.name);
+// if (type === 'sampler2D') {
+//     const texture = WebGL2Utils.createTexture(gl, renderable.material[uniformInfo.name]);
+//     const sampler = new Sampler2D(gl, uniformInfo.name, location, texture);
+//     sampler2Ds.push(sampler);
+// } else {
+//     const u = new Uniform(gl, uniformInfo.name, type, location);
+//     uniforms.push(u);
+// }
 
 type TextureOptions = {
     level: number;

@@ -1,5 +1,5 @@
-import { CameraArgs, CameraData } from './camera';
 import { Component } from '../core/component';
+import { CameraArgs, CameraData } from './camera';
 declare const type = "OrthographicCamera";
 declare type Args = CameraArgs & {
     left: number;

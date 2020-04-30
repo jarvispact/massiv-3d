@@ -1,6 +1,6 @@
-import { CameraArgs, CameraData } from './camera';
+import { mat4, vec3 } from 'gl-matrix';
 import { Component } from '../core/component';
-import { vec3, mat4 } from 'gl-matrix';
+import { CameraArgs, CameraData } from './camera';
 
 const type = 'OrthographicCamera';
 
@@ -37,6 +37,11 @@ export class OrthographicCamera extends Component<typeof type, OrthographicCamer
                 viewMatrix: true,
                 projectionMatrix: true,
             },
+            webgl2UniformUpdateFlag: {
+                translation: true,
+                viewMatrix: true,
+                projectionMatrix: true,
+            },
             left: args.left,
             right: args.right,
             bottom: args.bottom,
@@ -51,5 +56,7 @@ export class OrthographicCamera extends Component<typeof type, OrthographicCamer
         t[0] = x; t[1] = y; t[2] = z;
         vec3.add(this.data.translation, this.data.translation, t);
         this.data.dirty.viewMatrix = true;
+        this.data.webgl2UniformUpdateFlag.translation = true;
+        this.data.webgl2UniformUpdateFlag.viewMatrix = true;
     }
 }

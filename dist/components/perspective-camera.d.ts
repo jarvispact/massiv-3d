@@ -1,5 +1,5 @@
 import { Component } from '../core/component';
-import { CameraData, CameraArgs } from './camera';
+import { CameraArgs, CameraData } from './camera';
 declare const type = "PerspectiveCamera";
 declare type Args = CameraArgs & {
     fov?: number;

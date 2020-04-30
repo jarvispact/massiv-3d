@@ -129,6 +129,67 @@
     return out;
   }
   /**
+   * Multiplies two mat4s
+   *
+   * @param {mat4} out the receiving matrix
+   * @param {ReadonlyMat4} a the first operand
+   * @param {ReadonlyMat4} b the second operand
+   * @returns {mat4} out
+   */
+
+  function multiply(out, a, b) {
+    var a00 = a[0],
+        a01 = a[1],
+        a02 = a[2],
+        a03 = a[3];
+    var a10 = a[4],
+        a11 = a[5],
+        a12 = a[6],
+        a13 = a[7];
+    var a20 = a[8],
+        a21 = a[9],
+        a22 = a[10],
+        a23 = a[11];
+    var a30 = a[12],
+        a31 = a[13],
+        a32 = a[14],
+        a33 = a[15]; // Cache only the current line of the second matrix
+
+    var b0 = b[0],
+        b1 = b[1],
+        b2 = b[2],
+        b3 = b[3];
+    out[0] = b0 * a00 + b1 * a10 + b2 * a20 + b3 * a30;
+    out[1] = b0 * a01 + b1 * a11 + b2 * a21 + b3 * a31;
+    out[2] = b0 * a02 + b1 * a12 + b2 * a22 + b3 * a32;
+    out[3] = b0 * a03 + b1 * a13 + b2 * a23 + b3 * a33;
+    b0 = b[4];
+    b1 = b[5];
+    b2 = b[6];
+    b3 = b[7];
+    out[4] = b0 * a00 + b1 * a10 + b2 * a20 + b3 * a30;
+    out[5] = b0 * a01 + b1 * a11 + b2 * a21 + b3 * a31;
+    out[6] = b0 * a02 + b1 * a12 + b2 * a22 + b3 * a32;
+    out[7] = b0 * a03 + b1 * a13 + b2 * a23 + b3 * a33;
+    b0 = b[8];
+    b1 = b[9];
+    b2 = b[10];
+    b3 = b[11];
+    out[8] = b0 * a00 + b1 * a10 + b2 * a20 + b3 * a30;
+    out[9] = b0 * a01 + b1 * a11 + b2 * a21 + b3 * a31;
+    out[10] = b0 * a02 + b1 * a12 + b2 * a22 + b3 * a32;
+    out[11] = b0 * a03 + b1 * a13 + b2 * a23 + b3 * a33;
+    b0 = b[12];
+    b1 = b[13];
+    b2 = b[14];
+    b3 = b[15];
+    out[12] = b0 * a00 + b1 * a10 + b2 * a20 + b3 * a30;
+    out[13] = b0 * a01 + b1 * a11 + b2 * a21 + b3 * a31;
+    out[14] = b0 * a02 + b1 * a12 + b2 * a22 + b3 * a32;
+    out[15] = b0 * a03 + b1 * a13 + b2 * a23 + b3 * a33;
+    return out;
+  }
+  /**
    * Creates a matrix from a quaternion rotation, vector translation and vector scale
    * This is equivalent to (but much faster than):
    *
@@ -685,7 +746,7 @@
    * @returns {quat} out
    */
 
-  function multiply(out, a, b) {
+  function multiply$1(out, a, b) {
     var ax = a[0],
         ay = a[1],
         az = a[2],
@@ -947,23 +1008,10 @@
       }
   }
 
-  const type = 'Geometry';
-  class Geometry extends Component {
-      constructor(args) {
-          super(type, {
-              positions: args.positions || [],
-              uvs: args.uvs || [],
-              normals: args.normals || [],
-              indices: args.indices || [],
-              colors: args.colors || [],
-          });
-      }
-  }
-
-  const type$1 = 'OrthographicCamera';
+  const type = 'OrthographicCamera';
   class OrthographicCamera extends Component {
       constructor(args) {
-          super(type$1, {
+          super(type, {
               translation: args.translation,
               lookAt: args.lookAt ? args.lookAt : fromValues$1(0, 0, 0),
               upVector: args.upVector ? args.upVector : fromValues$1(0, 1, 0),
@@ -973,6 +1021,11 @@
                   translation: create$1(),
               },
               dirty: {
+                  viewMatrix: true,
+                  projectionMatrix: true,
+              },
+              webgl2UniformUpdateFlag: {
+                  translation: true,
                   viewMatrix: true,
                   projectionMatrix: true,
               },
@@ -991,13 +1044,15 @@
           t[2] = z;
           add(this.data.translation, this.data.translation, t);
           this.data.dirty.viewMatrix = true;
+          this.data.webgl2UniformUpdateFlag.translation = true;
+          this.data.webgl2UniformUpdateFlag.viewMatrix = true;
       }
   }
 
-  const type$2 = 'PerspectiveCamera';
+  const type$1 = 'PerspectiveCamera';
   class PerspectiveCamera extends Component {
       constructor(args) {
-          super(type$2, {
+          super(type$1, {
               translation: args.translation,
               lookAt: args.lookAt ? args.lookAt : fromValues$1(0, 0, 0),
               upVector: args.upVector ? args.upVector : fromValues$1(0, 1, 0),
@@ -1007,6 +1062,11 @@
                   translation: create$1(),
               },
               dirty: {
+                  viewMatrix: true,
+                  projectionMatrix: true,
+              },
+              webgl2UniformUpdateFlag: {
+                  translation: true,
                   viewMatrix: true,
                   projectionMatrix: true,
               },
@@ -1023,17 +1083,20 @@
           t[2] = z;
           add(this.data.translation, this.data.translation, t);
           this.data.dirty.viewMatrix = true;
+          this.data.webgl2UniformUpdateFlag.translation = true;
+          this.data.webgl2UniformUpdateFlag.viewMatrix = true;
       }
       setAspect(aspect) {
           this.data.aspect = aspect;
           this.data.dirty.projectionMatrix = true;
+          this.data.webgl2UniformUpdateFlag.projectionMatrix = true;
       }
   }
 
-  const type$3 = 'Transform';
+  const type$2 = 'Transform';
   class Transform extends Component {
       constructor(args = {}) {
-          super(type$3, {
+          super(type$2, {
               translation: args.translation || fromValues$1(0, 0, 0),
               scaling: args.scaling || fromValues$1(1, 1, 1),
               quaternion: args.quaternion || fromValues$3(0, 0, 0, 1),
@@ -1046,6 +1109,9 @@
               dirty: {
                   modelMatrix: true,
               },
+              webgl2UniformUpdateFlag: {
+                  modelMatrix: true,
+              },
           });
       }
       translate(x, y, z) {
@@ -1055,6 +1121,7 @@
           t[2] = z;
           add(this.data.translation, this.data.translation, t);
           this.data.dirty.modelMatrix = true;
+          this.data.webgl2UniformUpdateFlag.modelMatrix = true;
       }
       scale(x, y, z) {
           const s = this.data.cache.scaling;
@@ -1063,12 +1130,14 @@
           s[2] = z;
           add(this.data.scaling, this.data.scaling, s);
           this.data.dirty.modelMatrix = true;
+          this.data.webgl2UniformUpdateFlag.modelMatrix = true;
       }
       rotate(x, y, z) {
           const q = this.data.cache.quaternion;
           fromEuler(q, x, y, z);
-          multiply(this.data.quaternion, this.data.quaternion, q);
+          multiply$1(this.data.quaternion, this.data.quaternion, q);
           this.data.dirty.modelMatrix = true;
+          this.data.webgl2UniformUpdateFlag.modelMatrix = true;
       }
   }
 
@@ -1209,24 +1278,43 @@
       }
   }
 
-  const type$4 = 'RegisterEntityEvent';
+  const type$3 = 'RegisterEntityEvent';
   class RegisterEntityEvent extends ECSEvent {
+      constructor(entity) {
+          super(type$3, entity);
+      }
+  }
+
+  const type$4 = 'RemoveEntityEvent';
+  class RemoveEntityEvent extends ECSEvent {
       constructor(entity) {
           super(type$4, entity);
       }
   }
 
-  const type$5 = 'RemoveEntityEvent';
-  class RemoveEntityEvent extends ECSEvent {
-      constructor(entity) {
-          super(type$5, entity);
+  const type$5 = 'ResizeCanvasEvent';
+  class ResizeCanvasEvent extends ECSEvent {
+      constructor(payload) {
+          super(type$5, payload);
       }
   }
 
-  const type$6 = 'ResizeCanvasEvent';
-  class ResizeCanvasEvent extends ECSEvent {
-      constructor(payload) {
-          super(type$6, payload);
+  class RawGeometry {
+      constructor(args = {}) {
+          this.positions = args.positions || null;
+          this.uvs = args.uvs || null;
+          this.normals = args.normals || null;
+          this.indices = args.indices || null;
+          this.colors = args.colors || null;
+      }
+      getGeometryData() {
+          return {
+              positions: this.positions,
+              uvs: this.uvs,
+              normals: this.normals,
+              indices: this.indices,
+              colors: this.colors,
+          };
       }
   }
 
@@ -1292,6 +1380,98 @@
           img.src = imageSrcUrl;
       }),
   };
+
+  class PhongMaterial {
+      constructor(args = {}) {
+          this.ambientIntensity = args.ambientIntensity || 0.1;
+          this.diffuseColor = args.diffuseColor || [1, 0, 0];
+          this.specularColor = args.specularColor || [1, 1, 1];
+          this.specularShininess = args.specularShininess || 256;
+          this.opacity = args.opacity || 1;
+          this.dirty = {
+              ambientIntensity: true,
+              diffuseColor: true,
+              specularColor: true,
+              specularShininess: true,
+              opacity: true,
+          };
+      }
+      getUniformValue(uniformName) {
+          const name = uniformName;
+          if (!this.dirty[name])
+              return null;
+          this.dirty[name] = false;
+          return this[name];
+      }
+  }
+  const vertexShader = `
+    #version 300 es
+    precision highp float;
+    precision highp int;
+    layout(location = 0) in vec3 position;
+    uniform mat4 modelViewProjectionMatrix;
+    void main() {
+        gl_Position = modelViewProjectionMatrix * vec4(position, 1.0);
+    }
+`.trim();
+  const fragmentShader = `
+    #version 300 es
+    precision highp float;
+    precision highp int;
+    uniform vec3 color;
+    uniform float opacity;
+    out vec4 fragmentColor;
+    void main() {
+        fragmentColor = vec4(color, opacity);
+    }
+`.trim();
+  PhongMaterial.getShaderSourceCode = () => ({
+      vertexShader,
+      fragmentShader,
+  });
+
+  class UnlitMaterial {
+      constructor(args = {}) {
+          this.color = args.color || [1, 1, 1];
+          this.opacity = args.opacity || 1;
+          this.dirty = {
+              color: true,
+              opacity: true,
+          };
+      }
+      getUniformValue(uniformName) {
+          const name = uniformName;
+          if (!this.dirty[name])
+              return null;
+          this.dirty[name] = false;
+          return this[name];
+      }
+  }
+  const vertexShader$1 = `
+    #version 300 es
+    precision highp float;
+    precision highp int;
+    layout(location = 0) in vec3 position;
+    uniform mat4 modelViewProjectionMatrix;
+    void main() {
+        gl_Position = modelViewProjectionMatrix * vec4(position, 1.0);
+    }
+`.trim();
+  const fragmentShader$1 = `
+    #version 300 es
+    precision highp float;
+    precision highp int;
+    uniform vec3 color;
+    uniform float opacity;
+    out vec4 fragmentColor;
+    void main() {
+        fragmentColor = vec4(color, opacity);
+    }
+`.trim();
+  UnlitMaterial.getShaderSourceCode = () => ({
+      vertexShader: vertexShader$1,
+      fragmentShader: fragmentShader$1,
+  });
 
   class FpsDebugSystem extends RenderSystem {
       constructor() {
@@ -1406,6 +1586,13 @@
       }
   }
 
+  const type$6 = 'Renderable';
+  class Renderable extends Component {
+      constructor(args) {
+          super(type$6, args);
+      }
+  }
+
   const defaultContextAttributeOptions = {
       premultipliedAlpha: false,
       alpha: false,
@@ -1506,33 +1693,76 @@
       gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, indices, gl.STATIC_DRAW);
       return buffer;
   };
-  const createVertexArray = (gl, cb) => {
+  const createVertexArray = (gl) => {
       const vao = gl.createVertexArray();
       if (!vao)
           throw new Error('could not create vertex array object');
       gl.bindVertexArray(vao);
-      const buffers = cb();
-      return [vao, buffers];
+      return vao;
   };
-  const UNIFORM_TYPE = {
-      MAT4: 'mat4',
+  const WEBGL2_DATA_TYPE = {
       MAT3: 'mat3',
+      MAT4: 'mat4',
       VEC2: 'vec2',
       VEC3: 'vec3',
       VEC4: 'vec4',
       FLOAT: 'float',
       INT: 'int',
   };
-  const uniformTypeValues = Object.values(UNIFORM_TYPE);
+  const UNIFORM = {
+      MODEL_MATRIX: 'modelMatrix',
+      VIEW_MATRIX: 'viewMatrix',
+      PROJECTION_MATRIX: 'projectionMatrix',
+      MODEL_VIEW_MATRIX: 'modelViewMatrix',
+      MODEL_VIEW_PROJECTION_MATRIX: 'modelViewProjectionMatrix',
+      CAMERA_POSITION: 'cameraPosition',
+  };
+  const webgl2TypeValues = Object.values(WEBGL2_DATA_TYPE);
   const createUniformTypeLookupTable = (gl) => ({
-      [gl.FLOAT_MAT4]: UNIFORM_TYPE.MAT4,
-      [gl.FLOAT_MAT3]: UNIFORM_TYPE.MAT3,
-      [gl.FLOAT_VEC2]: UNIFORM_TYPE.VEC2,
-      [gl.FLOAT_VEC3]: UNIFORM_TYPE.VEC3,
-      [gl.FLOAT_VEC4]: UNIFORM_TYPE.VEC4,
-      [gl.FLOAT]: UNIFORM_TYPE.FLOAT,
-      [gl.INT]: UNIFORM_TYPE.INT,
+      [gl.FLOAT_MAT3]: WEBGL2_DATA_TYPE.MAT3,
+      [gl.FLOAT_MAT4]: WEBGL2_DATA_TYPE.MAT4,
+      [gl.FLOAT_VEC2]: WEBGL2_DATA_TYPE.VEC2,
+      [gl.FLOAT_VEC3]: WEBGL2_DATA_TYPE.VEC3,
+      [gl.FLOAT_VEC4]: WEBGL2_DATA_TYPE.VEC4,
+      [gl.FLOAT]: WEBGL2_DATA_TYPE.FLOAT,
+      [gl.INT]: WEBGL2_DATA_TYPE.INT,
   });
+  const uniformTypeToUpdateUniformFunction = {
+      mat3: (gl, location, value) => gl.uniformMatrix3fv(location, false, value),
+      mat4: (gl, location, value) => gl.uniformMatrix4fv(location, false, value),
+      vec2: (gl, location, value) => gl.uniform2fv(location, value),
+      vec3: (gl, location, value) => gl.uniform3fv(location, value),
+      vec4: (gl, location, value) => gl.uniform4fv(location, value),
+      float: (gl, location, value) => Array.isArray(value) ? gl.uniform1fv(location, value) : gl.uniform1f(location, value),
+      int: (gl, location, value) => Array.isArray(value) ? gl.uniform1iv(location, value) : gl.uniform1i(location, value),
+  };
+  const getActiveAttributes = (gl, program) => {
+      const lookupTable = createUniformTypeLookupTable(gl);
+      const activeAttributesCount = gl.getProgramParameter(program, gl.ACTIVE_ATTRIBUTES);
+      const attribs = [];
+      for (let i = 0; i < activeAttributesCount; i++) {
+          const attributeInfo = gl.getActiveAttrib(program, i);
+          attribs.push({
+              name: attributeInfo.name,
+              type: lookupTable[attributeInfo.type],
+          });
+      }
+      return attribs;
+  };
+  const getActiveUniforms = (gl, program) => {
+      const lookupTable = createUniformTypeLookupTable(gl);
+      const activeUniformsCount = gl.getProgramParameter(program, gl.ACTIVE_UNIFORMS);
+      const uniforms = [];
+      for (let i = 0; i < activeUniformsCount; i++) {
+          const uniformInfo = gl.getActiveUniform(program, i);
+          uniforms.push({
+              name: uniformInfo.name,
+              type: lookupTable[uniformInfo.type],
+              location: gl.getUniformLocation(program, uniformInfo.name),
+          });
+      }
+      return uniforms;
+  };
   const createTexture2D = (gl, image, options) => {
       const texture = gl.createTexture();
       if (!texture)
@@ -1552,27 +1782,154 @@
       return texture;
   };
 
+  const getMaterialClass = (constructorName) => {
+      switch (constructorName) {
+          case 'UnlitMaterial':
+              return UnlitMaterial;
+          case 'PhongMaterial':
+              return PhongMaterial;
+          default:
+              return UnlitMaterial;
+      }
+  };
+  class CachedRenderable {
+      constructor(gl, renderable, transform, frameState) {
+          this.gl = gl;
+          this.renderable = renderable;
+          this.transform = transform;
+          this.frameState = frameState;
+          const shaderSource = getMaterialClass(this.renderable.data.material.constructor.name).getShaderSourceCode();
+          this.vertexShader = createShader(gl, gl.VERTEX_SHADER, shaderSource.vertexShader);
+          this.fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, shaderSource.fragmentShader);
+          this.program = createProgram(gl, this.vertexShader, this.fragmentShader);
+          const attribs = getActiveAttributes(gl, this.program);
+          const attributeNames = attribs.map(a => a.name);
+          this.buffers = [];
+          this.vao = createVertexArray(gl);
+          this.geometryData = renderable.data.geometry.getGeometryData();
+          if (attributeNames.includes('position') && this.geometryData.positions) {
+              this.buffers.push(createArrayBuffer(gl, Float32Array.from(this.geometryData.positions), 0, 3));
+          }
+          this.indexBuffer = this.geometryData.indices ? createElementArrayBuffer(gl, Uint32Array.from(this.geometryData.indices)) : null;
+          this.activeUniforms = getActiveUniforms(gl, this.program);
+      }
+      render(camera) {
+          const gl = this.gl;
+          const transform = this.transform;
+          const renderable = this.renderable;
+          const frameState = this.frameState;
+          const activeUniforms = this.activeUniforms;
+          gl.useProgram(this.program);
+          gl.bindVertexArray(this.vao);
+          // TODO: add to framestate and reset after each frame
+          let modelViewComputed = false;
+          for (let i = 0; i < activeUniforms.length; i++) {
+              const uniform = activeUniforms[i];
+              if (uniform.name === UNIFORM.MODEL_MATRIX && transform.data.webgl2UniformUpdateFlag.modelMatrix) {
+                  gl.uniformMatrix4fv(uniform.location, false, transform.data.modelMatrix);
+              }
+              else if (uniform.name === UNIFORM.VIEW_MATRIX && camera.data.webgl2UniformUpdateFlag.viewMatrix) {
+                  gl.uniformMatrix4fv(uniform.location, false, camera.data.viewMatrix);
+              }
+              else if (uniform.name === UNIFORM.PROJECTION_MATRIX && camera.data.webgl2UniformUpdateFlag.projectionMatrix) {
+                  gl.uniformMatrix4fv(uniform.location, false, camera.data.projectionMatrix);
+              }
+              else if (uniform.name === UNIFORM.MODEL_VIEW_MATRIX && (transform.data.webgl2UniformUpdateFlag.modelMatrix || camera.data.webgl2UniformUpdateFlag.viewMatrix)) {
+                  multiply(frameState.matrixCache.modelView, camera.data.viewMatrix, transform.data.modelMatrix);
+                  modelViewComputed = true;
+                  gl.uniformMatrix4fv(uniform.location, false, camera.data.viewMatrix);
+              }
+              else if (uniform.name === UNIFORM.MODEL_VIEW_PROJECTION_MATRIX && (transform.data.webgl2UniformUpdateFlag.modelMatrix || camera.data.webgl2UniformUpdateFlag.viewMatrix || camera.data.webgl2UniformUpdateFlag.projectionMatrix)) {
+                  if (!modelViewComputed)
+                      multiply(frameState.matrixCache.modelView, camera.data.viewMatrix, transform.data.modelMatrix);
+                  multiply(frameState.matrixCache.modelViewProjection, camera.data.projectionMatrix, frameState.matrixCache.modelView);
+                  gl.uniformMatrix4fv(uniform.location, false, frameState.matrixCache.modelViewProjection);
+              }
+              else if (uniform.name === UNIFORM.CAMERA_POSITION && camera.data.webgl2UniformUpdateFlag.translation) {
+                  gl.uniformMatrix3fv(uniform.location, false, camera.data.projectionMatrix);
+              }
+              else {
+                  const value = renderable.data.material.getUniformValue(uniform.name);
+                  if (value !== null) {
+                      console.log(`update: ${uniform.name}`);
+                      uniformTypeToUpdateUniformFunction[uniform.type](gl, uniform.location, value);
+                  }
+              }
+          }
+          if (this.indexBuffer && this.geometryData.indices) {
+              gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.indexBuffer);
+              gl.drawElements(gl.TRIANGLES, this.geometryData.indices.length, gl.UNSIGNED_INT, 0);
+          }
+      }
+      cleanup() {
+          const gl = this.gl;
+          gl.deleteShader(this.vertexShader);
+          gl.deleteShader(this.fragmentShader);
+          gl.deleteProgram(this.program);
+          this.buffers.forEach(buffer => gl.deleteBuffer(buffer));
+          gl.deleteVertexArray(this.vao);
+          gl.deleteBuffer(this.indexBuffer);
+      }
+  }
+
+  class WebGL2RenderSystem extends RenderSystem {
+      constructor(canvas, cameraEntity) {
+          super();
+          this.canvas = canvas;
+          this.cameraEntity = cameraEntity;
+          this.activeCamera = cameraEntity.getComponent(PerspectiveCamera) || cameraEntity.getComponent(OrthographicCamera);
+          this.gl = getWebGL2Context(canvas);
+          this.frameState = new WebGL2FrameState(this.gl);
+          this.cachedRenderables = {};
+          window.addEventListener('unload', () => {
+              Object.keys(this.cachedRenderables).forEach(key => this.cachedRenderables[key].cleanup());
+          });
+      }
+      getCachedRenderable(renderable) {
+          if (this.cachedRenderables[renderable.entityId])
+              return this.cachedRenderables[renderable.entityId];
+          console.log('cache renderable');
+          const transform = this.world.getComponentByEntityIdAndType(renderable.entityId, Transform);
+          const cachedRenderable = new CachedRenderable(this.gl, renderable, transform, this.frameState);
+          this.cachedRenderables[renderable.entityId] = cachedRenderable;
+          return cachedRenderable;
+      }
+      render() {
+          this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT);
+          const renderables = this.world.getComponentsByType(Renderable);
+          for (let i = 0; i < renderables.length; i++) {
+              const renderable = renderables[i];
+              const cachedRenderable = this.getCachedRenderable(renderable);
+              cachedRenderable.render(this.activeCamera);
+          }
+      }
+  }
+
   setMatrixArrayType(Array);
 
   exports.Component = Component;
   exports.ECSEvent = ECSEvent;
   exports.Entity = Entity;
   exports.FpsDebugSystem = FpsDebugSystem;
-  exports.Geometry = Geometry;
   exports.ImageLoader = ImageLoader;
   exports.KeyboardInput = KeyboardInput;
   exports.OrthographicCamera = OrthographicCamera;
   exports.PerspectiveCamera = PerspectiveCamera;
+  exports.PhongMaterial = PhongMaterial;
+  exports.RawGeometry = RawGeometry;
   exports.RegisterEntityEvent = RegisterEntityEvent;
   exports.RemoveEntityEvent = RemoveEntityEvent;
   exports.RenderSystem = RenderSystem;
   exports.ResizeCanvasEvent = ResizeCanvasEvent;
   exports.System = System;
   exports.Transform = Transform;
-  exports.UNIFORM_TYPE = UNIFORM_TYPE;
+  exports.UNIFORM = UNIFORM;
+  exports.UnlitMaterial = UnlitMaterial;
   exports.UpdateCameraSystem = UpdateCameraSystem;
   exports.UpdateTransformSystem = UpdateTransformSystem;
+  exports.WEBGL2_DATA_TYPE = WEBGL2_DATA_TYPE;
   exports.WebGL2FrameState = WebGL2FrameState;
+  exports.WebGL2RenderSystem = WebGL2RenderSystem;
   exports.World = World;
   exports.createArrayBuffer = createArrayBuffer;
   exports.createElementArrayBuffer = createElementArrayBuffer;
@@ -1582,9 +1939,12 @@
   exports.createUniformTypeLookupTable = createUniformTypeLookupTable;
   exports.createVertexArray = createVertexArray;
   exports.defaultContextAttributeOptions = defaultContextAttributeOptions;
+  exports.getActiveAttributes = getActiveAttributes;
+  exports.getActiveUniforms = getActiveUniforms;
   exports.getDefaultWebGL2Options = getDefaultWebGL2Options;
   exports.getWebGL2Context = getWebGL2Context;
-  exports.uniformTypeValues = uniformTypeValues;
+  exports.uniformTypeToUpdateUniformFunction = uniformTypeToUpdateUniformFunction;
+  exports.webgl2TypeValues = webgl2TypeValues;
 
   Object.defineProperty(exports, '__esModule', { value: true });
 

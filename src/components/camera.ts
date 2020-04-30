@@ -1,4 +1,4 @@
-import { vec3, mat4 } from 'gl-matrix';
+import { mat4, vec3 } from 'gl-matrix';
 
 export type CameraArgs = {
     translation: vec3;
@@ -16,6 +16,11 @@ export type CameraData = {
         translation: vec3;
     };
     dirty: {
+        viewMatrix: boolean;
+        projectionMatrix: boolean;
+    };
+    webgl2UniformUpdateFlag: {
+        translation: boolean;
         viewMatrix: boolean;
         projectionMatrix: boolean;
     };

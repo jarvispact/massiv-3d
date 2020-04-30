@@ -1,6 +1,6 @@
-import { vec3, mat4 } from 'gl-matrix';
+import { mat4, vec3 } from 'gl-matrix';
 import { Component } from '../core/component';
-import { CameraData, CameraArgs } from './camera';
+import { CameraArgs, CameraData } from './camera';
 
 const type = 'PerspectiveCamera';
 
@@ -33,6 +33,11 @@ export class PerspectiveCamera extends Component<typeof type, PerspectiveCameraD
                 viewMatrix: true,
                 projectionMatrix: true,
             },
+            webgl2UniformUpdateFlag: {
+                translation: true,
+                viewMatrix: true,
+                projectionMatrix: true,
+            },
             fov: args.fov || 45,
             aspect: args.aspect,
             near: args.near || 0.1,
@@ -45,10 +50,13 @@ export class PerspectiveCamera extends Component<typeof type, PerspectiveCameraD
         t[0] = x; t[1] = y; t[2] = z;
         vec3.add(this.data.translation, this.data.translation, t);
         this.data.dirty.viewMatrix = true;
+        this.data.webgl2UniformUpdateFlag.translation = true;
+        this.data.webgl2UniformUpdateFlag.viewMatrix = true;
     }
 
     setAspect(aspect: number): void {
         this.data.aspect = aspect;
         this.data.dirty.projectionMatrix = true;
+        this.data.webgl2UniformUpdateFlag.projectionMatrix = true;
     }
 }

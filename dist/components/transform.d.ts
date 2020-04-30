@@ -1,4 +1,4 @@
-import { vec3, quat, mat4 } from 'gl-matrix';
+import { mat4, quat, vec3 } from 'gl-matrix';
 import { Component } from '../core/component';
 declare const type = "Transform";
 declare type Args = {
@@ -17,6 +17,9 @@ declare type TransformData = {
         quaternion: quat;
     };
     dirty: {
+        modelMatrix: boolean;
+    };
+    webgl2UniformUpdateFlag: {
         modelMatrix: boolean;
     };
 };
