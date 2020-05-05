@@ -1,10 +1,4 @@
-export interface Component<Type extends string = string, Data extends unknown = unknown> {
-    entityId: string;
-    type: Type;
-    data: Data;
-}
-
-export class Component<Type extends string, Data extends unknown> {
+export class Component<Type extends string = string, Data extends unknown = unknown> {
     entityId: string;
     type: Type;
     data: Data;

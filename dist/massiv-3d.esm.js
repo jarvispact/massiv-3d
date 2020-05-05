@@ -1310,9 +1310,13 @@ class ECSEvent {
     }
 }
 
+/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable @typescript-eslint/no-empty-function */
 class System {
+    update(delta, time) { }
 }
 class RenderSystem {
+    render(delta, time) { }
 }
 
 const cleanupAndFilterSystem = (systemToRemove) => (system) => {

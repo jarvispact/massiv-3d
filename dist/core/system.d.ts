@@ -1,22 +1,16 @@
 import { World } from './world';
 import { ECSEvent } from './event';
-export interface System {
+export declare class System {
     world: World;
     init?(): void;
     on?(event: ECSEvent): void;
     cleanup?(): void;
     update(delta: number, time: number): void;
 }
-export declare class System implements System {
-    world: World;
-}
-export interface RenderSystem {
+export declare class RenderSystem {
     world: World;
     init?(): void;
     on?(event: ECSEvent): void;
     cleanup?(): void;
     render(delta: number, time: number): void;
-}
-export declare class RenderSystem implements RenderSystem {
-    world: World;
 }

@@ -1,9 +1,4 @@
-export interface ECSEvent<Type extends string = string, Payload extends unknown = unknown> {
-    type: Type;
-    payload: Payload;
-}
-
-export class ECSEvent<Type extends string, Payload extends unknown> {
+export class ECSEvent<Type extends string = string, Payload extends unknown = unknown> {
     type: Type;
     payload: Payload;
 
