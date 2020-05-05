@@ -59,7 +59,6 @@ export class WebGL2RenderSystem extends RenderSystem {
 
     getCachedRenderable(renderable: Renderable): CachedRenderable {
         if (this.cachedRenderables[renderable.entityId]) return this.cachedRenderables[renderable.entityId];
-        console.log('cache renderable');
         const transform = this.world.getComponentByEntityIdAndType(renderable.entityId, Transform);
         const cachedRenderable = new CachedRenderable(this.gl, renderable, transform, this.frameState);
         this.cachedRenderables[renderable.entityId] = cachedRenderable;

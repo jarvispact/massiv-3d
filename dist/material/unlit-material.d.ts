@@ -14,5 +14,7 @@ export declare class UnlitMaterial implements Material {
     };
     constructor(args?: Args);
     getUniformValue(uniformName: string): unknown | null;
+    setColor(r: number, g: number, b: number): void;
+    setOpacity(opacity: number): void;
 }
 export {};

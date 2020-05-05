@@ -3,6 +3,8 @@ import { Entity } from './entity';
 import { System, RenderSystem } from './system';
 import { ECSEvent } from './event';
 import { Class } from '../types';
+import { UpdateCameraSystem } from '../systems/update-camera-system';
+import { UpdateTransformSystem } from '../systems/update-transform-system';
 
 const cleanupAndFilterSystem = (systemToRemove: System | RenderSystem) => (system: System | RenderSystem): boolean => {
     if (system === systemToRemove && system.cleanup) {
@@ -19,7 +21,13 @@ const createGetDelta = (then = 0) => (now: number): number => {
     return delta;
 };
 
+type WorldOptions = {
+    transformAutoUpdate?: boolean;
+    cameraAutoUpdate?: boolean;
+};
+
 export class World {
+    options: WorldOptions;
     componentsByType: Record<string, Component[]>;
     componentsByEntityId: Record<string, Component[]>;
     subscriptions: Record<string, (System | RenderSystem)[]>;
@@ -27,12 +35,16 @@ export class World {
     renderSystems: RenderSystem[];
     getDelta = createGetDelta();
 
-    constructor() {
+    constructor(options?: WorldOptions) {
+        this.options = options || {};
         this.componentsByType = {};
         this.componentsByEntityId = {};
         this.subscriptions = {};
         this.systems = [];
         this.renderSystems = [];
+
+        if (this.options.cameraAutoUpdate) this.registerSystem(new UpdateCameraSystem());
+        if (this.options.transformAutoUpdate) this.registerSystem(new UpdateTransformSystem());
     }
 
     publish(event: ECSEvent): void {

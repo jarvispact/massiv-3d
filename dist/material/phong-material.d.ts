@@ -23,5 +23,10 @@ export declare class PhongMaterial implements Material {
     };
     constructor(args?: Args);
     getUniformValue(uniformName: string): unknown | null;
+    setAmbientIntensity(intensity: number): void;
+    setDiffuseColor(r: number, g: number, b: number): void;
+    setSpecularColor(r: number, g: number, b: number): void;
+    setSpecularShininess(shininess: number): void;
+    setOpacity(opacity: number): void;
 }
 export {};

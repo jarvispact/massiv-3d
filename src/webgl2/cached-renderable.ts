@@ -51,8 +51,8 @@ export class CachedRenderable {
         this.frameState = frameState;
 
         const shaderSource = getMaterialClass(this.renderable.data.material.constructor.name).getShaderSourceCode();
-        // console.log(shaderSource.vertexShader);
-        // console.log(shaderSource.fragmentShader);
+
+
         this.vertexShader = createShader(gl, gl.VERTEX_SHADER, shaderSource.vertexShader);
         this.fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, shaderSource.fragmentShader);
         this.program = createProgram(gl, this.vertexShader, this.fragmentShader);
@@ -88,72 +88,52 @@ export class CachedRenderable {
         gl.bindVertexArray(this.vao);
 
         let modelViewMatrixComputed = false;
-        // console.log('render');
 
         for (let i = 0; i < activeUniforms.length; i++) {
             const uniform = activeUniforms[i];
-            // console.log(uniform);
             
             if (uniform.name === UNIFORM.MODEL_MATRIX && transform.data.webglDirty.modelMatrix) {
-                // console.log('update model matrix', transform.data.modelMatrix);
                 gl.uniformMatrix4fv(uniform.location, false, transform.data.modelMatrix);
             }
             else if (uniform.name === UNIFORM.VIEW_MATRIX && (this.forceUniformUpdate || camera.data.webglDirty.viewMatrix)) {
-                // console.log('update view matrix', camera.data.viewMatrix);
                 gl.uniformMatrix4fv(uniform.location, false, camera.data.viewMatrix);
             }
             else if (uniform.name === UNIFORM.PROJECTION_MATRIX && (this.forceUniformUpdate || camera.data.webglDirty.projectionMatrix)) {
-                // console.log('update projection matrix', camera.data.projectionMatrix);
                 gl.uniformMatrix4fv(uniform.location, false, camera.data.projectionMatrix);
             }
             else if (uniform.name === UNIFORM.MODEL_VIEW_MATRIX && (transform.data.webglDirty.modelMatrix || camera.data.webglDirty.viewMatrix)) {
-                mat4.multiply(frameState.matrixCache.modelView, camera.data.viewMatrix, transform.data.modelMatrix);
+                if (!modelViewMatrixComputed) mat4.multiply(frameState.matrixCache.modelView, camera.data.viewMatrix, transform.data.modelMatrix);
                 modelViewMatrixComputed = true;
-                // console.log('update modelView matrix', frameState.matrixCache.modelView);
                 gl.uniformMatrix4fv(uniform.location, false, frameState.matrixCache.modelView);
             }
             else if (uniform.name === UNIFORM.MODEL_VIEW_PROJECTION_MATRIX && (transform.data.webglDirty.modelMatrix || camera.data.webglDirty.viewMatrix || camera.data.webglDirty.projectionMatrix)) {
                 if (!modelViewMatrixComputed) mat4.multiply(frameState.matrixCache.modelView, camera.data.viewMatrix, transform.data.modelMatrix);
                 mat4.multiply(frameState.matrixCache.modelViewProjection, camera.data.projectionMatrix, frameState.matrixCache.modelView);
-                // console.log('update modelViewProjection matrix', frameState.matrixCache.modelViewProjection);
                 gl.uniformMatrix4fv(uniform.location, false, frameState.matrixCache.modelViewProjection);
             }
             else if (uniform.name === UNIFORM.NORMAL_MATRIX && (this.forceUniformUpdate || transform.data.webglDirty.modelMatrix || camera.data.webglDirty.viewMatrix)) {
                 if (!modelViewMatrixComputed) mat4.multiply(frameState.matrixCache.modelView, camera.data.viewMatrix, transform.data.modelMatrix);
                 mat3.normalFromMat4(frameState.matrixCache.normal, frameState.matrixCache.modelView);
-                // console.log('update normal matrix', frameState.matrixCache.normal);
                 gl.uniformMatrix3fv(uniform.location, false, frameState.matrixCache.normal);
             }
             else if (uniform.name === UNIFORM.CAMERA_POSITION && (this.forceUniformUpdate || camera.data.webglDirty.translation)) {
-                // console.log('update camera position', camera.data.translation);
                 gl.uniform3fv(uniform.location, camera.data.translation);
             }
             else if (uniform.name === UNIFORM.DIR_LIGHT_COUNT && (this.forceUniformUpdate || frameState.dirLightCache.countNeedsUpdate)) {
-                // TODO: prevent uniform update if not changed
-                // console.log('update dirlight count', dirLights.length);
                 gl.uniform1i(uniform.location, dirLights.length);
             }
             else if (uniform.name === UNIFORM_DIR_LIGHT_DIRECTION && (this.forceUniformUpdate || frameState.dirLightCache.directionsNeedsUpdate)) {
-                // TODO: prevent uniform update if not changed
-                // console.log('update dirlight direction', frameState.dirLightCache.directions);
                 gl.uniform3fv(uniform.location, frameState.dirLightCache.directions);
             }
             else if (uniform.name === UNIFORM_DIR_LIGHT_COLOR && (this.forceUniformUpdate || frameState.dirLightCache.colorsNeedsUpdate)) {
-                // TODO: prevent uniform update if not changed
-                // console.log('update dirlight color', frameState.dirLightCache.colors);
                 gl.uniform3fv(uniform.location, frameState.dirLightCache.colors);
             }
             else if (uniform.name === UNIFORM_DIR_LIGHT_INTENSITY && (this.forceUniformUpdate || frameState.dirLightCache.intensitiesNeedsUpdate)) {
-                // TODO: prevent uniform update if not changed
-                // console.log('update dirlight intensity', frameState.dirLightCache.intensities);
                 gl.uniform1fv(uniform.location, frameState.dirLightCache.intensities);
             }
             else {
                 const value = renderable.data.material.getUniformValue(uniform.name);
-                if (value !== null) {
-                    // console.log('update', uniform.name, value);
-                    
-                    // console.log(`update: ${uniform.name} - ${uniform.type}`);
+                if (value !== null) {                    
                     if (uniform.type === WEBGL2_DATA_TYPE.MAT3) {
                         gl.uniformMatrix3fv(uniform.location, false, value as mat3);
                     } else if (uniform.type === WEBGL2_DATA_TYPE.MAT4) {

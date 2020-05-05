@@ -3,14 +3,19 @@ import { Entity } from './entity';
 import { System, RenderSystem } from './system';
 import { ECSEvent } from './event';
 import { Class } from '../types';
+declare type WorldOptions = {
+    transformAutoUpdate?: boolean;
+    cameraAutoUpdate?: boolean;
+};
 export declare class World {
+    options: WorldOptions;
     componentsByType: Record<string, Component[]>;
     componentsByEntityId: Record<string, Component[]>;
     subscriptions: Record<string, (System | RenderSystem)[]>;
     systems: System[];
     renderSystems: RenderSystem[];
     getDelta: (now: number) => number;
-    constructor();
+    constructor(options?: WorldOptions);
     publish(event: ECSEvent): void;
     subscribe<T extends Class<ECSEvent>[]>(system: System | RenderSystem, events: T): void;
     getComponentsByType<T extends Component>(klass: Class<T>): T[];
@@ -25,3 +30,4 @@ export declare class World {
     update(time: number): void;
     render(time: number): void;
 }
+export {};

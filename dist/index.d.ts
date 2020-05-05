@@ -12,6 +12,7 @@ export * from './events/register-entity-event';
 export * from './events/remove-entity-event';
 export * from './events/resize-canvas-event';
 export * from './geometry/geometry';
+export * from './geometry/quad-geometry';
 export * from './geometry/raw-geometry';
 export * from './input/keyboard-input';
 export * from './loader/image-loader';

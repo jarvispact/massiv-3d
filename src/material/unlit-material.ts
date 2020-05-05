@@ -30,6 +30,18 @@ export class UnlitMaterial implements Material {
         this.dirty[uniformName as keyof UnlitMaterial['dirty']] = false;
         return this[uniformName as keyof UnlitMaterial['dirty']];
     }
+
+    setColor(r: number, g: number, b: number): void {
+        this.color[0] = r;
+        this.color[1] = g;
+        this.color[2] = b;
+        this.dirty.color = true;
+    }
+
+    setOpacity(opacity: number): void {
+        this.opacity = opacity;
+        this.dirty.opacity = true;
+    }
 }
 
 const vertexShader = `

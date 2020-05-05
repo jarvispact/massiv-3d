@@ -45,6 +45,35 @@ export class PhongMaterial implements Material {
         this.dirty[uniformName as keyof PhongMaterial['dirty']] = false;
         return this[uniformName as keyof PhongMaterial['dirty']];
     }
+
+    setAmbientIntensity(intensity: number): void {
+        this.ambientIntensity = intensity;
+        this.dirty.ambientIntensity = true;
+    }
+
+    setDiffuseColor(r: number, g: number, b: number): void {
+        this.diffuseColor[0] = r;
+        this.diffuseColor[1] = g;
+        this.diffuseColor[2] = b;
+        this.dirty.diffuseColor = true;
+    }
+
+    setSpecularColor(r: number, g: number, b: number): void {
+        this.specularColor[0] = r;
+        this.specularColor[1] = g;
+        this.specularColor[2] = b;
+        this.dirty.specularColor = true;
+    }
+
+    setSpecularShininess(shininess: number): void {
+        this.specularShininess = shininess;
+        this.dirty.specularShininess = true;
+    }
+
+    setOpacity(opacity: number): void {
+        this.opacity = opacity;
+        this.dirty.opacity = true;
+    }
 }
 
 const calcDirLight = `
