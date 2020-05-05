@@ -7,5 +7,5 @@ export type GeometryData = {
 };
 
 export interface Geometry {
-    getGeometryData(): GeometryData;
+    getData(): GeometryData;
 }

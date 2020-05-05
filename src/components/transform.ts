@@ -22,7 +22,7 @@ type TransformData = {
     dirty: {
         modelMatrix: boolean;
     };
-    webgl2UniformUpdateFlag: {
+    webglDirty: {
         modelMatrix: boolean;
     };
 };
@@ -42,7 +42,7 @@ export class Transform extends Component<typeof type, TransformData> {
             dirty: {
                 modelMatrix: true,
             },
-            webgl2UniformUpdateFlag: {
+            webglDirty: {
                 modelMatrix: true,
             },
         });
@@ -53,7 +53,7 @@ export class Transform extends Component<typeof type, TransformData> {
         t[0] = x; t[1] = y; t[2] = z;
         vec3.add(this.data.translation, this.data.translation, t);
         this.data.dirty.modelMatrix = true;
-        this.data.webgl2UniformUpdateFlag.modelMatrix = true;
+        this.data.webglDirty.modelMatrix = true;
     }
 
     scale(x: number, y: number, z: number): void {
@@ -61,7 +61,7 @@ export class Transform extends Component<typeof type, TransformData> {
         s[0] = x; s[1] = y; s[2] = z;
         vec3.add(this.data.scaling, this.data.scaling, s);
         this.data.dirty.modelMatrix = true;
-        this.data.webgl2UniformUpdateFlag.modelMatrix = true;
+        this.data.webglDirty.modelMatrix = true;
     }
 
     rotate(x: number, y: number, z: number): void {
@@ -69,6 +69,10 @@ export class Transform extends Component<typeof type, TransformData> {
         quat.fromEuler(q, x, y, z);
         quat.multiply(this.data.quaternion, this.data.quaternion, q);
         this.data.dirty.modelMatrix = true;
-        this.data.webgl2UniformUpdateFlag.modelMatrix = true;
+        this.data.webglDirty.modelMatrix = true;
+    }
+
+    resetWebglDirtyFlags(): void {
+        this.data.webglDirty.modelMatrix = false;
     }
 }

@@ -1,4 +1,4 @@
-import { RenderSystem } from '../core/system';
+import { RenderSystem } from '../../src/core/system';
 
 export class FpsDebugSystem extends RenderSystem {
     fpsDisplay: HTMLElement;
@@ -24,7 +24,7 @@ export class FpsDebugSystem extends RenderSystem {
         if (currentTime >= this.oneSecond) {
             this.fpsDisplay.textContent = `FPS: ${this.fps}`;
             this.fps = 0;
-            this.oneSecond = currentTime + 1000;
+            this.oneSecond = Date.now() + 1000;
         }
     }
 }

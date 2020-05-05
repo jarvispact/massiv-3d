@@ -6,5 +6,5 @@ export declare class RawGeometry implements Geometry {
     indices: number[] | null;
     colors: number[] | null;
     constructor(args?: Partial<GeometryData>);
-    getGeometryData(): GeometryData;
+    getData(): GeometryData;
 }

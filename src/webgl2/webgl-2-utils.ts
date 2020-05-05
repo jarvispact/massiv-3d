@@ -1,5 +1,3 @@
-import { mat3, mat4, vec2, vec3, vec4 } from 'gl-matrix';
-
 export type WebGLContextAttributeOptions = {
     premultipliedAlpha: boolean;
     alpha: boolean;
@@ -143,13 +141,24 @@ export const WEBGL2_DATA_TYPE = {
     INT: 'int',
 } as const;
 
+export const ATTRIBUTE = {
+    POSITION: { LOCATION: 0, NAME: 'position' },
+    UV: { LOCATION: 1, NAME: 'uv' },
+    NORMAL: { LOCATION: 2, NAME: 'normal' },
+} as const;
+
 export const UNIFORM = {
     MODEL_MATRIX: 'modelMatrix',
     VIEW_MATRIX: 'viewMatrix',
     PROJECTION_MATRIX: 'projectionMatrix',
     MODEL_VIEW_MATRIX: 'modelViewMatrix',
     MODEL_VIEW_PROJECTION_MATRIX: 'modelViewProjectionMatrix',
+    NORMAL_MATRIX: 'normalMatrix',
     CAMERA_POSITION: 'cameraPosition',
+    DIR_LIGHT_COUNT: 'dirLightCount',
+    DIR_LIGHT_DIRECTION: 'dirLightDirections',
+    DIR_LIGHT_COLOR: 'dirLightColors',
+    DIR_LIGHT_INTENSITY: 'dirLightIntensities',
 } as const;
 
 export const webgl2TypeValues = Object.values(WEBGL2_DATA_TYPE);
@@ -174,18 +183,6 @@ export type ActiveUniform = {
     name: string;
     type: WebGL2DataType;
     location: WebGLUniformLocation;
-};
-
-export type UniformTypeToUpdateUniformFunction = Record<WebGL2DataType, Function>;
-
-export const uniformTypeToUpdateUniformFunction: UniformTypeToUpdateUniformFunction = {
-    mat3: (gl: WebGL2RenderingContext, location: WebGLUniformLocation, value: unknown): void => gl.uniformMatrix3fv(location, false, value as mat3),
-    mat4: (gl: WebGL2RenderingContext, location: WebGLUniformLocation, value: unknown): void => gl.uniformMatrix4fv(location, false, value as mat4),
-    vec2: (gl: WebGL2RenderingContext, location: WebGLUniformLocation, value: unknown): void => gl.uniform2fv(location, value as vec2),
-    vec3: (gl: WebGL2RenderingContext, location: WebGLUniformLocation, value: unknown): void => gl.uniform3fv(location, value as vec3),
-    vec4: (gl: WebGL2RenderingContext, location: WebGLUniformLocation, value: unknown): void => gl.uniform4fv(location, value as vec4),
-    float: (gl: WebGL2RenderingContext, location: WebGLUniformLocation, value: unknown): void => Array.isArray(value) ? gl.uniform1fv(location, value) : gl.uniform1f(location, value as number),
-    int: (gl: WebGL2RenderingContext, location: WebGLUniformLocation, value: unknown): void => Array.isArray(value) ? gl.uniform1iv(location, value) : gl.uniform1i(location, value as number),
 };
 
 export const getActiveAttributes = (gl: WebGL2RenderingContext, program: WebGLProgram): ActiveAttribute[] => {

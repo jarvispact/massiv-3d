@@ -32,13 +32,32 @@ export declare const WEBGL2_DATA_TYPE: {
     readonly FLOAT: "float";
     readonly INT: "int";
 };
+export declare const ATTRIBUTE: {
+    readonly POSITION: {
+        readonly LOCATION: 0;
+        readonly NAME: "position";
+    };
+    readonly UV: {
+        readonly LOCATION: 1;
+        readonly NAME: "uv";
+    };
+    readonly NORMAL: {
+        readonly LOCATION: 2;
+        readonly NAME: "normal";
+    };
+};
 export declare const UNIFORM: {
     readonly MODEL_MATRIX: "modelMatrix";
     readonly VIEW_MATRIX: "viewMatrix";
     readonly PROJECTION_MATRIX: "projectionMatrix";
     readonly MODEL_VIEW_MATRIX: "modelViewMatrix";
     readonly MODEL_VIEW_PROJECTION_MATRIX: "modelViewProjectionMatrix";
+    readonly NORMAL_MATRIX: "normalMatrix";
     readonly CAMERA_POSITION: "cameraPosition";
+    readonly DIR_LIGHT_COUNT: "dirLightCount";
+    readonly DIR_LIGHT_DIRECTION: "dirLightDirections";
+    readonly DIR_LIGHT_COLOR: "dirLightColors";
+    readonly DIR_LIGHT_INTENSITY: "dirLightIntensities";
 };
 export declare const webgl2TypeValues: ("mat3" | "mat4" | "vec2" | "vec3" | "vec4" | "float" | "int")[];
 export declare type WebGL2DataType = typeof webgl2TypeValues[0];
@@ -52,8 +71,6 @@ export declare type ActiveUniform = {
     type: WebGL2DataType;
     location: WebGLUniformLocation;
 };
-export declare type UniformTypeToUpdateUniformFunction = Record<WebGL2DataType, Function>;
-export declare const uniformTypeToUpdateUniformFunction: UniformTypeToUpdateUniformFunction;
 export declare const getActiveAttributes: (gl: WebGL2RenderingContext, program: WebGLProgram) => ActiveAttribute[];
 export declare const getActiveUniforms: (gl: WebGL2RenderingContext, program: WebGLProgram) => ActiveUniform[];
 declare type TextureOptions = {

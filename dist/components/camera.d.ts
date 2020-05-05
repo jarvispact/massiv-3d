@@ -17,7 +17,7 @@ export declare type CameraData = {
         viewMatrix: boolean;
         projectionMatrix: boolean;
     };
-    webgl2UniformUpdateFlag: {
+    webglDirty: {
         translation: boolean;
         viewMatrix: boolean;
         projectionMatrix: boolean;

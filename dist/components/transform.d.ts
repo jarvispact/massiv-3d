@@ -19,7 +19,7 @@ declare type TransformData = {
     dirty: {
         modelMatrix: boolean;
     };
-    webgl2UniformUpdateFlag: {
+    webglDirty: {
         modelMatrix: boolean;
     };
 };
@@ -28,5 +28,6 @@ export declare class Transform extends Component<typeof type, TransformData> {
     translate(x: number, y: number, z: number): void;
     scale(x: number, y: number, z: number): void;
     rotate(x: number, y: number, z: number): void;
+    resetWebglDirtyFlags(): void;
 }
 export {};

@@ -20,5 +20,6 @@ export declare type OrthographicCameraData = CameraData & {
 export declare class OrthographicCamera extends Component<typeof type, OrthographicCameraData> {
     constructor(args: Args);
     translate(x: number, y: number, z: number): void;
+    resetWebglDirtyFlags(): void;
 }
 export {};

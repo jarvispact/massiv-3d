@@ -15,7 +15,7 @@ export class RawGeometry implements Geometry {
         this.colors = args.colors || null;
     }
 
-    getGeometryData(): GeometryData {
+    getData(): GeometryData {
         return {
             positions: this.positions,
             uvs: this.uvs,

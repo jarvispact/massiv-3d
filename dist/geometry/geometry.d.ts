@@ -6,5 +6,5 @@ export declare type GeometryData = {
     colors: number[] | null;
 };
 export interface Geometry {
-    getGeometryData(): GeometryData;
+    getData(): GeometryData;
 }

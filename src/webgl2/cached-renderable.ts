@@ -1,4 +1,4 @@
-import { mat4 } from 'gl-matrix';
+import { mat4, mat3, vec2, vec3, vec4 } from 'gl-matrix';
 import { OrthographicCamera } from '../components/orthographic-camera';
 import { PerspectiveCamera } from '../components/perspective-camera';
 import { Renderable } from '../components/renderable';
@@ -8,7 +8,8 @@ import { MaterialClass } from '../material/material';
 import { PhongMaterial } from '../material/phong-material';
 import { UnlitMaterial } from '../material/unlit-material';
 import { WebGL2FrameState } from './webgl-2-frame-state';
-import { ActiveUniform, createArrayBuffer, createElementArrayBuffer, createProgram, createShader, createVertexArray, getActiveAttributes, getActiveUniforms, UNIFORM, uniformTypeToUpdateUniformFunction } from './webgl-2-utils';
+import { ActiveUniform, createArrayBuffer, createElementArrayBuffer, createProgram, createShader, createVertexArray, getActiveAttributes, getActiveUniforms, UNIFORM, WEBGL2_DATA_TYPE, ATTRIBUTE } from './webgl-2-utils';
+import { DirectionalLight } from '../components/directional-light';
 
 const getMaterialClass = (constructorName: string): MaterialClass => {
     switch (constructorName) {
@@ -20,6 +21,10 @@ const getMaterialClass = (constructorName: string): MaterialClass => {
             return UnlitMaterial;
     }
 };
+
+const UNIFORM_DIR_LIGHT_DIRECTION = `${UNIFORM.DIR_LIGHT_DIRECTION}[0]`;
+const UNIFORM_DIR_LIGHT_COLOR = `${UNIFORM.DIR_LIGHT_COLOR}[0]`;
+const UNIFORM_DIR_LIGHT_INTENSITY = `${UNIFORM.DIR_LIGHT_INTENSITY}[0]`;
 
 export class CachedRenderable {
     gl: WebGL2RenderingContext;
@@ -37,6 +42,8 @@ export class CachedRenderable {
 
     activeUniforms: ActiveUniform[];
 
+    forceUniformUpdate: boolean;
+
     constructor(gl: WebGL2RenderingContext, renderable: Renderable, transform: Transform, frameState: WebGL2FrameState) {
         this.gl = gl;
         this.renderable = renderable;
@@ -44,6 +51,8 @@ export class CachedRenderable {
         this.frameState = frameState;
 
         const shaderSource = getMaterialClass(this.renderable.data.material.constructor.name).getShaderSourceCode();
+        // console.log(shaderSource.vertexShader);
+        // console.log(shaderSource.fragmentShader);
         this.vertexShader = createShader(gl, gl.VERTEX_SHADER, shaderSource.vertexShader);
         this.fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, shaderSource.fragmentShader);
         this.program = createProgram(gl, this.vertexShader, this.fragmentShader);
@@ -53,17 +62,22 @@ export class CachedRenderable {
         this.buffers = [];
 
         this.vao = createVertexArray(gl);
-        this.geometryData = renderable.data.geometry.getGeometryData();
+        this.geometryData = renderable.data.geometry.getData();
 
         if (attributeNames.includes('position') && this.geometryData.positions) {
-            this.buffers.push(createArrayBuffer(gl, Float32Array.from(this.geometryData.positions), 0, 3));
+            this.buffers.push(createArrayBuffer(gl, Float32Array.from(this.geometryData.positions), ATTRIBUTE.POSITION.LOCATION, 3));
+        }
+        if (attributeNames.includes('normal') && this.geometryData.normals) {
+            this.buffers.push(createArrayBuffer(gl, Float32Array.from(this.geometryData.normals), ATTRIBUTE.NORMAL.LOCATION, 3));
         }
 
         this.indexBuffer = this.geometryData.indices ? createElementArrayBuffer(gl, Uint32Array.from(this.geometryData.indices)) : null;
         this.activeUniforms = getActiveUniforms(gl, this.program);
+
+        this.forceUniformUpdate = true;
     }
 
-    render(camera: PerspectiveCamera | OrthographicCamera): void {
+    render(camera: PerspectiveCamera | OrthographicCamera, dirLights: DirectionalLight[]): void {
         const gl = this.gl;
         const transform = this.transform;
         const renderable = this.renderable;
@@ -73,32 +87,88 @@ export class CachedRenderable {
         gl.useProgram(this.program);
         gl.bindVertexArray(this.vao);
 
-        // TODO: add to framestate and reset after each frame
-        let modelViewComputed = false;
+        let modelViewMatrixComputed = false;
+        // console.log('render');
 
         for (let i = 0; i < activeUniforms.length; i++) {
             const uniform = activeUniforms[i];
-            if (uniform.name === UNIFORM.MODEL_MATRIX && transform.data.webgl2UniformUpdateFlag.modelMatrix) {
+            // console.log(uniform);
+            
+            if (uniform.name === UNIFORM.MODEL_MATRIX && transform.data.webglDirty.modelMatrix) {
+                // console.log('update model matrix', transform.data.modelMatrix);
                 gl.uniformMatrix4fv(uniform.location, false, transform.data.modelMatrix);
-            } else if (uniform.name === UNIFORM.VIEW_MATRIX && camera.data.webgl2UniformUpdateFlag.viewMatrix) {
+            }
+            else if (uniform.name === UNIFORM.VIEW_MATRIX && (this.forceUniformUpdate || camera.data.webglDirty.viewMatrix)) {
+                // console.log('update view matrix', camera.data.viewMatrix);
                 gl.uniformMatrix4fv(uniform.location, false, camera.data.viewMatrix);
-            } else if (uniform.name === UNIFORM.PROJECTION_MATRIX && camera.data.webgl2UniformUpdateFlag.projectionMatrix) {
+            }
+            else if (uniform.name === UNIFORM.PROJECTION_MATRIX && (this.forceUniformUpdate || camera.data.webglDirty.projectionMatrix)) {
+                // console.log('update projection matrix', camera.data.projectionMatrix);
                 gl.uniformMatrix4fv(uniform.location, false, camera.data.projectionMatrix);
-            } else if (uniform.name === UNIFORM.MODEL_VIEW_MATRIX && (transform.data.webgl2UniformUpdateFlag.modelMatrix || camera.data.webgl2UniformUpdateFlag.viewMatrix)) {
+            }
+            else if (uniform.name === UNIFORM.MODEL_VIEW_MATRIX && (transform.data.webglDirty.modelMatrix || camera.data.webglDirty.viewMatrix)) {
                 mat4.multiply(frameState.matrixCache.modelView, camera.data.viewMatrix, transform.data.modelMatrix);
-                modelViewComputed = true;
-                gl.uniformMatrix4fv(uniform.location, false, camera.data.viewMatrix);
-            } else if (uniform.name === UNIFORM.MODEL_VIEW_PROJECTION_MATRIX && (transform.data.webgl2UniformUpdateFlag.modelMatrix || camera.data.webgl2UniformUpdateFlag.viewMatrix || camera.data.webgl2UniformUpdateFlag.projectionMatrix)) {
-                if (!modelViewComputed) mat4.multiply(frameState.matrixCache.modelView, camera.data.viewMatrix, transform.data.modelMatrix);
+                modelViewMatrixComputed = true;
+                // console.log('update modelView matrix', frameState.matrixCache.modelView);
+                gl.uniformMatrix4fv(uniform.location, false, frameState.matrixCache.modelView);
+            }
+            else if (uniform.name === UNIFORM.MODEL_VIEW_PROJECTION_MATRIX && (transform.data.webglDirty.modelMatrix || camera.data.webglDirty.viewMatrix || camera.data.webglDirty.projectionMatrix)) {
+                if (!modelViewMatrixComputed) mat4.multiply(frameState.matrixCache.modelView, camera.data.viewMatrix, transform.data.modelMatrix);
                 mat4.multiply(frameState.matrixCache.modelViewProjection, camera.data.projectionMatrix, frameState.matrixCache.modelView);
+                // console.log('update modelViewProjection matrix', frameState.matrixCache.modelViewProjection);
                 gl.uniformMatrix4fv(uniform.location, false, frameState.matrixCache.modelViewProjection);
-            } else if (uniform.name === UNIFORM.CAMERA_POSITION && camera.data.webgl2UniformUpdateFlag.translation) {
-                gl.uniformMatrix3fv(uniform.location, false, camera.data.projectionMatrix);
-            } else {
+            }
+            else if (uniform.name === UNIFORM.NORMAL_MATRIX && (this.forceUniformUpdate || transform.data.webglDirty.modelMatrix || camera.data.webglDirty.viewMatrix)) {
+                if (!modelViewMatrixComputed) mat4.multiply(frameState.matrixCache.modelView, camera.data.viewMatrix, transform.data.modelMatrix);
+                mat3.normalFromMat4(frameState.matrixCache.normal, frameState.matrixCache.modelView);
+                // console.log('update normal matrix', frameState.matrixCache.normal);
+                gl.uniformMatrix3fv(uniform.location, false, frameState.matrixCache.normal);
+            }
+            else if (uniform.name === UNIFORM.CAMERA_POSITION && (this.forceUniformUpdate || camera.data.webglDirty.translation)) {
+                // console.log('update camera position', camera.data.translation);
+                gl.uniform3fv(uniform.location, camera.data.translation);
+            }
+            else if (uniform.name === UNIFORM.DIR_LIGHT_COUNT && (this.forceUniformUpdate || frameState.dirLightCache.countNeedsUpdate)) {
+                // TODO: prevent uniform update if not changed
+                // console.log('update dirlight count', dirLights.length);
+                gl.uniform1i(uniform.location, dirLights.length);
+            }
+            else if (uniform.name === UNIFORM_DIR_LIGHT_DIRECTION && (this.forceUniformUpdate || frameState.dirLightCache.directionsNeedsUpdate)) {
+                // TODO: prevent uniform update if not changed
+                // console.log('update dirlight direction', frameState.dirLightCache.directions);
+                gl.uniform3fv(uniform.location, frameState.dirLightCache.directions);
+            }
+            else if (uniform.name === UNIFORM_DIR_LIGHT_COLOR && (this.forceUniformUpdate || frameState.dirLightCache.colorsNeedsUpdate)) {
+                // TODO: prevent uniform update if not changed
+                // console.log('update dirlight color', frameState.dirLightCache.colors);
+                gl.uniform3fv(uniform.location, frameState.dirLightCache.colors);
+            }
+            else if (uniform.name === UNIFORM_DIR_LIGHT_INTENSITY && (this.forceUniformUpdate || frameState.dirLightCache.intensitiesNeedsUpdate)) {
+                // TODO: prevent uniform update if not changed
+                // console.log('update dirlight intensity', frameState.dirLightCache.intensities);
+                gl.uniform1fv(uniform.location, frameState.dirLightCache.intensities);
+            }
+            else {
                 const value = renderable.data.material.getUniformValue(uniform.name);
                 if (value !== null) {
-                    console.log(`update: ${uniform.name}`);
-                    uniformTypeToUpdateUniformFunction[uniform.type](gl, uniform.location, value);
+                    // console.log('update', uniform.name, value);
+                    
+                    // console.log(`update: ${uniform.name} - ${uniform.type}`);
+                    if (uniform.type === WEBGL2_DATA_TYPE.MAT3) {
+                        gl.uniformMatrix3fv(uniform.location, false, value as mat3);
+                    } else if (uniform.type === WEBGL2_DATA_TYPE.MAT4) {
+                        gl.uniformMatrix4fv(uniform.location, false, value as mat4);
+                    } else if (uniform.type === WEBGL2_DATA_TYPE.VEC2) {
+                        gl.uniform2fv(uniform.location, value as vec2);
+                    } else if (uniform.type === WEBGL2_DATA_TYPE.VEC3) {
+                        gl.uniform3fv(uniform.location, value as vec3);
+                    } else if (uniform.type === WEBGL2_DATA_TYPE.VEC4) {
+                        gl.uniform4fv(uniform.location, value as vec4);
+                    } else if (uniform.type === WEBGL2_DATA_TYPE.FLOAT) {
+                        gl.uniform1f(uniform.location, value as number);
+                    } else if (uniform.type === WEBGL2_DATA_TYPE.INT) {
+                        gl.uniform1i(uniform.location, value as number);
+                    }
                 }
             }
         }
@@ -106,9 +176,12 @@ export class CachedRenderable {
         if (this.indexBuffer && this.geometryData.indices) {
             gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.indexBuffer);
             gl.drawElements(gl.TRIANGLES, this.geometryData.indices.length, gl.UNSIGNED_INT, 0);
-        } else {
-            // TODO
+        } else if (this.geometryData.positions) {
+            gl.drawArrays(gl.TRIANGLES, 0, this.geometryData.positions.length / 3);
         }
+
+        this.forceUniformUpdate = false;
+        transform.resetWebglDirtyFlags();
     }
 
     cleanup(): void {

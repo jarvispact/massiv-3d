@@ -17,5 +17,6 @@ export declare class PerspectiveCamera extends Component<typeof type, Perspectiv
     constructor(args: Args);
     translate(x: number, y: number, z: number): void;
     setAspect(aspect: number): void;
+    resetWebglDirtyFlags(): void;
 }
 export {};
