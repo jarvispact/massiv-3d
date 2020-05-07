@@ -16,9 +16,9 @@ if (!folderName) {
     await fs.promises.copyFile('examples/00-hello-world/index.html', `examples/${folderName}/index.html`);
 
     try {
-        await fs.promises.writeFile(`examples/${folderName}/index.ts`, 'console.log(\'hi there\');\n', { flag: 'wx' });
+        await fs.promises.writeFile(`examples/${folderName}/index.js`, 'console.log(\'hi there\');\n', { flag: 'wx' });
     } catch (error) {
-        console.log(`will not write file "examples/${folderName}/index.ts" because it already exists`);
+        console.log(`will not write file "examples/${folderName}/index.js" because it already exists`);
     }
 
     const fileContent = await fs.promises.readFile('examples/00-hello-world/index.html', 'utf-8');
