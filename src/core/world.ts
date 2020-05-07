@@ -26,6 +26,11 @@ type WorldOptions = {
     cameraAutoUpdate?: boolean;
 };
 
+const defaultOptions: WorldOptions = {
+    transformAutoUpdate: true,
+    cameraAutoUpdate: true,
+};
+
 export class World {
     options: WorldOptions;
     componentsByType: Record<string, Component[]>;
@@ -36,7 +41,7 @@ export class World {
     getDelta = createGetDelta();
 
     constructor(options?: WorldOptions) {
-        this.options = options || {};
+        this.options = options ? { ...defaultOptions, ...options } : defaultOptions;
         this.componentsByType = {};
         this.componentsByEntityId = {};
         this.subscriptions = {};

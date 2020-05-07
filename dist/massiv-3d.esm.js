@@ -1392,10 +1392,14 @@ const createGetDelta = (then = 0) => (now) => {
     then = now;
     return delta;
 };
+const defaultOptions = {
+    transformAutoUpdate: true,
+    cameraAutoUpdate: true,
+};
 class World {
     constructor(options) {
         this.getDelta = createGetDelta();
-        this.options = options || {};
+        this.options = options ? Object.assign(Object.assign({}, defaultOptions), options) : defaultOptions;
         this.componentsByType = {};
         this.componentsByEntityId = {};
         this.subscriptions = {};
