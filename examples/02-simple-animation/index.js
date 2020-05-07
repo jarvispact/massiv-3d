@@ -1,4 +1,4 @@
-import { PerspectiveCamera, Renderable, Transform, UnlitMaterial, WebGL2RenderSystem, World, QuadGeometry, System } from '../lib/massiv-3d.esm.js';
+import { PerspectiveCamera, Renderable, Transform, UnlitMaterial, WebGL2RenderSystem, World, QuadGeometry, System, ResizeCanvasEvent } from '../lib/massiv-3d.esm.js';
 
 class RotationSystem extends System {
     update(delta) {
@@ -24,3 +24,7 @@ const tick = (now) => {
 };
 
 window.requestAnimationFrame(tick);
+
+window.addEventListener('resize', () => {
+    world.publish(new ResizeCanvasEvent({ width: canvas.clientWidth, height: canvas.clientHeight }));
+});
