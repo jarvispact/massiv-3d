@@ -15,7 +15,7 @@ import { PerspectiveCamera, Renderable, Transform, UnlitMaterial, WebGL2RenderSy
     
     const world = new World();
     
-    const camera = world.registerEntity([new PerspectiveCamera({ translation: [3, 3, 5], aspect: canvas.width / canvas.height })]);
+    const camera = world.registerEntity([new PerspectiveCamera({ translation: [0, 3, 5], aspect: canvas.width / canvas.height })]);
 
     world.registerEntity([
         new Transform(),
