@@ -6,14 +6,17 @@
   "module": "dist/massiv-3d.esm.js",
   "browser": "dist/massiv-3d.umd.js",
   "scripts": {
-    "test": "mocha --require @babel/register --timeout 10000 ./specs/**/*.specs.js",
+    "test": "TS_NODE_PROJECT=tsconfig.node.json mocha -r ts-node/register tests/**/*.test.ts",
+    "lint": "eslint . --ext .ts",
+    "tsc:check": "tsc --noEmit",
     "clean": "rm -rf ./dist/*",
     "build": "rollup -c",
     "git-add-dist": "git add ./dist/*",
     "dev": "rollup -c -w",
-    "examples": "http-server ./examples -a 0.0.0.0 -p 8080 -c-1",
-    "check-updates": "ncu",
-    "update:all": "ncu -u && npm i"
+    "examples:serve": "http-server ./examples -a 0.0.0.0 -p 9090 -c-1",
+    "examples:create": "TS_NODE_PROJECT=tsconfig.node.json ts-node create-example.ts",
+    "update:check": "ncu",
+    "update:do": "ncu -u && npm i"
   },
   "repository": {
     "type": "git",
@@ -32,27 +35,33 @@
   },
   "homepage": "https://github.com/jarvispact/massiv-3d#readme",
   "pre-commit": [
+    "tsc:check",
+    "lint",
     "clean",
     "build",
     "git-add-dist"
   ],
   "devDependencies": {
-    "@babel/core": "^7.8.7",
-    "@babel/preset-env": "^7.8.7",
-    "@babel/register": "^7.8.6",
+    "@rollup/plugin-typescript": "^4.1.1",
+    "@types/chai": "^4.2.11",
+    "@types/mocha": "^7.0.2",
+    "@typescript-eslint/eslint-plugin": "^2.31.0",
+    "@typescript-eslint/parser": "^2.31.0",
     "chai": "^4.2.0",
     "eslint": "^6.8.0",
     "eslint-config-airbnb-base": "^14.1.0",
-    "eslint-plugin-import": "^2.20.1",
-    "express": "^4.17.1",
-    "http-server": "^0.12.1",
-    "mocha": "^7.1.1",
-    "npm-check-updates": "^4.0.4",
+    "eslint-plugin-import": "^2.20.2",
+    "http-server": "^0.12.3",
+    "mocha": "^7.1.2",
+    "npm-check-updates": "^4.1.2",
     "pre-commit": "^1.2.2",
-    "rollup": "^2.1.0",
-    "rollup-plugin-node-resolve": "^5.2.0"
+    "rollup": "^2.8.2",
+    "rollup-plugin-node-resolve": "^5.2.0",
+    "rollup-plugin-typescript2": "^0.27.0",
+    "ts-node": "^8.10.1",
+    "typescript": "^3.8.3"
   },
   "dependencies": {
-    "gl-matrix": "^3.2.1"
+    "gl-matrix": "^3.3.0"
   }
 }

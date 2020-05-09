@@ -1,20 +1,10 @@
 import resolve from 'rollup-plugin-node-resolve';
+import typescript from 'rollup-plugin-typescript2';
 import pkg from './package.json';
 
 export default [
     {
-        input: 'src/index.js',
-        output: {
-            name: 'MASSIV',
-            file: pkg.browser,
-            format: 'umd',
-        },
-        plugins: [
-            resolve(),
-        ],
-    },
-    {
-        input: 'src/index.js',
+        input: 'src/index.ts',
         output: [
             {
                 file: pkg.main,
@@ -24,9 +14,15 @@ export default [
                 file: pkg.module,
                 format: 'es',
             },
+            {
+                name: 'MASSIV',
+                file: pkg.browser,
+                format: 'umd',
+            },
         ],
         plugins: [
             resolve(),
+            typescript(),
         ],
     },
 ];
