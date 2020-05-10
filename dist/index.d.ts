@@ -26,3 +26,4 @@ export * from './systems/update-transform-system';
 export * from './webgl2/webgl-2-frame-state';
 export * from './webgl2/webgl-2-render-system';
 export * from './webgl2/webgl-2-utils';
+export * from './types';

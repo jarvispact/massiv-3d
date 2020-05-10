@@ -5,6 +5,7 @@
   "main": "dist/massiv-3d.cjs.js",
   "module": "dist/massiv-3d.esm.js",
   "browser": "dist/massiv-3d.umd.js",
+  "types": "dist/index.d.ts",
   "scripts": {
     "test": "TS_NODE_PROJECT=tsconfig.node.json mocha -r ts-node/register tests/**/*.test.ts",
     "lint": "eslint . --ext .ts",
