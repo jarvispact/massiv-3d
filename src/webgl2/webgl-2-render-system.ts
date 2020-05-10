@@ -10,7 +10,7 @@ import { getWebGL2Context, WebGLContextAttributeOptions, WebGL2Options } from '.
 import { ResizeCanvasEvent } from '../events/resize-canvas-event';
 import { DirectionalLight } from '../components/directional-light';
 
-type WebGL2RenderSystemOptions = {
+export type WebGL2RenderSystemOptions = {
     contextAttributeOptions?: Partial<WebGLContextAttributeOptions>;
     getWebgl2Options?(gl: WebGL2RenderingContext): Partial<WebGL2Options>;
     autoClear?: boolean;
