@@ -15,6 +15,7 @@ export * from './geometry/geometry';
 export * from './geometry/quad-geometry';
 export * from './geometry/raw-geometry';
 export * from './input/keyboard-input';
+export * from './input/mouse-input';
 export * from './loader/file-loader';
 export * from './loader/image-loader';
 export * from './loader/parse-obj-file';

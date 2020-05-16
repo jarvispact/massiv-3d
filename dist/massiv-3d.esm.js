@@ -1555,11 +1555,11 @@ class KeyboardInput {
         this.canvas.setAttribute('tabIndex', '1');
         if (document.activeElement !== canvas)
             canvas.focus();
-        this.keyDownMap = Object.values(KeyboardInput.KEY).reduce((accum, value) => {
+        this.keyDownMap = Object.values(KEY).reduce((accum, value) => {
             accum[value] = false;
             return accum;
         }, {});
-        this.keyPressedMap = Object.values(KeyboardInput.KEY).reduce((accum, value) => {
+        this.keyPressedMap = Object.values(KEY).reduce((accum, value) => {
             accum[value] = false;
             return accum;
         }, {});
@@ -1583,6 +1583,69 @@ class KeyboardInput {
         const val = this.keyPressedMap[key];
         this.keyPressedMap[key] = false;
         return val;
+    }
+}
+
+const BUTTON = {
+    PRIMARY: 0,
+    AUXILIARY: 1,
+    SECONDARY: 2,
+};
+class MouseInput {
+    constructor(canvas) {
+        this.canvas = canvas;
+        this.canvas.setAttribute('tabIndex', '1');
+        if (document.activeElement !== canvas)
+            canvas.focus();
+        this.buttonDownMap = Object.values(BUTTON).reduce((accum, value) => {
+            accum[value] = false;
+            return accum;
+        }, {});
+        this.mouseX = 0;
+        this.mouseY = 0;
+        this.movementX = 0;
+        this.movementY = 0;
+        const mouseDownHandler = (event) => {
+            switch (event.button) {
+                case BUTTON.PRIMARY:
+                    this.buttonDownMap[BUTTON.PRIMARY] = true;
+                    break;
+                case BUTTON.AUXILIARY:
+                    this.buttonDownMap[BUTTON.AUXILIARY] = true;
+                    break;
+                case BUTTON.SECONDARY:
+                    this.buttonDownMap[BUTTON.SECONDARY] = true;
+                    break;
+            }
+        };
+        const mouseMoveHandler = (event) => {
+            this.mouseX = event.offsetX;
+            this.mouseY = event.offsetY;
+            this.movementX = event.movementX;
+            this.movementY = event.movementY;
+        };
+        const mouseUpHandler = (event) => {
+            switch (event.button) {
+                case BUTTON.PRIMARY:
+                    this.buttonDownMap[BUTTON.PRIMARY] = false;
+                    break;
+                case BUTTON.AUXILIARY:
+                    this.buttonDownMap[BUTTON.AUXILIARY] = false;
+                    break;
+                case BUTTON.SECONDARY:
+                    this.buttonDownMap[BUTTON.SECONDARY] = false;
+                    break;
+            }
+        };
+        this.canvas.addEventListener('mousedown', mouseDownHandler);
+        this.canvas.addEventListener('mousemove', mouseMoveHandler);
+        this.canvas.addEventListener('mouseup', mouseUpHandler);
+    }
+    static get BUTTON() {
+        return BUTTON;
+    }
+    isButtonDown(button) {
+        return this.buttonDownMap[button];
     }
 }
 
@@ -2475,4 +2538,4 @@ class WebGL2RenderSystem extends RenderSystem {
 
 setMatrixArrayType(Array);
 
-export { ATTRIBUTE, Component, DirectionalLight, ECSEvent, Entity, FileLoader, ImageLoader, KeyboardInput, OrthographicCamera, PerspectiveCamera, PhongMaterial, QuadGeometry, RawGeometry, RegisterEntityEvent, RemoveEntityEvent, RenderSystem, Renderable, ResizeCanvasEvent, System, Transform, UNIFORM, UnlitMaterial, UpdateCameraSystem, UpdateTransformSystem, WEBGL2_DATA_TYPE, WebGL2FrameState, WebGL2RenderSystem, World, createArrayBuffer, createElementArrayBuffer, createProgram, createShader, createTexture2D, createUniformTypeLookupTable, createVertexArray, defaultContextAttributeOptions, getActiveAttributes, getActiveUniforms, getDefaultWebGL2Options, getWebGL2Context, parseObjFile, webgl2TypeValues };
+export { ATTRIBUTE, Component, DirectionalLight, ECSEvent, Entity, FileLoader, ImageLoader, KeyboardInput, MouseInput, OrthographicCamera, PerspectiveCamera, PhongMaterial, QuadGeometry, RawGeometry, RegisterEntityEvent, RemoveEntityEvent, RenderSystem, Renderable, ResizeCanvasEvent, System, Transform, UNIFORM, UnlitMaterial, UpdateCameraSystem, UpdateTransformSystem, WEBGL2_DATA_TYPE, WebGL2FrameState, WebGL2RenderSystem, World, createArrayBuffer, createElementArrayBuffer, createProgram, createShader, createTexture2D, createUniformTypeLookupTable, createVertexArray, defaultContextAttributeOptions, getActiveAttributes, getActiveUniforms, getDefaultWebGL2Options, getWebGL2Context, parseObjFile, webgl2TypeValues };

@@ -25,4 +25,4 @@ export declare class KeyboardInput {
     isKeyDown(key: AvailableKeys[keyof AvailableKeys]): boolean;
     keyPressed(key: AvailableKeys[keyof AvailableKeys]): boolean;
 }
-export default KeyboardInput;
+export {};

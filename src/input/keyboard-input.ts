@@ -28,12 +28,12 @@ export class KeyboardInput {
         this.canvas.setAttribute('tabIndex', '1');
         if (document.activeElement !== canvas) canvas.focus();
 
-        this.keyDownMap = Object.values(KeyboardInput.KEY).reduce((accum, value) => {
+        this.keyDownMap = Object.values(KEY).reduce((accum, value) => {
             accum[value] = false;
             return accum;
         }, {} as Record<string, boolean>);
 
-        this.keyPressedMap = Object.values(KeyboardInput.KEY).reduce((accum, value) => {
+        this.keyPressedMap = Object.values(KEY).reduce((accum, value) => {
             accum[value] = false;
             return accum;
         }, {} as Record<string, boolean>);
@@ -65,5 +65,3 @@ export class KeyboardInput {
         return val;
     }
 }
-
-export default KeyboardInput;
