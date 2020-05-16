@@ -1898,6 +1898,7 @@ const WEBGL2_DATA_TYPE = {
     VEC4: 'vec4',
     FLOAT: 'float',
     INT: 'int',
+    SAMPLER_2D: 'sampler2D',
 };
 const ATTRIBUTE = {
     POSITION: { LOCATION: 0, NAME: 'position' },
@@ -1926,34 +1927,8 @@ const createUniformTypeLookupTable = (gl) => ({
     [gl.FLOAT_VEC4]: WEBGL2_DATA_TYPE.VEC4,
     [gl.FLOAT]: WEBGL2_DATA_TYPE.FLOAT,
     [gl.INT]: WEBGL2_DATA_TYPE.INT,
+    [gl.SAMPLER_2D]: WEBGL2_DATA_TYPE.SAMPLER_2D,
 });
-const getActiveAttributes = (gl, program) => {
-    const lookupTable = createUniformTypeLookupTable(gl);
-    const activeAttributesCount = gl.getProgramParameter(program, gl.ACTIVE_ATTRIBUTES);
-    const attribs = [];
-    for (let i = 0; i < activeAttributesCount; i++) {
-        const attributeInfo = gl.getActiveAttrib(program, i);
-        attribs.push({
-            name: attributeInfo.name,
-            type: lookupTable[attributeInfo.type],
-        });
-    }
-    return attribs;
-};
-const getActiveUniforms = (gl, program) => {
-    const lookupTable = createUniformTypeLookupTable(gl);
-    const activeUniformsCount = gl.getProgramParameter(program, gl.ACTIVE_UNIFORMS);
-    const uniforms = [];
-    for (let i = 0; i < activeUniformsCount; i++) {
-        const uniformInfo = gl.getActiveUniform(program, i);
-        uniforms.push({
-            name: uniformInfo.name,
-            type: lookupTable[uniformInfo.type],
-            location: gl.getUniformLocation(program, uniformInfo.name),
-        });
-    }
-    return uniforms;
-};
 const createTexture2D = (gl, image, options) => {
     const texture = gl.createTexture();
     if (!texture)
@@ -1972,18 +1947,150 @@ const createTexture2D = (gl, image, options) => {
         gl.generateMipmap(gl.TEXTURE_2D);
     return texture;
 };
+const getActiveAttributes = (gl, program) => {
+    const lookupTable = createUniformTypeLookupTable(gl);
+    const activeAttributesCount = gl.getProgramParameter(program, gl.ACTIVE_ATTRIBUTES);
+    const attribs = [];
+    for (let i = 0; i < activeAttributesCount; i++) {
+        const attributeInfo = gl.getActiveAttrib(program, i);
+        attribs.push({
+            name: attributeInfo.name,
+            type: lookupTable[attributeInfo.type],
+        });
+    }
+    return attribs;
+};
+const getActiveUniforms = (gl, program, material) => {
+    const lookupTable = createUniformTypeLookupTable(gl);
+    const activeUniformsCount = gl.getProgramParameter(program, gl.ACTIVE_UNIFORMS);
+    const uniforms = [];
+    const samplers2D = [];
+    for (let i = 0; i < activeUniformsCount; i++) {
+        const uniformInfo = gl.getActiveUniform(program, i);
+        const type = lookupTable[uniformInfo.type];
+        const location = gl.getUniformLocation(program, uniformInfo.name);
+        if (type === WEBGL2_DATA_TYPE.SAMPLER_2D) {
+            samplers2D.push({
+                name: uniformInfo.name,
+                type,
+                location,
+                texture: material.getTexture(gl, uniformInfo.name),
+            });
+        }
+        else {
+            uniforms.push({
+                name: uniformInfo.name,
+                type,
+                location,
+            });
+        }
+    }
+    return { uniforms, samplers2D };
+};
 
+const calcDirLight = `
+    vec3 CalcDirLight(vec3 lDir, vec3 lDiffuse, float lIntensity, vec3 normal, vec3 viewDir, vec3 diffuseColor, vec3 specularColor) {
+        vec3 direction = normalize(lDir);
+        float diff = max(dot(normal, direction), 0.0);
+        vec3 reflectDir = reflect(-direction, normal);
+        float spec = pow(max(dot(viewDir, reflectDir), 0.0), specularShininess);
+        vec3 ambient  = diffuseColor * ambientIntensity;
+        vec3 diffuse  = lDiffuse * diff * diffuseColor * lIntensity;
+        vec3 specular = lDiffuse * spec * specularColor * lIntensity;
+        return ambient + diffuse + specular;
+    }
+`;
+const getVertexShader = () => `
+    #version 300 es
+
+    precision highp float;
+    precision highp int;
+
+    layout(location = ${ATTRIBUTE.POSITION.LOCATION}) in vec3 ${ATTRIBUTE.POSITION.NAME};
+    layout(location = ${ATTRIBUTE.UV.LOCATION}) in vec2 ${ATTRIBUTE.UV.NAME};
+    layout(location = ${ATTRIBUTE.NORMAL.LOCATION}) in vec3 ${ATTRIBUTE.NORMAL.NAME};
+
+    uniform mat4 ${UNIFORM.MODEL_MATRIX};
+    uniform mat4 ${UNIFORM.MODEL_VIEW_MATRIX};
+    uniform mat3 ${UNIFORM.NORMAL_MATRIX};
+    uniform mat4 ${UNIFORM.PROJECTION_MATRIX};
+
+    out vec3 vPosition;
+    out vec2 vUv;
+    out vec3 vNormal;
+
+    void main() {
+        vUv = ${ATTRIBUTE.UV.NAME};
+        vNormal = ${UNIFORM.NORMAL_MATRIX} * normal;
+        vPosition = vec3(${UNIFORM.MODEL_MATRIX} * vec4(${ATTRIBUTE.POSITION.NAME}, 1.0));
+        gl_Position = ${UNIFORM.PROJECTION_MATRIX} * ${UNIFORM.MODEL_VIEW_MATRIX} * vec4(${ATTRIBUTE.POSITION.NAME}, 1.0);
+    }
+`.trim();
+const getFragmentShader = (args) => {
+    const diffuseDeclaration = args.useDiffuseMap ? 'uniform sampler2D diffuseMap;' : 'uniform vec3 diffuseColor;';
+    const specularDeclaration = args.useSpecularMap ? 'uniform sampler2D specularMap;' : 'uniform vec3 specularColor;';
+    const diffuseTexelColor = args.useDiffuseMap ? 'vec3 diffuseColor = texture(diffuseMap, vUv).xyz;' : '';
+    const specularTexelColor = args.useSpecularMap ? 'vec3 specularColor = texture(specularMap, vUv).xyz;' : '';
+    return `
+        #version 300 es
+
+        precision highp float;
+        precision highp int;
+
+        const int maxDirLights = 5;
+
+        uniform int ${UNIFORM.DIR_LIGHT_COUNT};
+        uniform vec3 ${UNIFORM.DIR_LIGHT_DIRECTION}[maxDirLights];
+        uniform vec3 ${UNIFORM.DIR_LIGHT_COLOR}[maxDirLights];
+        uniform float ${UNIFORM.DIR_LIGHT_INTENSITY}[maxDirLights];
+
+        uniform vec3 ${UNIFORM.CAMERA_POSITION};
+
+        uniform float ambientIntensity;
+        ${diffuseDeclaration}
+        ${specularDeclaration}
+        uniform float specularShininess;
+        uniform float opacity;
+
+        in vec3 vPosition;
+        in vec2 vUv;
+        in vec3 vNormal;
+
+        out vec4 fragmentColor;
+
+        ${calcDirLight}
+
+        void main() {
+            vec3 normal = normalize(vNormal);
+            vec3 viewDir = normalize(${UNIFORM.CAMERA_POSITION} - vPosition);
+            vec3 result = vec3(0.0, 0.0, 0.0);
+
+            ${diffuseTexelColor}
+            ${specularTexelColor}
+
+            for(int i = 0; i < ${UNIFORM.DIR_LIGHT_COUNT}; i++) {
+                result += CalcDirLight(${UNIFORM.DIR_LIGHT_DIRECTION}[i], ${UNIFORM.DIR_LIGHT_COLOR}[i], ${UNIFORM.DIR_LIGHT_INTENSITY}[i], normal, viewDir, diffuseColor, specularColor);
+            }
+
+            fragmentColor = vec4(result, opacity);
+        }
+    `.trim();
+};
 class PhongMaterial {
     constructor(args = {}) {
         this.ambientIntensity = args.ambientIntensity || 0.1;
         this.diffuseColor = args.diffuseColor || [1, 0, 0];
+        this.diffuseMap = args.diffuseMap || null;
         this.specularColor = args.specularColor || [1, 1, 1];
+        this.specularMap = args.specularMap || null;
         this.specularShininess = args.specularShininess || 256;
         this.opacity = args.opacity || 1;
         this.dirty = {
             ambientIntensity: true,
             diffuseColor: true,
+            diffuseMap: true,
             specularColor: true,
+            specularMap: true,
             specularShininess: true,
             opacity: true,
         };
@@ -1993,6 +2100,26 @@ class PhongMaterial {
             return null;
         this.dirty[uniformName] = false;
         return this[uniformName];
+    }
+    getTexture(gl, uniformName) {
+        if (uniformName === 'diffuseMap' && this.diffuseMap) {
+            return createTexture2D(gl, this.diffuseMap);
+        }
+        else if (uniformName === 'specularMap' && this.specularMap) {
+            return createTexture2D(gl, this.specularMap);
+        }
+        else {
+            return null;
+        }
+    }
+    getShaderSourceCode({ geometryData }) {
+        const useDiffuseMap = !!this.diffuseMap && !!geometryData.uvs;
+        const useSpecularMap = !!this.specularMap && !!geometryData.uvs;
+        const fragmentShaderArgs = { useDiffuseMap, useSpecularMap };
+        return {
+            vertexShader: getVertexShader(),
+            fragmentShader: getFragmentShader(fragmentShaderArgs),
+        };
     }
     setAmbientIntensity(intensity) {
         this.ambientIntensity = intensity;
@@ -2019,88 +2146,36 @@ class PhongMaterial {
         this.dirty.opacity = true;
     }
 }
-const calcDirLight = `
-    vec3 CalcDirLight(vec3 lDir, vec3 lDiffuse, vec3 lSpecular, float lIntensity, vec3 normal, vec3 viewDir, vec3 materialDiffuse, vec3 materialSpecular) {
-        vec3 direction = normalize(lDir);
-        float diff = max(dot(normal, direction), 0.0);
-        vec3 reflectDir = reflect(-direction, normal);
-        float spec = pow(max(dot(viewDir, reflectDir), 0.0), specularShininess);
-        vec3 ambient  = materialDiffuse * ambientIntensity;
-        vec3 diffuse  = lDiffuse * diff * materialDiffuse * lIntensity;
-        vec3 specular = lDiffuse * spec * materialSpecular * lIntensity;
-        return ambient + diffuse + specular;
-    }
-`;
-const A = ATTRIBUTE;
-const U = UNIFORM;
-const vertexShader = `
+
+const getVertexShader$1 = () => `
     #version 300 es
 
     precision highp float;
     precision highp int;
 
-    layout(location = ${A.POSITION.LOCATION}) in vec3 ${A.POSITION.NAME};
-    layout(location = ${A.NORMAL.LOCATION}) in vec3 ${A.NORMAL.NAME};
+    layout(location = 0) in vec3 position;
 
-    uniform mat4 ${U.MODEL_MATRIX};
-    uniform mat4 ${U.MODEL_VIEW_MATRIX};
-    uniform mat3 ${U.NORMAL_MATRIX};
-    uniform mat4 ${U.PROJECTION_MATRIX};
-
-    out vec3 vPosition;
-    out vec3 vNormal;
+    uniform mat4 ${UNIFORM.MODEL_VIEW_PROJECTION_MATRIX};
 
     void main() {
-        vNormal = ${U.NORMAL_MATRIX} * normal;
-        vPosition = vec3(${U.MODEL_MATRIX} * vec4(${A.POSITION.NAME}, 1.0));
-        gl_Position = ${U.PROJECTION_MATRIX} * ${U.MODEL_VIEW_MATRIX} * vec4(${A.POSITION.NAME}, 1.0);
+        gl_Position = ${UNIFORM.MODEL_VIEW_PROJECTION_MATRIX} * vec4(position, 1.0);
     }
 `.trim();
-const fragmentShader = `
+const getFragmentShader$1 = () => `
     #version 300 es
 
     precision highp float;
     precision highp int;
 
-    const int maxDirLights = 5;
-
-    uniform int ${U.DIR_LIGHT_COUNT};
-    uniform vec3 ${U.DIR_LIGHT_DIRECTION}[maxDirLights];
-    uniform vec3 ${U.DIR_LIGHT_COLOR}[maxDirLights];
-    uniform float ${U.DIR_LIGHT_INTENSITY}[maxDirLights];
-
-    uniform vec3 ${U.CAMERA_POSITION};
-
-    uniform float ambientIntensity;
-    uniform vec3 diffuseColor;
-    uniform vec3 specularColor;
-    uniform float specularShininess;
+    uniform vec3 color;
     uniform float opacity;
-
-    in vec3 vPosition;
-    in vec3 vNormal;
 
     out vec4 fragmentColor;
 
-    ${calcDirLight}
-
     void main() {
-        vec3 normal = normalize(vNormal);
-        vec3 viewDir = normalize(${U.CAMERA_POSITION} - vPosition);
-        vec3 result = vec3(0.0, 0.0, 0.0);
-
-        for(int i = 0; i < ${U.DIR_LIGHT_COUNT}; i++) {
-            result += CalcDirLight(${U.DIR_LIGHT_DIRECTION}[i], ${U.DIR_LIGHT_COLOR}[i], vec3(1.0, 1.0, 1.0), ${U.DIR_LIGHT_INTENSITY}[i], normal, viewDir, diffuseColor, specularColor);
-        }
-
-        fragmentColor = vec4(result, opacity);
+        fragmentColor = vec4(color, opacity);
     }
 `.trim();
-PhongMaterial.getShaderSourceCode = () => ({
-    vertexShader,
-    fragmentShader,
-});
-
 class UnlitMaterial {
     constructor(args = {}) {
         this.color = args.color || [1, 1, 1];
@@ -2116,6 +2191,15 @@ class UnlitMaterial {
         this.dirty[uniformName] = false;
         return this[uniformName];
     }
+    getTexture() {
+        return null;
+    }
+    getShaderSourceCode() {
+        return {
+            vertexShader: getVertexShader$1(),
+            fragmentShader: getFragmentShader$1(),
+        };
+    }
     setColor(r, g, b) {
         this.color[0] = r;
         this.color[1] = g;
@@ -2127,39 +2211,6 @@ class UnlitMaterial {
         this.dirty.opacity = true;
     }
 }
-const vertexShader$1 = `
-    #version 300 es
-
-    precision highp float;
-    precision highp int;
-
-    layout(location = 0) in vec3 position;
-
-    uniform mat4 ${UNIFORM.MODEL_VIEW_PROJECTION_MATRIX};
-
-    void main() {
-        gl_Position = ${UNIFORM.MODEL_VIEW_PROJECTION_MATRIX} * vec4(position, 1.0);
-    }
-`.trim();
-const fragmentShader$1 = `
-    #version 300 es
-
-    precision highp float;
-    precision highp int;
-
-    uniform vec3 color;
-    uniform float opacity;
-
-    out vec4 fragmentColor;
-
-    void main() {
-        fragmentColor = vec4(color, opacity);
-    }
-`.trim();
-UnlitMaterial.getShaderSourceCode = () => ({
-    vertexShader: vertexShader$1,
-    fragmentShader: fragmentShader$1,
-});
 
 class WebGL2FrameState {
     constructor(gl) {
@@ -2232,16 +2283,6 @@ class WebGL2FrameState {
     }
 }
 
-const getMaterialClass = (constructorName) => {
-    switch (constructorName) {
-        case 'UnlitMaterial':
-            return UnlitMaterial;
-        case 'PhongMaterial':
-            return PhongMaterial;
-        default:
-            return UnlitMaterial;
-    }
-};
 const UNIFORM_DIR_LIGHT_DIRECTION = `${UNIFORM.DIR_LIGHT_DIRECTION}[0]`;
 const UNIFORM_DIR_LIGHT_COLOR = `${UNIFORM.DIR_LIGHT_COLOR}[0]`;
 const UNIFORM_DIR_LIGHT_INTENSITY = `${UNIFORM.DIR_LIGHT_INTENSITY}[0]`;
@@ -2251,7 +2292,8 @@ class CachedRenderable {
         this.renderable = renderable;
         this.transform = transform;
         this.frameState = frameState;
-        const shaderSource = getMaterialClass(this.renderable.data.material.constructor.name).getShaderSourceCode();
+        this.geometryData = renderable.data.geometry.getData();
+        const shaderSource = this.renderable.data.material.getShaderSourceCode({ geometryData: this.geometryData });
         this.vertexShader = createShader(gl, gl.VERTEX_SHADER, shaderSource.vertexShader);
         this.fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, shaderSource.fragmentShader);
         this.program = createProgram(gl, this.vertexShader, this.fragmentShader);
@@ -2259,15 +2301,19 @@ class CachedRenderable {
         const attributeNames = attribs.map(a => a.name);
         this.buffers = [];
         this.vao = createVertexArray(gl);
-        this.geometryData = renderable.data.geometry.getData();
-        if (attributeNames.includes('position') && this.geometryData.positions) {
+        if (attributeNames.includes(ATTRIBUTE.POSITION.NAME) && this.geometryData.positions) {
             this.buffers.push(createArrayBuffer(gl, Float32Array.from(this.geometryData.positions), ATTRIBUTE.POSITION.LOCATION, 3));
         }
-        if (attributeNames.includes('normal') && this.geometryData.normals) {
+        if (attributeNames.includes(ATTRIBUTE.UV.NAME) && this.geometryData.uvs) {
+            this.buffers.push(createArrayBuffer(gl, Float32Array.from(this.geometryData.uvs), ATTRIBUTE.UV.LOCATION, 2));
+        }
+        if (attributeNames.includes(ATTRIBUTE.NORMAL.NAME) && this.geometryData.normals) {
             this.buffers.push(createArrayBuffer(gl, Float32Array.from(this.geometryData.normals), ATTRIBUTE.NORMAL.LOCATION, 3));
         }
         this.indexBuffer = this.geometryData.indices ? createElementArrayBuffer(gl, Uint32Array.from(this.geometryData.indices)) : null;
-        this.activeUniforms = getActiveUniforms(gl, this.program);
+        const uniformData = getActiveUniforms(gl, this.program, this.renderable.data.material);
+        this.activeUniforms = uniformData.uniforms;
+        this.activeSamplers2D = uniformData.samplers2D;
         this.forceUniformUpdate = true;
     }
     render(camera, dirLights) {
@@ -2276,8 +2322,15 @@ class CachedRenderable {
         const renderable = this.renderable;
         const frameState = this.frameState;
         const activeUniforms = this.activeUniforms;
+        const activeSamplers2D = this.activeSamplers2D;
         gl.useProgram(this.program);
         gl.bindVertexArray(this.vao);
+        for (let i = 0; i < activeSamplers2D.length; i++) {
+            const sampler2D = activeSamplers2D[i];
+            gl.activeTexture(gl.TEXTURE0 + i);
+            gl.bindTexture(gl.TEXTURE_2D, sampler2D.texture);
+            gl.uniform1i(sampler2D.location, i);
+        }
         let modelViewMatrixComputed = false;
         for (let i = 0; i < activeUniforms.length; i++) {
             const uniform = activeUniforms[i];
@@ -2362,6 +2415,7 @@ class CachedRenderable {
     }
     cleanup() {
         const gl = this.gl;
+        this.activeSamplers2D.forEach(s => gl.deleteTexture(s.texture));
         gl.deleteShader(this.vertexShader);
         gl.deleteShader(this.fragmentShader);
         gl.deleteProgram(this.program);

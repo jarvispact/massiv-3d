@@ -1,3 +1,5 @@
+import { Material } from '../material/material';
+
 export type WebGLContextAttributeOptions = {
     premultipliedAlpha: boolean;
     alpha: boolean;
@@ -139,6 +141,7 @@ export const WEBGL2_DATA_TYPE = {
     VEC4: 'vec4',
     FLOAT: 'float',
     INT: 'int',
+    SAMPLER_2D: 'sampler2D',
 } as const;
 
 export const ATTRIBUTE = {
@@ -172,64 +175,10 @@ export const createUniformTypeLookupTable = (gl: WebGL2RenderingContext): Record
     [gl.FLOAT_VEC4]: WEBGL2_DATA_TYPE.VEC4,
     [gl.FLOAT]: WEBGL2_DATA_TYPE.FLOAT,
     [gl.INT]: WEBGL2_DATA_TYPE.INT,
+    [gl.SAMPLER_2D]: WEBGL2_DATA_TYPE.SAMPLER_2D,
 });
 
-export type ActiveAttribute = {
-    name: string;
-    type: WebGL2DataType;
-};
-
-export type ActiveUniform = {
-    name: string;
-    type: WebGL2DataType;
-    location: WebGLUniformLocation;
-};
-
-export const getActiveAttributes = (gl: WebGL2RenderingContext, program: WebGLProgram): ActiveAttribute[] => {
-    const lookupTable = createUniformTypeLookupTable(gl);
-    const activeAttributesCount = gl.getProgramParameter(program, gl.ACTIVE_ATTRIBUTES);
-    const attribs: ActiveAttribute[] = [];
-
-    for (let i = 0; i < activeAttributesCount; i++) {
-        const attributeInfo = gl.getActiveAttrib(program, i) as WebGLActiveInfo;
-        attribs.push({
-            name: attributeInfo.name,
-            type: lookupTable[attributeInfo.type],
-        });
-    }
-
-    return attribs;
-};
-
-export const getActiveUniforms = (gl: WebGL2RenderingContext, program: WebGLProgram): ActiveUniform[] => {
-    const lookupTable = createUniformTypeLookupTable(gl);
-    const activeUniformsCount = gl.getProgramParameter(program, gl.ACTIVE_UNIFORMS);
-    const uniforms: ActiveUniform[] = [];
-
-    for (let i = 0; i < activeUniformsCount; i++) {
-        const uniformInfo = gl.getActiveUniform(program, i) as WebGLActiveInfo;
-        uniforms.push({
-            name: uniformInfo.name,
-            type: lookupTable[uniformInfo.type],
-            location: gl.getUniformLocation(program, uniformInfo.name) as WebGLUniformLocation,
-        });
-    }
-
-    return uniforms;
-};
-
-// const type = webglUniformTypeToUniformType[uniformInfo.type];
-// const location = gl.getUniformLocation(program, uniformInfo.name);
-// if (type === 'sampler2D') {
-//     const texture = WebGL2Utils.createTexture(gl, renderable.material[uniformInfo.name]);
-//     const sampler = new Sampler2D(gl, uniformInfo.name, location, texture);
-//     sampler2Ds.push(sampler);
-// } else {
-//     const u = new Uniform(gl, uniformInfo.name, type, location);
-//     uniforms.push(u);
-// }
-
-type TextureOptions = {
+export type TextureOptions = {
     level: number;
     internalFormat: number;
     srcFormat: number;
@@ -255,4 +204,70 @@ export const createTexture2D = (gl: WebGL2RenderingContext, image: HTMLImageElem
     gl.texImage2D(gl.TEXTURE_2D, texOptions.level, texOptions.internalFormat, texOptions.srcFormat, texOptions.srcType, image);
     if (texOptions.generateMipmaps) gl.generateMipmap(gl.TEXTURE_2D);
     return texture;
+};
+
+export type ActiveAttribute = {
+    name: string;
+    type: WebGL2DataType;
+};
+
+export type ActiveUniform = {
+    name: string;
+    type: WebGL2DataType;
+    location: WebGLUniformLocation;
+};
+
+export type ActiveSampler2D = {
+    name: string;
+    type: WebGL2DataType;
+    location: WebGLUniformLocation;
+    texture: WebGLTexture;
+};
+
+export const getActiveAttributes = (gl: WebGL2RenderingContext, program: WebGLProgram): ActiveAttribute[] => {
+    const lookupTable = createUniformTypeLookupTable(gl);
+    const activeAttributesCount = gl.getProgramParameter(program, gl.ACTIVE_ATTRIBUTES);
+    const attribs: ActiveAttribute[] = [];
+
+    for (let i = 0; i < activeAttributesCount; i++) {
+        const attributeInfo = gl.getActiveAttrib(program, i) as WebGLActiveInfo;
+        attribs.push({
+            name: attributeInfo.name,
+            type: lookupTable[attributeInfo.type],
+        });
+    }
+
+    return attribs;
+};
+
+type ActiveUniformResult = {uniforms: ActiveUniform[]; samplers2D: ActiveSampler2D[]};
+
+export const getActiveUniforms = (gl: WebGL2RenderingContext, program: WebGLProgram, material: Material): ActiveUniformResult => {
+    const lookupTable = createUniformTypeLookupTable(gl);
+    const activeUniformsCount = gl.getProgramParameter(program, gl.ACTIVE_UNIFORMS);
+    const uniforms: ActiveUniform[] = [];
+    const samplers2D: ActiveSampler2D[] = [];
+
+    for (let i = 0; i < activeUniformsCount; i++) {
+        const uniformInfo = gl.getActiveUniform(program, i) as WebGLActiveInfo;
+        const type = lookupTable[uniformInfo.type];
+        const location = gl.getUniformLocation(program, uniformInfo.name) as WebGLUniformLocation;
+
+        if (type === WEBGL2_DATA_TYPE.SAMPLER_2D) {
+            samplers2D.push({
+                name: uniformInfo.name,
+                type,
+                location,
+                texture: material.getTexture(gl, uniformInfo.name) as WebGLTexture,
+            });
+        } else {
+            uniforms.push({
+                name: uniformInfo.name,
+                type,
+                location,
+            });
+        }
+    }
+
+    return { uniforms, samplers2D };
 };

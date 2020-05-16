@@ -14,6 +14,8 @@ triangle
 quad
 cube
 
+- texture reuse for same images (sampler for different configs?)
+
 - update active camera
 - add renderablesystem
 

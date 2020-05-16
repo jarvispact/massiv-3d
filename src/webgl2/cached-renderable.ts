@@ -4,23 +4,9 @@ import { PerspectiveCamera } from '../components/perspective-camera';
 import { Renderable } from '../components/renderable';
 import { Transform } from '../components/transform';
 import { GeometryData } from '../geometry/geometry';
-import { MaterialClass } from '../material/material';
-import { PhongMaterial } from '../material/phong-material';
-import { UnlitMaterial } from '../material/unlit-material';
 import { WebGL2FrameState } from './webgl-2-frame-state';
-import { ActiveUniform, createArrayBuffer, createElementArrayBuffer, createProgram, createShader, createVertexArray, getActiveAttributes, getActiveUniforms, UNIFORM, WEBGL2_DATA_TYPE, ATTRIBUTE } from './webgl-2-utils';
+import { ActiveUniform, createArrayBuffer, createElementArrayBuffer, createProgram, createShader, createVertexArray, getActiveAttributes, getActiveUniforms, UNIFORM, WEBGL2_DATA_TYPE, ATTRIBUTE, ActiveSampler2D } from './webgl-2-utils';
 import { DirectionalLight } from '../components/directional-light';
-
-const getMaterialClass = (constructorName: string): MaterialClass => {
-    switch (constructorName) {
-        case 'UnlitMaterial':
-            return UnlitMaterial;
-        case 'PhongMaterial':
-            return PhongMaterial;
-        default:
-            return UnlitMaterial;
-    }
-};
 
 const UNIFORM_DIR_LIGHT_DIRECTION = `${UNIFORM.DIR_LIGHT_DIRECTION}[0]`;
 const UNIFORM_DIR_LIGHT_COLOR = `${UNIFORM.DIR_LIGHT_COLOR}[0]`;
@@ -41,6 +27,7 @@ export class CachedRenderable {
     indexBuffer: WebGLBuffer | null;
 
     activeUniforms: ActiveUniform[];
+    activeSamplers2D: ActiveSampler2D[];
 
     forceUniformUpdate: boolean;
 
@@ -50,9 +37,8 @@ export class CachedRenderable {
         this.transform = transform;
         this.frameState = frameState;
 
-        const shaderSource = getMaterialClass(this.renderable.data.material.constructor.name).getShaderSourceCode();
-
-
+        this.geometryData = renderable.data.geometry.getData();
+        const shaderSource = this.renderable.data.material.getShaderSourceCode({ geometryData: this.geometryData });
         this.vertexShader = createShader(gl, gl.VERTEX_SHADER, shaderSource.vertexShader);
         this.fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, shaderSource.fragmentShader);
         this.program = createProgram(gl, this.vertexShader, this.fragmentShader);
@@ -62,17 +48,22 @@ export class CachedRenderable {
         this.buffers = [];
 
         this.vao = createVertexArray(gl);
-        this.geometryData = renderable.data.geometry.getData();
 
-        if (attributeNames.includes('position') && this.geometryData.positions) {
+        if (attributeNames.includes(ATTRIBUTE.POSITION.NAME) && this.geometryData.positions) {
             this.buffers.push(createArrayBuffer(gl, Float32Array.from(this.geometryData.positions), ATTRIBUTE.POSITION.LOCATION, 3));
         }
-        if (attributeNames.includes('normal') && this.geometryData.normals) {
+        if (attributeNames.includes(ATTRIBUTE.UV.NAME) && this.geometryData.uvs) {
+            this.buffers.push(createArrayBuffer(gl, Float32Array.from(this.geometryData.uvs), ATTRIBUTE.UV.LOCATION, 2));
+        }
+        if (attributeNames.includes(ATTRIBUTE.NORMAL.NAME) && this.geometryData.normals) {
             this.buffers.push(createArrayBuffer(gl, Float32Array.from(this.geometryData.normals), ATTRIBUTE.NORMAL.LOCATION, 3));
         }
 
         this.indexBuffer = this.geometryData.indices ? createElementArrayBuffer(gl, Uint32Array.from(this.geometryData.indices)) : null;
-        this.activeUniforms = getActiveUniforms(gl, this.program);
+
+        const uniformData = getActiveUniforms(gl, this.program, this.renderable.data.material);
+        this.activeUniforms = uniformData.uniforms;
+        this.activeSamplers2D = uniformData.samplers2D;
 
         this.forceUniformUpdate = true;
     }
@@ -83,9 +74,17 @@ export class CachedRenderable {
         const renderable = this.renderable;
         const frameState = this.frameState;
         const activeUniforms = this.activeUniforms;
+        const activeSamplers2D = this.activeSamplers2D;
 
         gl.useProgram(this.program);
         gl.bindVertexArray(this.vao);
+
+        for (let i = 0; i < activeSamplers2D.length; i++) {
+            const sampler2D = activeSamplers2D[i];
+            gl.activeTexture(gl.TEXTURE0 + i);
+            gl.bindTexture(gl.TEXTURE_2D, sampler2D.texture);
+            gl.uniform1i(sampler2D.location, i);
+        }
 
         let modelViewMatrixComputed = false;
 
@@ -133,7 +132,7 @@ export class CachedRenderable {
             }
             else {
                 const value = renderable.data.material.getUniformValue(uniform.name);
-                if (value !== null) {                    
+                if (value !== null) {                           
                     if (uniform.type === WEBGL2_DATA_TYPE.MAT3) {
                         gl.uniformMatrix3fv(uniform.location, false, value as mat3);
                     } else if (uniform.type === WEBGL2_DATA_TYPE.MAT4) {
@@ -166,6 +165,7 @@ export class CachedRenderable {
 
     cleanup(): void {
         const gl = this.gl;
+        this.activeSamplers2D.forEach(s => gl.deleteTexture(s.texture));
         gl.deleteShader(this.vertexShader);
         gl.deleteShader(this.fragmentShader);
         gl.deleteProgram(this.program);

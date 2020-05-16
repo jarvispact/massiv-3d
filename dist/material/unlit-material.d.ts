@@ -5,7 +5,6 @@ declare type Args = {
     opacity?: number;
 };
 export declare class UnlitMaterial implements Material {
-    static getShaderSourceCode: () => ShaderSourceCode;
     color: vec3;
     opacity: number;
     dirty: {
@@ -14,6 +13,8 @@ export declare class UnlitMaterial implements Material {
     };
     constructor(args?: Args);
     getUniformValue(uniformName: string): unknown | null;
+    getTexture(): WebGLTexture | null;
+    getShaderSourceCode(): ShaderSourceCode;
     setColor(r: number, g: number, b: number): void;
     setOpacity(opacity: number): void;
 }
