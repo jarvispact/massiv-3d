@@ -4,15 +4,11 @@ const BUTTON = {
     SECONDARY: 2,
 } as const;
 
-type Buttons = typeof BUTTON;
-
 export class MouseInput {
-    canvas: HTMLCanvasElement;
-    buttonDownMap: Record<string, boolean>;
-    mouseX: number;
-    mouseY: number;
-    movementX: number;
-    movementY: number;
+    private canvas: HTMLCanvasElement;
+    private buttonDownMap: Record<string, boolean>;
+    private mouseX: number;
+    private mouseY: number;
 
     constructor(canvas: HTMLCanvasElement) {
         this.canvas = canvas;
@@ -26,10 +22,8 @@ export class MouseInput {
 
         this.mouseX = 0;
         this.mouseY = 0;
-        this.movementX = 0;
-        this.movementY = 0;
 
-        const mouseDownHandler = (event: MouseEvent): void => {
+        const mouseDownHandler = (event: MouseEvent) => {
             switch (event.button) {
             case BUTTON.PRIMARY:
                 this.buttonDownMap[BUTTON.PRIMARY] = true;
@@ -45,14 +39,12 @@ export class MouseInput {
             }
         };
 
-        const mouseMoveHandler = (event: MouseEvent): void => {
+        const mouseMoveHandler = (event: MouseEvent) => {
             this.mouseX = event.offsetX;
             this.mouseY = event.offsetY;
-            this.movementX = event.movementX;
-            this.movementY = event.movementY;
         };
 
-        const mouseUpHandler = (event: MouseEvent): void => {
+        const mouseUpHandler = (event: MouseEvent) => {
             switch (event.button) {
             case BUTTON.PRIMARY:
                 this.buttonDownMap[BUTTON.PRIMARY] = false;
@@ -73,11 +65,19 @@ export class MouseInput {
         this.canvas.addEventListener('mouseup', mouseUpHandler);
     }
 
-    static get BUTTON(): Buttons {
+    static get BUTTON() {
         return BUTTON;
     }
 
-    isButtonDown(button: Buttons[keyof Buttons]): boolean {
-        return this.buttonDownMap[button];
+    isButtonDown(button: keyof typeof BUTTON) {
+        return this.buttonDownMap[BUTTON[button]];
+    }
+
+    getMouseX() {
+        return this.mouseX;
+    }
+
+    getMouseY() {
+        return this.mouseY;
     }
 }

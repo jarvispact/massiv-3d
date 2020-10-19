@@ -7,17 +7,16 @@
   "browser": "dist/massiv-3d.umd.js",
   "types": "dist/index.d.ts",
   "scripts": {
-    "test": "TS_NODE_PROJECT=tsconfig.node.json mocha -r ts-node/register tests/**/*.test.ts",
     "lint": "eslint . --ext .ts",
     "tsc:check": "tsc --noEmit",
     "clean": "rm -rf ./dist/*",
     "build": "rollup -c",
     "git-add-dist": "git add ./dist/*",
-    "dev": "rollup -c -w",
-    "examples:serve": "http-server ./examples -a 0.0.0.0 -p 9090 -c-1",
-    "examples:create": "TS_NODE_PROJECT=tsconfig.node.json ts-node create-example.ts",
-    "update:check": "ncu",
-    "update:do": "ncu -u && npm i"
+    "test": "env TS_NODE_COMPILER_OPTIONS='{\"module\": \"commonjs\" }' mocha -r ts-node/register 'tests/**/*.spec.ts'",
+    "example:hello-world": "webpack-dev-server --config examples/hello-world/webpack.config.js",
+    "example:animations": "webpack-dev-server --config examples/animations/webpack.config.js",
+    "example:trackball-camera-controls": "webpack-dev-server --config examples/trackball-camera-controls/webpack.config.js",
+    "example:model-loading": "webpack-dev-server --config examples/model-loading/webpack.config.js"
   },
   "repository": {
     "type": "git",
@@ -43,26 +42,29 @@
     "git-add-dist"
   ],
   "devDependencies": {
-    "@rollup/plugin-typescript": "^4.1.1",
-    "@types/chai": "^4.2.11",
-    "@types/mocha": "^7.0.2",
-    "@typescript-eslint/eslint-plugin": "^2.31.0",
-    "@typescript-eslint/parser": "^2.31.0",
+    "@rollup/plugin-typescript": "^6.0.0",
+    "@types/chai": "^4.2.12",
+    "@types/mocha": "^8.0.3",
+    "@typescript-eslint/eslint-plugin": "^4.2.0",
+    "@typescript-eslint/parser": "^4.2.0",
     "chai": "^4.2.0",
-    "eslint": "^6.8.0",
-    "eslint-config-airbnb-base": "^14.1.0",
-    "eslint-plugin-import": "^2.20.2",
-    "http-server": "^0.12.3",
-    "mocha": "^7.1.2",
-    "npm-check-updates": "^4.1.2",
+    "eslint": "^7.9.0",
+    "eslint-plugin-import": "^2.22.0",
+    "gl-matrix": "^3.3.0",
+    "mocha": "^8.1.3",
     "pre-commit": "^1.2.2",
-    "rollup": "^2.8.2",
+    "rollup": "^2.28.2",
     "rollup-plugin-node-resolve": "^5.2.0",
-    "rollup-plugin-typescript2": "^0.27.0",
-    "ts-node": "^8.10.1",
-    "typescript": "^3.8.3"
+    "rollup-plugin-peer-deps-external": "^2.2.3",
+    "rollup-plugin-typescript2": "^0.27.3",
+    "ts-loader": "^8.0.4",
+    "ts-node": "^9.0.0",
+    "typescript": "^4.0.3",
+    "webpack": "^4.44.2",
+    "webpack-cli": "^3.3.12",
+    "webpack-dev-server": "^3.11.0"
   },
-  "dependencies": {
+  "peerDependencies": {
     "gl-matrix": "^3.3.0"
   }
 }

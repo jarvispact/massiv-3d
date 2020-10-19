@@ -1753,7 +1753,7 @@ declare module 'gl-matrix' {
          * @returns {Number} squared length of a
          */
         export function sqrLen(a: vec3): number;
-        export function forEach(a: vec3, stride: number, offset: number, count: number, fn: Function, arg: unknown): unknown;
+        export function forEach(a: vec3, stride: number, offset: number, count: number, fn: (x: number) => void, arg: unknown): unknown;
     }
     export namespace vec4 {
         /**
@@ -2094,7 +2094,7 @@ declare module 'gl-matrix' {
          * @returns {Number} squared length of a
          */
         export function sqrLen(a: vec4): number;
-        export function forEach(a: vec4, stride: number, offset: number, count: number, fn: Function, arg: unknown): unknown;
+        export function forEach(a: vec4, stride: number, offset: number, count: number, fn: (x: number) => void, arg: unknown): unknown;
     }
     export namespace quat {
         /**
@@ -3154,7 +3154,7 @@ declare module 'gl-matrix' {
          * @returns {Number} squared length of a
          */
         export function sqrLen(a: vec2): number;
-        export function forEach(a: vec2, stride: number, offset: number, count: number, fn: Function, arg: unknown): unknown;
+        export function forEach(a: vec2, stride: number, offset: number, count: number, fn: (x: number) => void, arg: unknown): unknown;
     }
     
     

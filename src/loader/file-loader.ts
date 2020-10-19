@@ -1,3 +1,3 @@
 export const FileLoader = {
-    load: async (objFilePath: string): Promise<string> => fetch(objFilePath).then(response => response.text()),
+    load: async (filePath: string): Promise<string> => fetch(filePath).then(response => response.text()),
 };

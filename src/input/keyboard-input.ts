@@ -1,4 +1,30 @@
 const KEY = {
+    A: 'a',
+    B: 'b',
+    C: 'c',
+    D: 'd',
+    E: 'e',
+    F: 'f',
+    G: 'g',
+    H: 'h',
+    I: 'i',
+    J: 'j',
+    K: 'k',
+    L: 'l',
+    M: 'm',
+    N: 'n',
+    O: 'o',
+    P: 'p',
+    Q: 'q',
+    R: 'r',
+    S: 's',
+    T: 't',
+    U: 'u',
+    V: 'v',
+    W: 'w',
+    X: 'x',
+    Y: 'y',
+    Z: 'z',
     NUM_0: '0',
     NUM_1: '1',
     NUM_2: '2',
@@ -16,12 +42,12 @@ const KEY = {
     ARROW_DOWN: 'ArrowDown',
 } as const;
 
-type AvailableKeys = typeof KEY;
+type Callback = (event: KeyboardEvent) => void;
 
 export class KeyboardInput {
-    canvas: HTMLCanvasElement;
-    keyDownMap: Record<string, boolean>;
-    keyPressedMap: Record<string, boolean>;
+    private canvas: HTMLCanvasElement;
+    private keyDownMap: Record<string, boolean>;
+    private keyupCallbacks: Array<Callback> = [];
 
     constructor(canvas: HTMLCanvasElement) {
         this.canvas = canvas;
@@ -33,35 +59,32 @@ export class KeyboardInput {
             return accum;
         }, {} as Record<string, boolean>);
 
-        this.keyPressedMap = Object.values(KEY).reduce((accum, value) => {
-            accum[value] = false;
-            return accum;
-        }, {} as Record<string, boolean>);
-
-        const keyDownHandler = (event: KeyboardEvent): void => {
+        const keyDownHandler = (event: KeyboardEvent) => {
             this.keyDownMap[event.key] = true;
         };
 
-        const keyUpHandler = (event: KeyboardEvent): void => {
+        const keyUpHandler = (event: KeyboardEvent) => {
             this.keyDownMap[event.key] = false;
-            this.keyPressedMap[event.key] = true;
+
+            for (let i = 0; i < this.keyupCallbacks.length; i++) {
+                this.keyupCallbacks[i](event);
+            }
         };
 
         this.canvas.addEventListener('keydown', keyDownHandler);
         this.canvas.addEventListener('keyup', keyUpHandler);
     }
 
-    static get KEY(): AvailableKeys {
+    static get KEY() {
         return KEY;
     }
 
-    isKeyDown(key: AvailableKeys[keyof AvailableKeys]): boolean {
-        return this.keyDownMap[key];
+    isKeyDown(key: keyof typeof KEY) {
+        return this.keyDownMap[KEY[key]];
     }
 
-    keyPressed(key: AvailableKeys[keyof AvailableKeys]): boolean {
-        const val = this.keyPressedMap[key];
-        this.keyPressedMap[key] = false;
-        return val;
+    onKeyUp(callback: Callback) {
+        this.keyupCallbacks.push(callback);
+        return this;
     }
 }

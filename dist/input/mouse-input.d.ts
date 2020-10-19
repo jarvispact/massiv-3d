@@ -3,16 +3,19 @@ declare const BUTTON: {
     readonly AUXILIARY: 1;
     readonly SECONDARY: 2;
 };
-declare type Buttons = typeof BUTTON;
 export declare class MouseInput {
-    canvas: HTMLCanvasElement;
-    buttonDownMap: Record<string, boolean>;
-    mouseX: number;
-    mouseY: number;
-    movementX: number;
-    movementY: number;
+    private canvas;
+    private buttonDownMap;
+    private mouseX;
+    private mouseY;
     constructor(canvas: HTMLCanvasElement);
-    static get BUTTON(): Buttons;
-    isButtonDown(button: Buttons[keyof Buttons]): boolean;
+    static get BUTTON(): {
+        readonly PRIMARY: 0;
+        readonly AUXILIARY: 1;
+        readonly SECONDARY: 2;
+    };
+    isButtonDown(button: keyof typeof BUTTON): boolean;
+    getMouseX(): number;
+    getMouseY(): number;
 }
 export {};

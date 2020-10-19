@@ -1,5 +1,6 @@
 import resolve from 'rollup-plugin-node-resolve';
 import typescript from 'rollup-plugin-typescript2';
+import peerDepsExternal from 'rollup-plugin-peer-deps-external';
 import pkg from './package.json';
 
 export default [
@@ -18,11 +19,15 @@ export default [
                 name: 'MASSIV',
                 file: pkg.browser,
                 format: 'umd',
+                globals: {
+                    'gl-matrix': 'glMatrix',
+                },
             },
         ],
         plugins: [
             resolve(),
             typescript(),
+            peerDepsExternal(),
         ],
     },
 ];

@@ -1,3 +1,3 @@
 export declare const FileLoader: {
-    load: (objFilePath: string) => Promise<string>;
+    load: (filePath: string) => Promise<string>;
 };

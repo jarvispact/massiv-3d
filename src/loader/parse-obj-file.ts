@@ -1,48 +1,111 @@
+/* eslint-disable @typescript-eslint/no-non-null-assertion */
 /* eslint-disable max-len */
 
+import { vec2, vec3 } from 'gl-matrix';
+import { toFloat } from '../utils/to-float';
+import { toInt } from '../utils/to-int';
+import { ParsedMtlMaterial } from './parse-mtl-file';
+
 const objectRegex = /^o\s(.*)$/;
+const useMaterialRegex = /^usemtl\s(.*)$/;
 const vertexPositionRegex = /^v\s(\S+)\s(\S+)\s(\S+)$/;
 const vertexUvRegex = /^vt\s(\S+)\s(\S+)$/;
 const vertexNormalRegex = /^vn\s(\S+)\s(\S+)\s(\S+)$/;
 const triangleFaceRegex = /^f\s(\S+)\s(\S+)\s(\S+)$/;
 const quadFaceRegex = /^f\s(\S+)\s(\S+)\s(\S+)\s(\S+)$/;
-const vnuRegex = /^(\d{1,})\/(\d{1,})\/(\d{1,})$/;
+const vRegex = /^(\d{1,})$/;
 const vnRegex = /^(\d{1,})\/\/(\d{1,})$/;
+const vuRegex = /^(\d{1,})\/(\d{1,})$/;
+const vnuRegex = /^(\d{1,})\/(\d{1,})\/(\d{1,})$/;
 
-const toFloat = (val: string): number => Number.parseFloat(val);
-const toInt = (val: string): number => Number.parseInt(val, 10);
 const correctIndex = (idx: number): number => idx - 1;
 
-export type ObjectData = {
+type CachedVertex = {
+    p: number;
+    u?: number;
+    n?: number;
+    i: number;
+};
+
+type ParsedObjPrimitive = {
     name: string;
     positions: number[];
     uvs: number[];
     normals: number[];
     indices: number[];
+    materialIndex: number;
 };
 
-export type ObjParserResult = {
-    objects: ObjectData[];
-};
+export const parseObjFile = (objFileContent: string, materials: ParsedMtlMaterial[] = []): ParsedObjPrimitive[] => {
+    const objDataLines = objFileContent.trim().split('\n');
 
-export const parseObjFile = (fileContent: string): ObjParserResult => {
-    const objDataLines = fileContent.trim().split('\n');
-
-    const allPositions: number[][] = [];
-    const allUvs: number[][] = [];
-    const allNormals: number[][] = [];
-    const objects: ObjectData[] = [];
+    const cache: CachedVertex[] = [];
     let indexCounter = 0;
+
+    const allPositions: vec3[] = [];
+    const allUvs: vec2[] = [];
+    const allNormals: vec3[] = [];
+
+    const primitives: ParsedObjPrimitive[] = [];
+
+    const do_v_vertex = (primitive: ParsedObjPrimitive, p_index: number) => {
+        const cached = cache.find(v => v.p === p_index);
+        if (cached) {
+            primitive.indices.push(cached.i);
+        } else {
+            primitive.positions.push(...[...allPositions[p_index]]);
+            primitive.indices.push(indexCounter);
+            cache.push({ p: p_index, i: indexCounter });
+            indexCounter += 1;
+        }
+    };
+
+    const do_vu_vertex = (primitive: ParsedObjPrimitive, p_index: number, u_index: number) => {
+        const cached = cache.find(v => v.p === p_index && v.u === u_index);
+        if (cached) {
+            primitive.indices.push(cached.i);
+        } else {
+            primitive.positions.push(...[...allPositions[p_index]]);
+            primitive.uvs.push(...[...allUvs[u_index]]);
+            primitive.indices.push(indexCounter);
+            cache.push({ p: p_index, u: u_index, i: indexCounter });
+            indexCounter += 1;
+        }
+    };
+
+    const do_vn_vertex = (primitive: ParsedObjPrimitive, p_index: number, n_index: number) => {
+        const cached = cache.find(v => v.p === p_index && v.n === n_index);
+        if (cached) {
+            primitive.indices.push(cached.i);
+        } else {
+            primitive.positions.push(...[...allPositions[p_index]]);
+            primitive.normals.push(...[...allNormals[n_index]]);
+            primitive.indices.push(indexCounter);
+            cache.push({ p: p_index, n: n_index, i: indexCounter });
+            indexCounter += 1;
+        }
+    };
+
+    const do_vnu_vertex = (primitive: ParsedObjPrimitive, p_index: number, u_index: number, n_index: number) => {
+        const cached = cache.find(v => v.p === p_index && v.u === u_index && v.n === n_index);
+        if (cached) {
+            primitive.indices.push(cached.i);
+        } else {
+            primitive.positions.push(...[...allPositions[p_index]]);
+            primitive.uvs.push(...[...allUvs[u_index]]);
+            primitive.normals.push(...[...allNormals[n_index]]);
+            primitive.indices.push(indexCounter);
+            cache.push({ p: p_index, u: u_index, n: n_index, i: indexCounter });
+            indexCounter += 1;
+        }
+    };
 
     for (let lineIndex = 0; lineIndex < objDataLines.length; lineIndex++) {
         const line = objDataLines[lineIndex].trim();
+        if (!line) continue;
 
-        const objectMatch = line.match(objectRegex);
-        if (objectMatch) {
-            const [, name] = objectMatch;
-            objects.push({ name, positions: [], uvs: [], normals: [], indices: [] });
-            indexCounter = 0;
-        }
+        // ========================================================
+        // parse positions, normals and uvs into nested vec3 arrays
 
         const vertexPositionMatch = line.match(vertexPositionRegex);
         if (vertexPositionMatch) {
@@ -62,165 +125,240 @@ export const parseObjFile = (fileContent: string): ObjParserResult => {
             allNormals.push([toFloat(x), toFloat(y), toFloat(z)]);
         }
 
-        const triangleFaceMatch = line.match(triangleFaceRegex);
-        if (triangleFaceMatch) {
-            const currentObject = objects[objects.length - 1];
-            const [, firstVertex, secondVertex, thirdVertex] = triangleFaceMatch;
+        // =============================================
+        // set materialIndex on current Primitive
+        // and handle multi material objects
 
-            // VERTEX/UV/NORMAL
-            const firstVertexVnuMatch = firstVertex.match(vnuRegex);
-            const secondVertexVnuMatch = secondVertex.match(vnuRegex);
-            const thirdVertexVnuMatch = thirdVertex.match(vnuRegex);
-            if (firstVertexVnuMatch && secondVertexVnuMatch && thirdVertexVnuMatch) {
-                const [, firstPositionIndex, firstUvIndex, firstNormalIndex] = firstVertexVnuMatch;
-                const [, secondPositionIndex, secondUvIndex, secondNormalIndex] = secondVertexVnuMatch;
-                const [, thirdPositionIndex, thirdUvIndex, thirdNormalIndex] = thirdVertexVnuMatch;
-
-                const positions = [
-                    ...allPositions[correctIndex(toInt(firstPositionIndex))],
-                    ...allPositions[correctIndex(toInt(secondPositionIndex))],
-                    ...allPositions[correctIndex(toInt(thirdPositionIndex))],
-                ];
-
-                const uvs = [
-                    ...allUvs[correctIndex(toInt(firstUvIndex))],
-                    ...allUvs[correctIndex(toInt(secondUvIndex))],
-                    ...allUvs[correctIndex(toInt(thirdUvIndex))],
-                ];
-
-                const normals = [
-                    ...allNormals[correctIndex(toInt(firstNormalIndex))],
-                    ...allNormals[correctIndex(toInt(secondNormalIndex))],
-                    ...allNormals[correctIndex(toInt(thirdNormalIndex))],
-                ];
-
-                currentObject.positions.push(...positions);
-                currentObject.uvs.push(...uvs);
-                currentObject.normals.push(...normals);
-                currentObject.indices.push(indexCounter, indexCounter + 1, indexCounter + 2);
-                indexCounter += 3;
-            }
-
-            // VERTEX//NORMAL
-            const firstVertexVnMatch = firstVertex.match(vnRegex);
-            const secondVertexVnMatch = secondVertex.match(vnRegex);
-            const thirdVertexVnMatch = thirdVertex.match(vnRegex);
-            if (firstVertexVnMatch && secondVertexVnMatch && thirdVertexVnMatch) {
-                const [, firstPositionIndex, firstNormalIndex] = firstVertexVnMatch;
-                const [, secondPositionIndex, secondNormalIndex] = secondVertexVnMatch;
-                const [, thirdPositionIndex, thirdNormalIndex] = thirdVertexVnMatch;
-
-                const positions = [
-                    ...allPositions[correctIndex(toInt(firstPositionIndex))],
-                    ...allPositions[correctIndex(toInt(secondPositionIndex))],
-                    ...allPositions[correctIndex(toInt(thirdPositionIndex))],
-                ];
-
-                const normals = [
-                    ...allNormals[correctIndex(toInt(firstNormalIndex))],
-                    ...allNormals[correctIndex(toInt(secondNormalIndex))],
-                    ...allNormals[correctIndex(toInt(thirdNormalIndex))],
-                ];
-
-                currentObject.positions.push(...positions);
-                currentObject.normals.push(...normals);
-                currentObject.indices.push(indexCounter, indexCounter + 1, indexCounter + 2);
-                indexCounter += 3;
+        const useMaterialMatch = line.match(useMaterialRegex);
+        if (useMaterialMatch && materials.length) {
+            const [, name] = useMaterialMatch;
+            const currentMaterialIndex = materials.findIndex(m => m.name === name);
+            const currentPrimitive = primitives[primitives.length - 1];
+            if (currentPrimitive && currentPrimitive.indices.length === 0) {
+                currentPrimitive.materialIndex = currentMaterialIndex;
+            } else if (currentPrimitive && currentPrimitive.indices.length > 0) {
+                primitives.push({ name: `${currentPrimitive.name}.MULTIMATERIAL.${currentMaterialIndex}`, positions: [], uvs: [], normals: [], indices: [], materialIndex: currentMaterialIndex });
+                indexCounter = 0;
             }
         }
 
-        // 0, 1, 2, 0, 2, 3
-        const quadFaceMatch = line.match(quadFaceRegex);
-        if (quadFaceMatch) {
-            const currentObject = objects[objects.length - 1];
-            const [, firstVertex, secondVertex, thirdVertex, fourthVertex] = quadFaceMatch;
+        // ==============================================
+        // ensure we are working on the correct primitive
 
-            // VERTEX/UV/NORMAL
-            const firstVertexVnuMatch = firstVertex.match(vnuRegex);
-            const secondVertexVnuMatch = secondVertex.match(vnuRegex);
-            const thirdVertexVnuMatch = thirdVertex.match(vnuRegex);
-            const fourthVertexVnuMatch = fourthVertex.match(vnuRegex);
-            if (firstVertexVnuMatch && secondVertexVnuMatch && thirdVertexVnuMatch && fourthVertexVnuMatch) {
-                const [, firstPositionIndex, firstUvIndex, firstNormalIndex] = firstVertexVnuMatch;
-                const [, secondPositionIndex, secondUvIndex, secondNormalIndex] = secondVertexVnuMatch;
-                const [, thirdPositionIndex, thirdUvIndex, thirdNormalIndex] = thirdVertexVnuMatch;
-                const [, fourthPositionIndex, fourthUvIndex, fourthNormalIndex] = fourthVertexVnuMatch;
+        const primitiveMatch = line.match(objectRegex);
+        if (primitiveMatch) {
+            const [, name] = primitiveMatch;
+            primitives.push({ name, positions: [], uvs: [], normals: [], indices: [], materialIndex: -1 });
 
-                const positions = [
-                    ...allPositions[correctIndex(toInt(firstPositionIndex))],
-                    ...allPositions[correctIndex(toInt(secondPositionIndex))],
-                    ...allPositions[correctIndex(toInt(thirdPositionIndex))],
+            const prevoiusPrimitive = primitives[primitives.length - 2];
+            if (prevoiusPrimitive) indexCounter = 0;
+        }
 
-                    ...allPositions[correctIndex(toInt(firstPositionIndex))],
-                    ...allPositions[correctIndex(toInt(thirdPositionIndex))],
-                    ...allPositions[correctIndex(toInt(fourthPositionIndex))],
-                ];
+        const currentPrimitive = primitives[primitives.length - 1];
+        
+        // ====================
+        // triangle face layout
 
-                const uvs = [
-                    ...allUvs[correctIndex(toInt(firstUvIndex))],
-                    ...allUvs[correctIndex(toInt(secondUvIndex))],
-                    ...allUvs[correctIndex(toInt(thirdUvIndex))],
+        const triangleFaceMatch = line.match(triangleFaceRegex);
+        if (triangleFaceMatch) {
+            const [, v1, v2, v3] = triangleFaceMatch;
 
-                    ...allUvs[correctIndex(toInt(firstUvIndex))],
-                    ...allUvs[correctIndex(toInt(thirdUvIndex))],
-                    ...allUvs[correctIndex(toInt(fourthUvIndex))],
-                ];
+            // ====================
+            // position only layout
 
-                const normals = [
-                    ...allNormals[correctIndex(toInt(firstNormalIndex))],
-                    ...allNormals[correctIndex(toInt(secondNormalIndex))],
-                    ...allNormals[correctIndex(toInt(thirdNormalIndex))],
+            const v1_match = v1.match(vRegex);
+            const v2_match = v2.match(vRegex);
+            const v3_match = v3.match(vRegex);
+            if (v1_match && v2_match && v3_match) {
+                const [, p_idx_1] = v1_match;
+                const [, p_idx_2] = v2_match;
+                const [, p_idx_3] = v3_match;
 
-                    ...allNormals[correctIndex(toInt(firstNormalIndex))],
-                    ...allNormals[correctIndex(toInt(thirdNormalIndex))],
-                    ...allNormals[correctIndex(toInt(fourthNormalIndex))],
-                ];
+                const p_index_1 = correctIndex(toInt(p_idx_1));
+                const p_index_2 = correctIndex(toInt(p_idx_2));
+                const p_index_3 = correctIndex(toInt(p_idx_3));
 
-                currentObject.positions.push(...positions);
-                currentObject.uvs.push(...uvs);
-                currentObject.normals.push(...normals);
-                currentObject.indices.push(indexCounter, indexCounter + 1, indexCounter + 2, indexCounter + 3, indexCounter + 4, indexCounter + 5);
-                indexCounter += 6;
+                do_v_vertex(currentPrimitive, p_index_1);
+                do_v_vertex(currentPrimitive, p_index_2);
+                do_v_vertex(currentPrimitive, p_index_3);
             }
 
-            // VERTEX//NORMAL
-            const firstVertexVnMatch = firstVertex.match(vnRegex);
-            const secondVertexVnMatch = secondVertex.match(vnRegex);
-            const thirdVertexVnMatch = thirdVertex.match(vnRegex);
-            const fourthVertexVnMatch = fourthVertex.match(vnRegex);
-            if (firstVertexVnMatch && secondVertexVnMatch && thirdVertexVnMatch && fourthVertexVnMatch) {
-                const [, firstPositionIndex, firstNormalIndex] = firstVertexVnMatch;
-                const [, secondPositionIndex, secondNormalIndex] = secondVertexVnMatch;
-                const [, thirdPositionIndex, thirdNormalIndex] = thirdVertexVnMatch;
-                const [, fourthPositionIndex, fourthNormalIndex] = fourthVertexVnMatch;
+            // ======================
+            // position and uv layout
 
-                const positions = [
-                    ...allPositions[correctIndex(toInt(firstPositionIndex))],
-                    ...allPositions[correctIndex(toInt(secondPositionIndex))],
-                    ...allPositions[correctIndex(toInt(thirdPositionIndex))],
+            const vu1_match = v1.match(vuRegex);
+            const vu2_match = v2.match(vuRegex);
+            const vu3_match = v3.match(vuRegex);
+            if (vu1_match && vu2_match && vu3_match) {
+                const [, p_idx_1, u_idx_1] = vu1_match;
+                const [, p_idx_2, u_idx_2] = vu2_match;
+                const [, p_idx_3, u_idx_3] = vu3_match;
 
-                    ...allPositions[correctIndex(toInt(firstPositionIndex))],
-                    ...allPositions[correctIndex(toInt(thirdPositionIndex))],
-                    ...allPositions[correctIndex(toInt(fourthPositionIndex))],
-                ];
+                const p_index_1 = correctIndex(toInt(p_idx_1));
+                const p_index_2 = correctIndex(toInt(p_idx_2));
+                const p_index_3 = correctIndex(toInt(p_idx_3));
+                const u_index_1 = correctIndex(toInt(u_idx_1));
+                const u_index_2 = correctIndex(toInt(u_idx_2));
+                const u_index_3 = correctIndex(toInt(u_idx_3));
 
-                const normals = [
-                    ...allNormals[correctIndex(toInt(firstNormalIndex))],
-                    ...allNormals[correctIndex(toInt(secondNormalIndex))],
-                    ...allNormals[correctIndex(toInt(thirdNormalIndex))],
+                do_vu_vertex(currentPrimitive, p_index_1, u_index_1);
+                do_vu_vertex(currentPrimitive, p_index_2, u_index_2);
+                do_vu_vertex(currentPrimitive, p_index_3, u_index_3);
+            }
 
-                    ...allNormals[correctIndex(toInt(firstNormalIndex))],
-                    ...allNormals[correctIndex(toInt(thirdNormalIndex))],
-                    ...allNormals[correctIndex(toInt(fourthNormalIndex))],
-                ];
+            // ==========================
+            // position and normal layout
 
-                currentObject.positions.push(...positions);
-                currentObject.normals.push(...normals);
-                currentObject.indices.push(indexCounter, indexCounter + 1, indexCounter + 2, indexCounter + 3, indexCounter + 4, indexCounter + 5);
-                indexCounter += 6;
+            const vn1_match = v1.match(vnRegex);
+            const vn2_match = v2.match(vnRegex);
+            const vn3_match = v3.match(vnRegex);
+            if (vn1_match && vn2_match && vn3_match) {
+                const [, p_idx_1, n_idx_1] = vn1_match;
+                const [, p_idx_2, n_idx_2] = vn2_match;
+                const [, p_idx_3, n_idx_3] = vn3_match;
+
+                const p_index_1 = correctIndex(toInt(p_idx_1));
+                const p_index_2 = correctIndex(toInt(p_idx_2));
+                const p_index_3 = correctIndex(toInt(p_idx_3));
+                const n_index_1 = correctIndex(toInt(n_idx_1));
+                const n_index_2 = correctIndex(toInt(n_idx_2));
+                const n_index_3 = correctIndex(toInt(n_idx_3));
+
+                do_vn_vertex(currentPrimitive, p_index_1, n_index_1);
+                do_vn_vertex(currentPrimitive, p_index_2, n_index_2);
+                do_vn_vertex(currentPrimitive, p_index_3, n_index_3);
+            }
+        }
+
+        // ================
+        // quad face layout
+
+        const quadFaceMatch = line.match(quadFaceRegex);
+        if (quadFaceMatch) {
+            const [, v1, v2, v3, v4] = quadFaceMatch;
+            
+            // ====================
+            // position only layout
+
+            const v1_match = v1.match(vRegex);
+            const v2_match = v2.match(vRegex);
+            const v3_match = v3.match(vRegex);
+            const v4_match = v4.match(vRegex);
+            if (v1_match && v2_match && v3_match && v4_match) {
+                const [, p_idx_1] = v1_match;
+                const [, p_idx_2] = v2_match;
+                const [, p_idx_3] = v3_match;
+                const [, p_idx_4] = v4_match;
+
+                const p_index_1 = correctIndex(toInt(p_idx_1));
+                const p_index_2 = correctIndex(toInt(p_idx_2));
+                const p_index_3 = correctIndex(toInt(p_idx_3));
+                const p_index_4 = correctIndex(toInt(p_idx_4));
+
+                do_v_vertex(currentPrimitive, p_index_1);
+                do_v_vertex(currentPrimitive, p_index_2);
+                do_v_vertex(currentPrimitive, p_index_3);
+                do_v_vertex(currentPrimitive, p_index_1);
+                do_v_vertex(currentPrimitive, p_index_3);
+                do_v_vertex(currentPrimitive, p_index_4);
+            }
+
+            // ======================
+            // position and uv layout
+
+            const vu1_match = v1.match(vuRegex);
+            const vu2_match = v2.match(vuRegex);
+            const vu3_match = v3.match(vuRegex);
+            const vu4_match = v4.match(vuRegex);
+            if (vu1_match && vu2_match && vu3_match && vu4_match) {
+                const [, p_idx_1, u_idx_1] = vu1_match;
+                const [, p_idx_2, u_idx_2] = vu2_match;
+                const [, p_idx_3, u_idx_3] = vu3_match;
+                const [, p_idx_4, u_idx_4] = vu4_match;
+
+                const p_index_1 = correctIndex(toInt(p_idx_1));
+                const p_index_2 = correctIndex(toInt(p_idx_2));
+                const p_index_3 = correctIndex(toInt(p_idx_3));
+                const p_index_4 = correctIndex(toInt(p_idx_4));
+                const u_index_1 = correctIndex(toInt(u_idx_1));
+                const u_index_2 = correctIndex(toInt(u_idx_2));
+                const u_index_3 = correctIndex(toInt(u_idx_3));
+                const u_index_4 = correctIndex(toInt(u_idx_4));
+
+                do_vu_vertex(currentPrimitive, p_index_1, u_index_1);
+                do_vu_vertex(currentPrimitive, p_index_2, u_index_2);
+                do_vu_vertex(currentPrimitive, p_index_3, u_index_3);
+                do_vu_vertex(currentPrimitive, p_index_1, u_index_1);
+                do_vu_vertex(currentPrimitive, p_index_3, u_index_3);
+                do_vu_vertex(currentPrimitive, p_index_4, u_index_4);
+            }
+
+            // ==========================
+            // position and normal layout
+
+            const vn1_match = v1.match(vnRegex);
+            const vn2_match = v2.match(vnRegex);
+            const vn3_match = v3.match(vnRegex);
+            const vn4_match = v4.match(vnRegex);
+            if (vn1_match && vn2_match && vn3_match && vn4_match) {
+                const [, p_idx_1, n_idx_1] = vn1_match;
+                const [, p_idx_2, n_idx_2] = vn2_match;
+                const [, p_idx_3, n_idx_3] = vn3_match;
+                const [, p_idx_4, n_idx_4] = vn4_match;
+
+                const p_index_1 = correctIndex(toInt(p_idx_1));
+                const p_index_2 = correctIndex(toInt(p_idx_2));
+                const p_index_3 = correctIndex(toInt(p_idx_3));
+                const p_index_4 = correctIndex(toInt(p_idx_4));
+                const n_index_1 = correctIndex(toInt(n_idx_1));
+                const n_index_2 = correctIndex(toInt(n_idx_2));
+                const n_index_3 = correctIndex(toInt(n_idx_3));
+                const n_index_4 = correctIndex(toInt(n_idx_4));
+
+                do_vn_vertex(currentPrimitive, p_index_1, n_index_1);
+                do_vn_vertex(currentPrimitive, p_index_2, n_index_2);
+                do_vn_vertex(currentPrimitive, p_index_3, n_index_3);
+                do_vn_vertex(currentPrimitive, p_index_1, n_index_1);
+                do_vn_vertex(currentPrimitive, p_index_3, n_index_3);
+                do_vn_vertex(currentPrimitive, p_index_4, n_index_4);
+                
+            }
+
+            // ==============================
+            // position, uv and normal layout
+
+            const vnu1_match = v1.match(vnuRegex);
+            const vnu2_match = v2.match(vnuRegex);
+            const vnu3_match = v3.match(vnuRegex);
+            const vnu4_match = v4.match(vnuRegex);
+            if (vnu1_match && vnu2_match && vnu3_match && vnu4_match) {
+                const [, p_idx_1, u_idx_1, n_idx_1] = vnu1_match;
+                const [, p_idx_2, u_idx_2, n_idx_2] = vnu2_match;
+                const [, p_idx_3, u_idx_3, n_idx_3] = vnu3_match;
+                const [, p_idx_4, u_idx_4, n_idx_4] = vnu4_match;
+
+                const p_index_1 = correctIndex(toInt(p_idx_1));
+                const p_index_2 = correctIndex(toInt(p_idx_2));
+                const p_index_3 = correctIndex(toInt(p_idx_3));
+                const p_index_4 = correctIndex(toInt(p_idx_4));
+                const u_index_1 = correctIndex(toInt(u_idx_1));
+                const u_index_2 = correctIndex(toInt(u_idx_2));
+                const u_index_3 = correctIndex(toInt(u_idx_3));
+                const u_index_4 = correctIndex(toInt(u_idx_4));
+                const n_index_1 = correctIndex(toInt(n_idx_1));
+                const n_index_2 = correctIndex(toInt(n_idx_2));
+                const n_index_3 = correctIndex(toInt(n_idx_3));
+                const n_index_4 = correctIndex(toInt(n_idx_4));           
+
+                do_vnu_vertex(currentPrimitive, p_index_1, u_index_1, n_index_1);
+                do_vnu_vertex(currentPrimitive, p_index_2, u_index_2, n_index_2);
+                do_vnu_vertex(currentPrimitive, p_index_3, u_index_3, n_index_3);
+                do_vnu_vertex(currentPrimitive, p_index_1, u_index_1, n_index_1);
+                do_vnu_vertex(currentPrimitive, p_index_3, u_index_3, n_index_3);
+                do_vnu_vertex(currentPrimitive, p_index_4, u_index_4, n_index_4);
             }
         }
     }
-
-    return { objects };
+    
+    return primitives;
 };
