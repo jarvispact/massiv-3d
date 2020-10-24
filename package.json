@@ -16,7 +16,8 @@
     "example:hello-world": "webpack-dev-server --config examples/hello-world/webpack.config.js",
     "example:animations": "webpack-dev-server --config examples/animations/webpack.config.js",
     "example:trackball-camera-controls": "webpack-dev-server --config examples/trackball-camera-controls/webpack.config.js",
-    "example:model-loading": "webpack-dev-server --config examples/model-loading/webpack.config.js"
+    "example:model-loading": "webpack-dev-server --config examples/model-loading/webpack.config.js",
+    "example:worker-loading": "webpack-dev-server --config examples/worker-loading/webpack.config.js"
   },
   "repository": {
     "type": "git",
