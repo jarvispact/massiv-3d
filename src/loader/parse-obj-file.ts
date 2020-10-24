@@ -44,7 +44,7 @@ export const parseObjFile = (objFileContent: string, materials: ParsedMtlMateria
 
     const do_v_vertex = (primitive: ParsedObjPrimitive, p_index: number) => {
         const cached = cache[p_index];
-        if (cached) {
+        if (cached !== undefined) {
             primitive.indices.push(cached);
         } else {
             primitive.positions.push(...[...allPositions[p_index]]);
@@ -56,7 +56,7 @@ export const parseObjFile = (objFileContent: string, materials: ParsedMtlMateria
 
     const do_vu_vertex = (primitive: ParsedObjPrimitive, p_index: number, u_index: number) => {
         const cached = cache[`${p_index}-${u_index}`];
-        if (cached) {
+        if (cached !== undefined) {
             primitive.indices.push(cached);
         } else {
             primitive.positions.push(...[...allPositions[p_index]]);
@@ -69,7 +69,7 @@ export const parseObjFile = (objFileContent: string, materials: ParsedMtlMateria
 
     const do_vn_vertex = (primitive: ParsedObjPrimitive, p_index: number, n_index: number) => {
         const cached = cache[`${p_index}-${n_index}`];
-        if (cached) {
+        if (cached !== undefined) {
             primitive.indices.push(cached);
         } else {
             primitive.positions.push(...[...allPositions[p_index]]);
@@ -82,7 +82,7 @@ export const parseObjFile = (objFileContent: string, materials: ParsedMtlMateria
 
     const do_vnu_vertex = (primitive: ParsedObjPrimitive, p_index: number, u_index: number, n_index: number) => {
         const cached = cache[`${p_index}-${u_index}-${n_index}`];
-        if (cached) {
+        if (cached !== undefined) {
             primitive.indices.push(cached);
         } else {
             primitive.positions.push(...[...allPositions[p_index]]);

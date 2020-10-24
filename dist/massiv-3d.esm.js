@@ -278,7 +278,7 @@ const parseObjFile = (objFileContent, materials = []) => {
     const primitives = [];
     const do_v_vertex = (primitive, p_index) => {
         const cached = cache[p_index];
-        if (cached) {
+        if (cached !== undefined) {
             primitive.indices.push(cached);
         }
         else {
@@ -290,7 +290,7 @@ const parseObjFile = (objFileContent, materials = []) => {
     };
     const do_vu_vertex = (primitive, p_index, u_index) => {
         const cached = cache[`${p_index}-${u_index}`];
-        if (cached) {
+        if (cached !== undefined) {
             primitive.indices.push(cached);
         }
         else {
@@ -303,7 +303,7 @@ const parseObjFile = (objFileContent, materials = []) => {
     };
     const do_vn_vertex = (primitive, p_index, n_index) => {
         const cached = cache[`${p_index}-${n_index}`];
-        if (cached) {
+        if (cached !== undefined) {
             primitive.indices.push(cached);
         }
         else {
@@ -316,7 +316,7 @@ const parseObjFile = (objFileContent, materials = []) => {
     };
     const do_vnu_vertex = (primitive, p_index, u_index, n_index) => {
         const cached = cache[`${p_index}-${u_index}-${n_index}`];
-        if (cached) {
+        if (cached !== undefined) {
             primitive.indices.push(cached);
         }
         else {
