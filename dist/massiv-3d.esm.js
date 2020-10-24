@@ -435,6 +435,28 @@ const parseObjFile = (objFileContent, materials = []) => {
                 do_vn_vertex(currentPrimitive, p_index_2, n_index_2);
                 do_vn_vertex(currentPrimitive, p_index_3, n_index_3);
             }
+            // ==============================
+            // position, uv and normal layout
+            const vnu1_match = v1.match(vnuRegex);
+            const vnu2_match = v2.match(vnuRegex);
+            const vnu3_match = v3.match(vnuRegex);
+            if (vnu1_match && vnu2_match && vnu3_match) {
+                const [, p_idx_1, u_idx_1, n_idx_1] = vnu1_match;
+                const [, p_idx_2, u_idx_2, n_idx_2] = vnu2_match;
+                const [, p_idx_3, u_idx_3, n_idx_3] = vnu3_match;
+                const p_index_1 = correctIndex(toInt(p_idx_1));
+                const p_index_2 = correctIndex(toInt(p_idx_2));
+                const p_index_3 = correctIndex(toInt(p_idx_3));
+                const u_index_1 = correctIndex(toInt(u_idx_1));
+                const u_index_2 = correctIndex(toInt(u_idx_2));
+                const u_index_3 = correctIndex(toInt(u_idx_3));
+                const n_index_1 = correctIndex(toInt(n_idx_1));
+                const n_index_2 = correctIndex(toInt(n_idx_2));
+                const n_index_3 = correctIndex(toInt(n_idx_3));
+                do_vnu_vertex(currentPrimitive, p_index_1, u_index_1, n_index_1);
+                do_vnu_vertex(currentPrimitive, p_index_2, u_index_2, n_index_2);
+                do_vnu_vertex(currentPrimitive, p_index_3, u_index_3, n_index_3);
+            }
         }
         // ================
         // quad face layout
