@@ -38,7 +38,8 @@ export const createRenderSystem = (gl: WebGL2RenderingContext, world: World, arg
             uniform mat4 modelMatrix;
 
             void main() {
-                vNormal = normal;
+                mat4 normalMatrix = transpose(inverse(camera.viewMatrix * modelMatrix));
+                vNormal = mat3(normalMatrix) * normal;
                 gl_Position = camera.projectionMatrix * camera.viewMatrix * modelMatrix * vec4(position, 1.0);
             }
         `;
@@ -52,7 +53,7 @@ export const createRenderSystem = (gl: WebGL2RenderingContext, world: World, arg
             uniform vec3 color;
 
             void main() {
-                fragColor = vec4(color, 1.0);
+                fragColor = vec4(vNormal, 1.0);
             }
         `;
 

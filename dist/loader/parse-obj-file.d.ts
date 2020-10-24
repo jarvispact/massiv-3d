@@ -6,6 +6,7 @@ declare type ParsedObjPrimitive = {
     normals: number[];
     indices: number[];
     materialIndex: number;
+    triangleCount: number;
 };
 export declare const parseObjFile: (objFileContent: string, materials?: ParsedMtlMaterial[]) => ParsedObjPrimitive[];
 export {};

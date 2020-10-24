@@ -12,7 +12,7 @@ type Camera = {
 export const createTrackballCameraSystem = (camera: Camera, mouseInput: MouseInput): System => {
     let lastMouseX = 0;
     let lastMouseY = 0;
-    const translation: vec3 = [0, 0, 5];
+    const translation: vec3 = [0, 50, 200];
 
     const viewMatrix = mat4.create();
     const mat4CacheX = mat4.create();

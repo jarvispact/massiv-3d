@@ -270,61 +270,61 @@ const vnuRegex = /^(\d{1,})\/(\d{1,})\/(\d{1,})$/;
 const correctIndex = (idx) => idx - 1;
 const parseObjFile = (objFileContent, materials = []) => {
     const objDataLines = objFileContent.trim().split('\n');
-    const cache = [];
+    const cache = {};
     let indexCounter = 0;
     const allPositions = [];
     const allUvs = [];
     const allNormals = [];
     const primitives = [];
     const do_v_vertex = (primitive, p_index) => {
-        const cached = cache.find(v => v.p === p_index);
+        const cached = cache[p_index];
         if (cached) {
-            primitive.indices.push(cached.i);
+            primitive.indices.push(cached);
         }
         else {
             primitive.positions.push(...[...allPositions[p_index]]);
             primitive.indices.push(indexCounter);
-            cache.push({ p: p_index, i: indexCounter });
+            cache[p_index] = indexCounter;
             indexCounter += 1;
         }
     };
     const do_vu_vertex = (primitive, p_index, u_index) => {
-        const cached = cache.find(v => v.p === p_index && v.u === u_index);
+        const cached = cache[`${p_index}-${u_index}`];
         if (cached) {
-            primitive.indices.push(cached.i);
+            primitive.indices.push(cached);
         }
         else {
             primitive.positions.push(...[...allPositions[p_index]]);
             primitive.uvs.push(...[...allUvs[u_index]]);
             primitive.indices.push(indexCounter);
-            cache.push({ p: p_index, u: u_index, i: indexCounter });
+            cache[`${p_index}-${u_index}`] = indexCounter;
             indexCounter += 1;
         }
     };
     const do_vn_vertex = (primitive, p_index, n_index) => {
-        const cached = cache.find(v => v.p === p_index && v.n === n_index);
+        const cached = cache[`${p_index}-${n_index}`];
         if (cached) {
-            primitive.indices.push(cached.i);
+            primitive.indices.push(cached);
         }
         else {
             primitive.positions.push(...[...allPositions[p_index]]);
             primitive.normals.push(...[...allNormals[n_index]]);
             primitive.indices.push(indexCounter);
-            cache.push({ p: p_index, n: n_index, i: indexCounter });
+            cache[`${p_index}-${n_index}`] = indexCounter;
             indexCounter += 1;
         }
     };
     const do_vnu_vertex = (primitive, p_index, u_index, n_index) => {
-        const cached = cache.find(v => v.p === p_index && v.u === u_index && v.n === n_index);
+        const cached = cache[`${p_index}-${u_index}-${n_index}`];
         if (cached) {
-            primitive.indices.push(cached.i);
+            primitive.indices.push(cached);
         }
         else {
             primitive.positions.push(...[...allPositions[p_index]]);
             primitive.uvs.push(...[...allUvs[u_index]]);
             primitive.normals.push(...[...allNormals[n_index]]);
             primitive.indices.push(indexCounter);
-            cache.push({ p: p_index, u: u_index, n: n_index, i: indexCounter });
+            cache[`${p_index}-${u_index}-${n_index}`] = indexCounter;
             indexCounter += 1;
         }
     };
@@ -361,7 +361,7 @@ const parseObjFile = (objFileContent, materials = []) => {
                 currentPrimitive.materialIndex = currentMaterialIndex;
             }
             else if (currentPrimitive && currentPrimitive.indices.length > 0) {
-                primitives.push({ name: `${currentPrimitive.name}.MULTIMATERIAL.${currentMaterialIndex}`, positions: [], uvs: [], normals: [], indices: [], materialIndex: currentMaterialIndex });
+                primitives.push({ name: `${currentPrimitive.name}.MULTIMATERIAL.${currentMaterialIndex}`, positions: [], uvs: [], normals: [], indices: [], materialIndex: currentMaterialIndex, triangleCount: 0 });
                 indexCounter = 0;
             }
         }
@@ -370,7 +370,7 @@ const parseObjFile = (objFileContent, materials = []) => {
         const primitiveMatch = line.match(objectRegex);
         if (primitiveMatch) {
             const [, name] = primitiveMatch;
-            primitives.push({ name, positions: [], uvs: [], normals: [], indices: [], materialIndex: -1 });
+            primitives.push({ name, positions: [], uvs: [], normals: [], indices: [], materialIndex: -1, triangleCount: 0 });
             const prevoiusPrimitive = primitives[primitives.length - 2];
             if (prevoiusPrimitive)
                 indexCounter = 0;
@@ -396,6 +396,7 @@ const parseObjFile = (objFileContent, materials = []) => {
                 do_v_vertex(currentPrimitive, p_index_1);
                 do_v_vertex(currentPrimitive, p_index_2);
                 do_v_vertex(currentPrimitive, p_index_3);
+                currentPrimitive.triangleCount++;
             }
             // ======================
             // position and uv layout
@@ -415,6 +416,7 @@ const parseObjFile = (objFileContent, materials = []) => {
                 do_vu_vertex(currentPrimitive, p_index_1, u_index_1);
                 do_vu_vertex(currentPrimitive, p_index_2, u_index_2);
                 do_vu_vertex(currentPrimitive, p_index_3, u_index_3);
+                currentPrimitive.triangleCount++;
             }
             // ==========================
             // position and normal layout
@@ -434,6 +436,7 @@ const parseObjFile = (objFileContent, materials = []) => {
                 do_vn_vertex(currentPrimitive, p_index_1, n_index_1);
                 do_vn_vertex(currentPrimitive, p_index_2, n_index_2);
                 do_vn_vertex(currentPrimitive, p_index_3, n_index_3);
+                currentPrimitive.triangleCount++;
             }
             // ==============================
             // position, uv and normal layout
@@ -456,6 +459,7 @@ const parseObjFile = (objFileContent, materials = []) => {
                 do_vnu_vertex(currentPrimitive, p_index_1, u_index_1, n_index_1);
                 do_vnu_vertex(currentPrimitive, p_index_2, u_index_2, n_index_2);
                 do_vnu_vertex(currentPrimitive, p_index_3, u_index_3, n_index_3);
+                currentPrimitive.triangleCount++;
             }
         }
         // ================
@@ -484,6 +488,7 @@ const parseObjFile = (objFileContent, materials = []) => {
                 do_v_vertex(currentPrimitive, p_index_1);
                 do_v_vertex(currentPrimitive, p_index_3);
                 do_v_vertex(currentPrimitive, p_index_4);
+                currentPrimitive.triangleCount += 2;
             }
             // ======================
             // position and uv layout
@@ -510,6 +515,7 @@ const parseObjFile = (objFileContent, materials = []) => {
                 do_vu_vertex(currentPrimitive, p_index_1, u_index_1);
                 do_vu_vertex(currentPrimitive, p_index_3, u_index_3);
                 do_vu_vertex(currentPrimitive, p_index_4, u_index_4);
+                currentPrimitive.triangleCount += 2;
             }
             // ==========================
             // position and normal layout
@@ -536,6 +542,7 @@ const parseObjFile = (objFileContent, materials = []) => {
                 do_vn_vertex(currentPrimitive, p_index_1, n_index_1);
                 do_vn_vertex(currentPrimitive, p_index_3, n_index_3);
                 do_vn_vertex(currentPrimitive, p_index_4, n_index_4);
+                currentPrimitive.triangleCount += 2;
             }
             // ==============================
             // position, uv and normal layout
@@ -566,6 +573,7 @@ const parseObjFile = (objFileContent, materials = []) => {
                 do_vnu_vertex(currentPrimitive, p_index_1, u_index_1, n_index_1);
                 do_vnu_vertex(currentPrimitive, p_index_3, u_index_3, n_index_3);
                 do_vnu_vertex(currentPrimitive, p_index_4, u_index_4, n_index_4);
+                currentPrimitive.triangleCount += 2;
             }
         }
     }
