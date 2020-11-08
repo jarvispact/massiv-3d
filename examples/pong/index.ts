@@ -1,4 +1,4 @@
-import { Entity, KeyboardInput } from '../../src';
+import { createEntity, KeyboardInput } from '../../src';
 import { world } from './world';
 import { createTransform } from './components/transform';
 import { createVelocity } from './components/velocity';
@@ -21,13 +21,13 @@ import { createLevelSystem } from './systems/level-system';
 
     const camera = new OrthographicCamera({ translation: [0, 0, 0], left: -aspect, right: aspect, bottom: -1, top: 1, near: -1, far: 1 });
 
-    const paddle = new Entity('Paddle', [
+    const paddle = createEntity('Paddle', [
         createTransform({ translation: [0, -0.95, 0], scaling: [0.4 * aspect, 0.05, 1] }),
         createVelocity(1.5, 0, 0),
         createQuadGeometry(),
     ]);
 
-    const ball = new Entity('Ball', [
+    const ball = createEntity('Ball', [
         createTransform({ scaling: [0.03, 0.03, 1] }),
         createVelocity(0.5, 1, 0),
         createQuadGeometry(),

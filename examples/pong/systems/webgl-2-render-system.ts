@@ -33,8 +33,8 @@ export const createWebgl2RenderSystem = (canvas: HTMLCanvasElement, camera: Came
     });
 
     const createCachedEntity = (entity: Entity) => {
-        const transform = entity.getComponentByType('Transform') as Transform;
-        const geometry = entity.getComponentByType('Geometry') as Geometry;
+        const transform = entity.getComponent('Transform') as Transform;
+        const geometry = entity.getComponent('Geometry') as Geometry;
 
         const vs = glsl300({
             attributes: [

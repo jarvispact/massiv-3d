@@ -80,7 +80,7 @@ export class World<
 
         for (let e = 0; e < this.entities.length; e++) {
             const entity = this.entities[e];
-            if (intersection(requiredComponents, entity.componentTypes).length === requiredComponents.length) {
+            if (intersection(requiredComponents, entity.getComponentTypes()).length === requiredComponents.length) {
                 this.queryCache.push(entity);
             }
         }

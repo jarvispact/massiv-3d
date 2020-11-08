@@ -1,5 +1,4 @@
-export declare class Component<Type extends string, Data extends unknown> {
+export declare type Component<Type extends string = string, Data extends unknown = unknown> = {
     type: Type;
     data: Data;
-    constructor(type: Type, data: Data);
-}
+};

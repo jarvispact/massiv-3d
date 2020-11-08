@@ -3,7 +3,7 @@ import { Velocity } from '../components/velocity';
 import { world, worldActions } from '../world';
 
 export const createLevelSystem = (ballEntity: Entity): System => {
-    const v = ballEntity.getComponentByType('Velocity') as Velocity;
+    const v = ballEntity.getComponent('Velocity') as Velocity;
 
     const levelDisplay = document.getElementById('level') as HTMLHeadingElement;
     levelDisplay.textContent = `Level: ${world.getState().level}`;

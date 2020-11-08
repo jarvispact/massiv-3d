@@ -33,7 +33,13 @@ export declare class World<State extends Record<string, unknown>, WorldAction ex
     removeEntityByName(entityName: string): this;
     addSystem(system: System): this;
     removeSystem(system: System): this;
-    queryEntities(requiredComponents: string[]): Entity<string, import("./component").Component<string, unknown>[]>[];
+    queryEntities(requiredComponents: string[]): {
+        name: string;
+        addComponent: <C extends import("./component").Component<string, unknown>>(component: C) => void;
+        removeComponent: <T extends string>(type: string | T) => void;
+        getComponent: <T_1 extends string>(type: string | T_1) => import("./component").Component<string, unknown> | undefined;
+        getComponentTypes: () => string[];
+    }[];
     update(time: number): this;
 }
 export {};

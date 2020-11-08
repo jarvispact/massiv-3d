@@ -1,13 +1,9 @@
-import { Class } from '../types';
 import { Component } from './component';
-export declare class Entity<Name extends string = string, Components extends Array<Component<string, unknown>> = Array<Component<string, unknown>>> {
+export declare const createEntity: <Name extends string, Comp extends Component<string, unknown>>(name: Name, _components: Comp[]) => {
     name: Name;
-    components: Components;
-    componentTypes: Array<string>;
-    constructor(name: Name, components: Components);
-    addComponent(component: Components[number]): this;
-    removeComponent(component: Components[number]): this;
-    removeComponentByType(type: string): this;
-    getComponent<T extends Components[number]>(klass: Class<T>): T;
-    getComponentByType<T extends string>(type: T | Components[number]['type']): Component<string, unknown> | undefined;
-}
+    addComponent: <C extends Comp>(component: C) => void;
+    removeComponent: <T extends string>(type: T | Comp["type"]) => void;
+    getComponent: <T_1 extends string>(type: Comp["type"] | T_1) => Comp | undefined;
+    getComponentTypes: () => string[];
+};
+export declare type Entity = ReturnType<typeof createEntity>;

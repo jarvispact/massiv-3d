@@ -1,53 +1,45 @@
-import { Class } from '../types';
 import { Component } from './component';
-
-// TODO: maybe a Record is better than a Array (faster access and less memory footprint)
 
 const hasMoreThanOneComponentsOfSameType = (componentTypes: string[]) => [...new Set(componentTypes)].length < componentTypes.length;
 
-export class Entity<Name extends string = string, Components extends Array<Component<string, unknown>> = Array<Component<string, unknown>>> {
-    name: Name;
-    components: Components;
-    componentTypes: Array<string>;
+export const createEntity = <Name extends string, Comp extends Component>(name: Name, _components: Array<Comp>) => {
+    type ComponentMap = Record<string, Comp | undefined>;
 
-    constructor(name: Name, components: Components) {
-        this.name = name;
-        this.components = components;
-        this.componentTypes = components.map(c => c.type);
+    const components: ComponentMap = _components.reduce((accum, comp) => {
+        accum[comp.type] = comp;
+        return accum;
+    }, {} as ComponentMap);
 
-        if (hasMoreThanOneComponentsOfSameType(this.componentTypes)) {
+    let componentTypes = _components.map(c => c.type);
+
+    if (hasMoreThanOneComponentsOfSameType(componentTypes)) {
+        throw new Error('a entity can only one component of any type');
+    }
+
+    const addComponent = <C extends Comp>(component: C) => {
+        components[component.type] = component;
+        componentTypes.push(component.type);
+
+        if (hasMoreThanOneComponentsOfSameType(componentTypes)) {
             throw new Error('a entity can only one component of any type');
         }
-    }
+    };
 
-    addComponent(component: Components[number]) {
-        this.components.push(component);
-        this.componentTypes.push(component.type);
+    const removeComponent = <T extends string>(type: Comp['type'] | T) => {
+        components[type] = undefined;
+        componentTypes = componentTypes.filter(t => t !== type);
+    };
 
-        if (hasMoreThanOneComponentsOfSameType(this.componentTypes)) {
-            throw new Error('a entity can only one component of any type');
-        }
+    const getComponent = <T extends string>(type: Comp['type'] | T) => components[type];
+    const getComponentTypes = () => componentTypes;
 
-        return this;
-    }
+    return {
+        name,
+        addComponent,
+        removeComponent,
+        getComponent,
+        getComponentTypes,
+    };
+};
 
-    removeComponent(component: Components[number]) {
-        this.components = this.components.filter(c => c !== component) as Components;
-        this.componentTypes = this.componentTypes.filter(c => c !== component.type);
-        return this;
-    }
-
-    removeComponentByType(type: string) {
-        this.components = this.components.filter(c => c.type !== type) as Components;
-        this.componentTypes = this.componentTypes.filter(c => c !== type);
-        return this;
-    }
-
-    getComponent<T extends Components[number]>(klass: Class<T>) {
-        return this.components.find(c => c.constructor.name === klass.name) as T;
-    }
-
-    getComponentByType<T extends string>(type: T | Components[number]['type']) {
-        return this.components.find(c => c.type === type);
-    }
-}
+export type Entity = ReturnType<typeof createEntity>;

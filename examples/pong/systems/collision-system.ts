@@ -4,9 +4,9 @@ import { Velocity } from '../components/velocity';
 import { world, worldActions } from '../world';
 
 export const createCollisionSystem = (paddleEntity: Entity, ballEntity: Entity, canvas: HTMLCanvasElement): System => {
-    const paddleTransform = paddleEntity.getComponentByType('Transform') as Transform;
-    const ballTransform = ballEntity.getComponentByType('Transform') as Transform;
-    const ballVelocity = ballEntity.getComponentByType('Velocity') as Velocity;
+    const paddleTransform = paddleEntity.getComponent('Transform') as Transform;
+    const ballTransform = ballEntity.getComponent('Transform') as Transform;
+    const ballVelocity = ballEntity.getComponent('Velocity') as Velocity;
 
     const worker = new Worker('../collision-worker.bundle.js');
 

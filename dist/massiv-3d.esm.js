@@ -1,48 +1,36 @@
 import { glMatrix } from 'gl-matrix';
 
-class Component {
-    constructor(type, data) {
-        this.type = type;
-        this.data = data;
-    }
-}
-
-// TODO: maybe a Record is better than a Array (faster access and less memory footprint)
 const hasMoreThanOneComponentsOfSameType = (componentTypes) => [...new Set(componentTypes)].length < componentTypes.length;
-class Entity {
-    constructor(name, components) {
-        this.name = name;
-        this.components = components;
-        this.componentTypes = components.map(c => c.type);
-        if (hasMoreThanOneComponentsOfSameType(this.componentTypes)) {
+const createEntity = (name, _components) => {
+    const components = _components.reduce((accum, comp) => {
+        accum[comp.type] = comp;
+        return accum;
+    }, {});
+    let componentTypes = _components.map(c => c.type);
+    if (hasMoreThanOneComponentsOfSameType(componentTypes)) {
+        throw new Error('a entity can only one component of any type');
+    }
+    const addComponent = (component) => {
+        components[component.type] = component;
+        componentTypes.push(component.type);
+        if (hasMoreThanOneComponentsOfSameType(componentTypes)) {
             throw new Error('a entity can only one component of any type');
         }
-    }
-    addComponent(component) {
-        this.components.push(component);
-        this.componentTypes.push(component.type);
-        if (hasMoreThanOneComponentsOfSameType(this.componentTypes)) {
-            throw new Error('a entity can only one component of any type');
-        }
-        return this;
-    }
-    removeComponent(component) {
-        this.components = this.components.filter(c => c !== component);
-        this.componentTypes = this.componentTypes.filter(c => c !== component.type);
-        return this;
-    }
-    removeComponentByType(type) {
-        this.components = this.components.filter(c => c.type !== type);
-        this.componentTypes = this.componentTypes.filter(c => c !== type);
-        return this;
-    }
-    getComponent(klass) {
-        return this.components.find(c => c.constructor.name === klass.name);
-    }
-    getComponentByType(type) {
-        return this.components.find(c => c.type === type);
-    }
-}
+    };
+    const removeComponent = (type) => {
+        components[type] = undefined;
+        componentTypes = componentTypes.filter(t => t !== type);
+    };
+    const getComponent = (type) => components[type];
+    const getComponentTypes = () => componentTypes;
+    return {
+        name,
+        addComponent,
+        removeComponent,
+        getComponent,
+        getComponentTypes,
+    };
+};
 
 const intersection = (list1, list2) => list1.filter(x => list2.includes(x));
 
@@ -103,7 +91,7 @@ class World {
         this.queryCache.length = 0;
         for (let e = 0; e < this.entities.length; e++) {
             const entity = this.entities[e];
-            if (intersection(requiredComponents, entity.componentTypes).length === requiredComponents.length) {
+            if (intersection(requiredComponents, entity.getComponentTypes()).length === requiredComponents.length) {
                 this.queryCache.push(entity);
             }
         }
@@ -874,4 +862,4 @@ class UBO {
 
 glMatrix.setMatrixArrayType(Array);
 
-export { Component, DEG_TO_RAD, Entity, FileLoader, GLSL300ATTRIBUTE, ImageLoader, KeyboardInput, MouseInput, RAD_TO_DEG, UBO, World, createTexture2D, createWebgl2ArrayBuffer, createWebgl2ElementArrayBuffer, createWebgl2Program, createWebgl2Shader, createWebgl2VertexArray, defaultContextAttributeOptions, degreesToRadians, getWebgl2Context, glsl300, intersection, parseMtlFile, parseObjFile, radiansToDegrees, setupWebgl2VertexAttribPointer };
+export { DEG_TO_RAD, FileLoader, GLSL300ATTRIBUTE, ImageLoader, KeyboardInput, MouseInput, RAD_TO_DEG, UBO, World, createEntity, createTexture2D, createWebgl2ArrayBuffer, createWebgl2ElementArrayBuffer, createWebgl2Program, createWebgl2Shader, createWebgl2VertexArray, defaultContextAttributeOptions, degreesToRadians, getWebgl2Context, glsl300, intersection, parseMtlFile, parseObjFile, radiansToDegrees, setupWebgl2VertexAttribPointer };

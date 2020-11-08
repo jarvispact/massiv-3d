@@ -4,8 +4,8 @@ import { Transform } from '../components/transform';
 import { Velocity } from '../components/velocity';
 
 export const createBallMovementSystem = (keyboardInput: KeyboardInput, ballEntity: Entity): System => {
-    const t = ballEntity.getComponentByType('Transform') as Transform;
-    const v = ballEntity.getComponentByType('Velocity') as Velocity;
+    const t = ballEntity.getComponent('Transform') as Transform;
+    const v = ballEntity.getComponent('Velocity') as Velocity;
 
     keyboardInput.onKeyUp((event) => {
         if (event.key === KeyboardInput.KEY.SPACE) world.dispatch(worldActions.togglePauseState());

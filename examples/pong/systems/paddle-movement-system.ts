@@ -4,8 +4,8 @@ import { Velocity } from '../components/velocity';
 import { world } from '../world';
 
 export const createPaddleMovementSystem = (keyboardInput: KeyboardInput, paddleEntity: Entity): System => {
-    const t = paddleEntity.getComponentByType('Transform') as Transform;
-    const v = paddleEntity.getComponentByType('Velocity') as Velocity;
+    const t = paddleEntity.getComponent('Transform') as Transform;
+    const v = paddleEntity.getComponent('Velocity') as Velocity;
 
     return (delta) => {
         const paused = world.getState().paused;
