@@ -43,6 +43,9 @@ class Entity {
     getComponent(klass) {
         return this.components.find(c => c.constructor.name === klass.name);
     }
+    getComponentByType(type) {
+        return this.components.find(c => c.type === type);
+    }
 }
 
 const intersection = (list1, list2) => list1.filter(x => list2.includes(x));
@@ -54,11 +57,31 @@ const createGetDelta = (then = 0) => (now) => {
     return delta;
 };
 class World {
-    constructor() {
+    constructor(args = {}) {
+        this.stateChangeSubscriber = [];
         this.getDelta = createGetDelta();
         this.entities = [];
         this.systems = [];
         this.queryCache = [];
+        this.state = args.initialState;
+        this.reducer = args.reducer;
+    }
+    getState() {
+        return this.state;
+    }
+    dispatch(action) {
+        if (!this.state || !this.reducer)
+            return this;
+        const newState = this.reducer(this.state, action);
+        for (let i = 0; i < this.stateChangeSubscriber.length; i++) {
+            this.stateChangeSubscriber[i]({ action, prevState: this.state, newState });
+        }
+        this.state = newState;
+        return this;
+    }
+    onStateChange(callback) {
+        this.stateChangeSubscriber.push(callback);
+        return this;
     }
     addEntity(entity) {
         this.entities.push(entity);
@@ -713,6 +736,11 @@ const defaultGLSL300Config = {
     floatPrecision: 'highp',
     intPrecision: 'highp',
 };
+const GLSL300ATTRIBUTE = {
+    POSITION: { name: 'position', type: 'vec3', location: 0 },
+    UV: { name: 'uv', type: 'vec2', location: 1 },
+    NORMAL: { name: 'normal', type: 'vec3', location: 2 },
+};
 const glsl300 = (config = {}) => (source, ...interpolations) => {
     const version = '#version 300 es';
     const floatPrecision = `precision ${config.floatPrecision || defaultGLSL300Config.floatPrecision} float;`;
@@ -854,6 +882,7 @@ exports.Component = Component;
 exports.DEG_TO_RAD = DEG_TO_RAD;
 exports.Entity = Entity;
 exports.FileLoader = FileLoader;
+exports.GLSL300ATTRIBUTE = GLSL300ATTRIBUTE;
 exports.ImageLoader = ImageLoader;
 exports.KeyboardInput = KeyboardInput;
 exports.MouseInput = MouseInput;

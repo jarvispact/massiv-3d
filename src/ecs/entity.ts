@@ -46,4 +46,8 @@ export class Entity<Name extends string = string, Components extends Array<Compo
     getComponent<T extends Components[number]>(klass: Class<T>) {
         return this.components.find(c => c.constructor.name === klass.name) as T;
     }
+
+    getComponentByType<T extends string>(type: T | Components[number]['type']) {
+        return this.components.find(c => c.type === type);
+    }
 }

@@ -20,7 +20,7 @@ const vnuRegex = /^(\d{1,})\/(\d{1,})\/(\d{1,})$/;
 
 const correctIndex = (idx: number): number => idx - 1;
 
-type ParsedObjPrimitive = {
+export type ParsedObjPrimitive = {
     name: string;
     positions: number[];
     uvs: number[];

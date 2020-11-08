@@ -9,11 +9,46 @@ const createGetDelta = (then = 0) => (now: number): number => {
     return delta;
 };
 
-export class World {
+type StateChangeArgs<State, WorldAction> = { action: WorldAction, prevState: State, newState: State };
+type StateChangeCallback<State, WorldAction> = (args: StateChangeArgs<State, WorldAction>) => void;
+type Reducer<State, WorldAction> = (state: State, action: WorldAction) => State;
+
+export class World<
+    State extends Record<string, unknown>,
+    WorldAction extends { type: string, payload?: unknown } = { type: string, payload?: unknown }> {
+    private state: State;
+    private reducer: Reducer<State, WorldAction>;
+    private stateChangeSubscriber: Array<StateChangeCallback<State, WorldAction>> = [];
     private getDelta = createGetDelta();
     private entities: Array<Entity> = [];
     private systems: System[] = [];
     private queryCache: Entity[] = [];
+
+    constructor(args: { initialState?: State, reducer?: Reducer<State, WorldAction> } = {}) {
+        this.state = args.initialState as State;
+        this.reducer = args.reducer as Reducer<State, WorldAction>;
+    }
+
+    getState() {
+        return this.state;
+    }
+
+    dispatch(action: WorldAction) {
+        if (!this.state || !this.reducer) return this;
+        const newState = this.reducer(this.state, action);
+        
+        for (let i = 0; i < this.stateChangeSubscriber.length; i++) {
+            this.stateChangeSubscriber[i]({ action, prevState: this.state, newState });
+        }
+
+        this.state = newState;
+        return this;
+    }
+
+    onStateChange(callback: StateChangeCallback<State, WorldAction>) {
+        this.stateChangeSubscriber.push(callback);
+        return this;
+    }
 
     addEntity(entity: Entity) {
         this.entities.push(entity);

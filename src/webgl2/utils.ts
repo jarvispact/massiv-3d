@@ -113,6 +113,12 @@ const defaultGLSL300Config: GLSL300Config = {
     intPrecision: 'highp',
 };
 
+export const GLSL300ATTRIBUTE: Record<'POSITION' | 'UV' | 'NORMAL', GLSL300AttributeConfig> = {
+    POSITION: { name: 'position', type: 'vec3', location: 0 },
+    UV: { name: 'uv', type: 'vec2', location: 1 },
+    NORMAL: { name: 'normal', type: 'vec3', location: 2 },
+};
+
 export const glsl300 = (config: GLSL300Config = {}) => (source: TemplateStringsArray, ...interpolations: (string | number)[]) => {
     const version = '#version 300 es';
     const floatPrecision = `precision ${config.floatPrecision || defaultGLSL300Config.floatPrecision} float;`;

@@ -1,5 +1,5 @@
 import { ParsedMtlMaterial } from './parse-mtl-file';
-declare type ParsedObjPrimitive = {
+export declare type ParsedObjPrimitive = {
     name: string;
     positions: number[];
     uvs: number[];
@@ -9,4 +9,3 @@ declare type ParsedObjPrimitive = {
     triangleCount: number;
 };
 export declare const parseObjFile: (objFileContent: string, materials?: ParsedMtlMaterial[]) => ParsedObjPrimitive[];
-export {};
