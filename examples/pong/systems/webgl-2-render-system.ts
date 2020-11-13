@@ -27,7 +27,7 @@ export const createWebgl2RenderSystem = (canvas: HTMLCanvasElement, camera: Came
 
         const aspect = canvas.width / canvas.height;
         if (camera instanceof OrthographicCamera) {
-            camera.setFrustum(-aspect, aspect, -1, 1, -1, 1);
+            camera.setFrustum(-aspect * 10, aspect * 10, -10, 10, -10, 10);
             ubo.setView('CameraUniforms.projectionMatrix', camera.projectionMatrix).update();
         }
     });

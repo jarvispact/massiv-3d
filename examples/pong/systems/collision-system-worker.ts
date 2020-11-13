@@ -84,8 +84,8 @@ self.addEventListener('message', async (event: WorkerEventMap['message']) => {
         if (bt[1] - halfBallWidth <= walls.bottom + ballWallOffset) {
             bt[1] = walls.bottom + halfBallWidth + ballWallOffset;
             Transform.setTranslation(ballTransform, 0, 0, 0);
-            bv[0] = (Math.round(Math.random()) * 2 - 1) / 2;
-            bv[1] = 1;
+            bv[0] = (Math.round(Math.random()) * 2 - 1) * 5;
+            bv[1] = 10;
             // eslint-disable-next-line @typescript-eslint/ban-ts-comment
             // @ts-ignore
             self.postMessage('reset');

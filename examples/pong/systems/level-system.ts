@@ -10,8 +10,8 @@ export const createLevelSystem = (ballEntity: Entity): System => {
 
     let currentLevelStartTime = Date.now();
     let savedPauseOffset = 0;
-    const levelTime = 1000 * 8;
-    const speedIncreasePerLevel = 0.1;
+    const levelTime = 1000 * 5;
+    const speedIncreasePerLevel = 1;
 
     world.onStateChange(({ action, newState }) => {
         if (action.type === 'TOGGLE-PAUSE-STATE' && newState.paused) {
