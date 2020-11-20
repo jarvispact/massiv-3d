@@ -44,43 +44,57 @@
         then = now;
         return delta;
     };
+    const addEntity = (entity) => ({ type: 'ADD-ENTITY', payload: entity });
+    const removeEntity = (entity) => ({ type: 'REMOVE-ENTITY', payload: entity });
+    const worldActions = {
+        addEntity,
+        removeEntity,
+    };
+    const actionValues = Object.values(worldActions)[0];
     class World {
         constructor(args = {}) {
-            this.stateChangeSubscriber = [];
+            this.subscribers = [];
             this.getDelta = createGetDelta();
             this.entities = [];
+            this.entitiesByName = {};
             this.systems = [];
             this.queryCache = [];
             this.state = args.initialState;
             this.reducer = args.reducer;
         }
-        getState() {
-            return this.state;
-        }
         dispatch(action) {
             if (!this.state || !this.reducer)
                 return this;
             const newState = this.reducer(this.state, action);
-            for (let i = 0; i < this.stateChangeSubscriber.length; i++) {
-                this.stateChangeSubscriber[i]({ action, prevState: this.state, newState });
+            for (let i = 0; i < this.subscribers.length; i++) {
+                this.subscribers[i](action, newState, this.state);
             }
             this.state = newState;
             return this;
         }
-        onStateChange(callback) {
-            this.stateChangeSubscriber.push(callback);
+        subscribe(callback) {
+            this.subscribers.push(callback);
             return this;
+        }
+        getEntity(entityName) {
+            return this.entitiesByName[entityName];
         }
         addEntity(entity) {
             this.entities.push(entity);
+            this.entitiesByName[entity.name] = entity;
+            this.dispatch(worldActions.addEntity(entity));
             return this;
         }
         removeEntity(entity) {
             this.entities = this.entities.filter(e => e !== entity);
+            this.entitiesByName[entity.name] = null;
+            this.dispatch(worldActions.removeEntity(entity));
             return this;
         }
         removeEntityByName(entityName) {
-            this.entities = this.entities.filter(e => e.name !== entityName);
+            const entity = this.getEntity(entityName);
+            if (entity)
+                this.removeEntity(entity);
             return this;
         }
         addSystem(system) {
@@ -891,6 +905,7 @@
     exports.parseObjFile = parseObjFile;
     exports.radiansToDegrees = radiansToDegrees;
     exports.setupWebgl2VertexAttribPointer = setupWebgl2VertexAttribPointer;
+    exports.worldActions = worldActions;
 
     Object.defineProperty(exports, '__esModule', { value: true });
 

@@ -14,7 +14,7 @@ export const createBallMovementSystem = (keyboardInput: KeyboardInput, ballEntit
     });
 
     return (delta) => {
-        if (!world.getState().paused) {
+        if (!world.state.paused) {
             Transform.translate(t, v.data.velocity[0] * delta, v.data.velocity[1] * delta, v.data.velocity[2] * delta);
             BoundingBox.translate(bb, v.data.velocity[0] * delta, v.data.velocity[1] * delta, v.data.velocity[2] * delta);
         }

@@ -51,7 +51,7 @@ import { Entity, System } from '../../../src';
 import { BoundingBox } from '../components/bounding-box';
 import { Transform } from '../components/transform';
 import { Velocity } from '../components/velocity';
-import { world, worldActions } from '../world';
+import { world } from '../world';
 
 const intersecting = (a: BoundingBox, b: BoundingBox) => {
     return (a.data.min[0] <= b.data.max[0] && a.data.max[0] >= b.data.min[0]) &&

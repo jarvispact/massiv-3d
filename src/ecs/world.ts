@@ -1,6 +1,7 @@
 import { Entity } from './entity';
 import { intersection } from '../utils/intersection';
 import { System } from './system';
+import { Nullable } from '../types';
 
 const createGetDelta = (then = 0) => (now: number): number => {
     now *= 0.001;
@@ -9,59 +10,76 @@ const createGetDelta = (then = 0) => (now: number): number => {
     return delta;
 };
 
-type StateChangeArgs<State, WorldAction> = { action: WorldAction, prevState: State, newState: State };
-type StateChangeCallback<State, WorldAction> = (args: StateChangeArgs<State, WorldAction>) => void;
+type SubscriberCallback<State, WorldAction> = (action: WorldAction, newState: State, prevState: State) => void;
 type Reducer<State, WorldAction> = (state: State, action: WorldAction) => State;
 
+const addEntity = <E extends Entity>(entity: E) => ({ type: 'ADD-ENTITY', payload: entity } as const);
+const removeEntity = <E extends Entity>(entity: E) => ({ type: 'REMOVE-ENTITY', payload: entity } as const);
+
+export const worldActions = {
+    addEntity,
+    removeEntity,
+};
+
+const actionValues = Object.values(worldActions)[0];
+type InternalAction = ReturnType<typeof actionValues>;
+type GenericAction = { type: string, payload?: unknown };
+
 export class World<
-    State extends Record<string, unknown>,
-    WorldAction extends { type: string, payload?: unknown } = { type: string, payload?: unknown }> {
-    private state: State;
-    private reducer: Reducer<State, WorldAction>;
-    private stateChangeSubscriber: Array<StateChangeCallback<State, WorldAction>> = [];
+    State extends Record<string, unknown> = Record<string, unknown>,
+    WorldAction extends GenericAction = GenericAction> {
+    public state: State;
+    private reducer: Reducer<State, InternalAction | WorldAction>;
+    private subscribers: Array<SubscriberCallback<State, InternalAction | WorldAction>> = [];
     private getDelta = createGetDelta();
     private entities: Array<Entity> = [];
+    private entitiesByName: Record<string, Nullable<Entity>> = {};
     private systems: System[] = [];
     private queryCache: Entity[] = [];
 
-    constructor(args: { initialState?: State, reducer?: Reducer<State, WorldAction> } = {}) {
+    constructor(args: { initialState?: State, reducer?: Reducer<State, InternalAction | WorldAction> } = {}) {
         this.state = args.initialState as State;
-        this.reducer = args.reducer as Reducer<State, WorldAction>;
+        this.reducer = args.reducer as Reducer<State, InternalAction | WorldAction>;
     }
 
-    getState() {
-        return this.state;
-    }
-
-    dispatch(action: WorldAction) {
+    dispatch(action: InternalAction | WorldAction) {
         if (!this.state || !this.reducer) return this;
         const newState = this.reducer(this.state, action);
         
-        for (let i = 0; i < this.stateChangeSubscriber.length; i++) {
-            this.stateChangeSubscriber[i]({ action, prevState: this.state, newState });
+        for (let i = 0; i < this.subscribers.length; i++) {
+            this.subscribers[i](action, newState, this.state);
         }
 
         this.state = newState;
         return this;
     }
 
-    onStateChange(callback: StateChangeCallback<State, WorldAction>) {
-        this.stateChangeSubscriber.push(callback);
+    subscribe(callback: SubscriberCallback<State, InternalAction | WorldAction>) {
+        this.subscribers.push(callback);
         return this;
+    }
+
+    getEntity(entityName: string) {
+        return this.entitiesByName[entityName];
     }
 
     addEntity(entity: Entity) {
         this.entities.push(entity);
+        this.entitiesByName[entity.name] = entity;
+        this.dispatch(worldActions.addEntity(entity));
         return this;
     }
 
     removeEntity(entity: Entity) {
         this.entities = this.entities.filter(e => e !== entity);
+        this.entitiesByName[entity.name] = null;
+        this.dispatch(worldActions.removeEntity(entity));
         return this;
     }
 
     removeEntityByName(entityName: string) {
-        this.entities = this.entities.filter(e => e.name !== entityName);
+        const entity = this.getEntity(entityName);
+        if (entity) this.removeEntity(entity);
         return this;
     }
 

@@ -10,7 +10,7 @@ export const createPaddleMovementSystem = (keyboardInput: KeyboardInput, paddleE
     const bb = paddleEntity.getComponent('BoundingBox') as BoundingBox;
 
     return (delta) => {
-        const paused = world.getState().paused;
+        const paused = world.state.paused;
         if (!paused && keyboardInput.isKeyDown('ARROW_LEFT')) {
             Transform.translate(t, -v.data.velocity[0] * delta, v.data.velocity[1] * delta, v.data.velocity[2] * delta);
             BoundingBox.translate(bb, -v.data.velocity[0] * delta, v.data.velocity[1] * delta, v.data.velocity[2] * delta);
