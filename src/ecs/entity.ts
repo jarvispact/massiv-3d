@@ -1,45 +1,68 @@
+import { Class } from '../types';
 import { Component } from './component';
 
 const hasMoreThanOneComponentsOfSameType = (componentTypes: string[]) => [...new Set(componentTypes)].length < componentTypes.length;
 
-export const createEntity = <Name extends string, Comp extends Component>(name: Name, _components: Array<Comp>) => {
-    type ComponentMap = Record<string, Comp | undefined>;
+export class Entity<Name extends string = string, Comp extends Component = Component> {
+    name: Name;
+    private components: Record<string, Comp | undefined>;
+    private componentTypes: Array<Comp['type']>;
 
-    const components: ComponentMap = _components.reduce((accum, comp) => {
-        accum[comp.type] = comp;
-        return accum;
-    }, {} as ComponentMap);
+    constructor(name: Name, components: Array<Comp>) {
+        this.name = name;
+        this.componentTypes = components.map(c => c.type);
 
-    let componentTypes = _components.map(c => c.type);
+        this.components = components.reduce((accum, comp) => {
+            accum[comp.type] = comp;
+            return accum;
+        }, {} as Record<string, Comp>);
 
-    if (hasMoreThanOneComponentsOfSameType(componentTypes)) {
-        throw new Error('a entity can only one component of any type');
-    }
-
-    const addComponent = <C extends Comp>(component: C) => {
-        components[component.type] = component;
-        componentTypes.push(component.type);
-
-        if (hasMoreThanOneComponentsOfSameType(componentTypes)) {
+        if (hasMoreThanOneComponentsOfSameType(this.componentTypes)) {
             throw new Error('a entity can only one component of any type');
         }
-    };
+    }
 
-    const removeComponent = <T extends string>(type: Comp['type'] | T) => {
-        components[type] = undefined;
-        componentTypes = componentTypes.filter(t => t !== type);
-    };
+    getComponentByType<T extends string>(type: Comp['type'] | T) {
+        return this.components[type];
+    }
 
-    const getComponent = <T extends string>(type: Comp['type'] | T) => components[type];
-    const getComponentTypes = () => componentTypes;
+    getComponentByClass<C extends Comp>(component: Class<C>): C {
+        return this.components[component.constructor.name] as C;
+    }
 
-    return {
-        name,
-        addComponent,
-        removeComponent,
-        getComponent,
-        getComponentTypes,
-    };
-};
+    getComponentTypes() {
+        return this.componentTypes;
+    }
 
-export type Entity = ReturnType<typeof createEntity>;
+    getComponents(): Array<Comp> {
+        return Object.values(this.components).filter(Boolean) as Array<Comp>;
+    }
+
+    addComponent(component: Comp) {
+        if (this.componentTypes.includes(component.type)) {
+            throw new Error('a entity can only one component of any type');
+        }
+
+        this.components[component.type as string] = component;
+        this.componentTypes.push(component.type);
+        return this;
+    }
+
+    removeComponent(component: Comp) {
+        this.components[component.type] = undefined;
+        this.componentTypes = this.componentTypes.filter(t => t !== component.type);
+        return this;
+    }
+
+    removeComponentByType<T extends string>(type: Comp['type'] | T) {
+        const comp = this.getComponentByType(type);
+        if (comp) this.removeComponent(comp);
+        return this;
+    }
+
+    removeComponentByClass<C extends Comp>(component: Class<C>) {
+        const comp = this.getComponentByType(component.constructor.name);
+        if (comp) this.removeComponent(comp);
+        return this;
+    }
+}

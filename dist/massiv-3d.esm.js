@@ -1,36 +1,54 @@
-import { glMatrix } from 'gl-matrix';
-
 const hasMoreThanOneComponentsOfSameType = (componentTypes) => [...new Set(componentTypes)].length < componentTypes.length;
-const createEntity = (name, _components) => {
-    const components = _components.reduce((accum, comp) => {
-        accum[comp.type] = comp;
-        return accum;
-    }, {});
-    let componentTypes = _components.map(c => c.type);
-    if (hasMoreThanOneComponentsOfSameType(componentTypes)) {
-        throw new Error('a entity can only one component of any type');
-    }
-    const addComponent = (component) => {
-        components[component.type] = component;
-        componentTypes.push(component.type);
-        if (hasMoreThanOneComponentsOfSameType(componentTypes)) {
+class Entity {
+    constructor(name, components) {
+        this.name = name;
+        this.componentTypes = components.map(c => c.type);
+        this.components = components.reduce((accum, comp) => {
+            accum[comp.type] = comp;
+            return accum;
+        }, {});
+        if (hasMoreThanOneComponentsOfSameType(this.componentTypes)) {
             throw new Error('a entity can only one component of any type');
         }
-    };
-    const removeComponent = (type) => {
-        components[type] = undefined;
-        componentTypes = componentTypes.filter(t => t !== type);
-    };
-    const getComponent = (type) => components[type];
-    const getComponentTypes = () => componentTypes;
-    return {
-        name,
-        addComponent,
-        removeComponent,
-        getComponent,
-        getComponentTypes,
-    };
-};
+    }
+    getComponentByType(type) {
+        return this.components[type];
+    }
+    getComponentByClass(component) {
+        return this.components[component.constructor.name];
+    }
+    getComponentTypes() {
+        return this.componentTypes;
+    }
+    getComponents() {
+        return Object.values(this.components).filter(Boolean);
+    }
+    addComponent(component) {
+        if (this.componentTypes.includes(component.type)) {
+            throw new Error('a entity can only one component of any type');
+        }
+        this.components[component.type] = component;
+        this.componentTypes.push(component.type);
+        return this;
+    }
+    removeComponent(component) {
+        this.components[component.type] = undefined;
+        this.componentTypes = this.componentTypes.filter(t => t !== component.type);
+        return this;
+    }
+    removeComponentByType(type) {
+        const comp = this.getComponentByType(type);
+        if (comp)
+            this.removeComponent(comp);
+        return this;
+    }
+    removeComponentByClass(component) {
+        const comp = this.getComponentByType(component.constructor.name);
+        if (comp)
+            this.removeComponent(comp);
+        return this;
+    }
+}
 
 const intersection = (list1, list2) => list1.filter(x => list2.includes(x));
 
@@ -874,6 +892,4 @@ class UBO {
     }
 }
 
-glMatrix.setMatrixArrayType(Array);
-
-export { DEG_TO_RAD, FileLoader, GLSL300ATTRIBUTE, ImageLoader, KeyboardInput, MouseInput, RAD_TO_DEG, UBO, World, createEntity, createTexture2D, createWebgl2ArrayBuffer, createWebgl2ElementArrayBuffer, createWebgl2Program, createWebgl2Shader, createWebgl2VertexArray, defaultContextAttributeOptions, degreesToRadians, getWebgl2Context, glsl300, intersection, parseMtlFile, parseObjFile, radiansToDegrees, setupWebgl2VertexAttribPointer, worldActions };
+export { DEG_TO_RAD, Entity, FileLoader, GLSL300ATTRIBUTE, ImageLoader, KeyboardInput, MouseInput, RAD_TO_DEG, UBO, World, createTexture2D, createWebgl2ArrayBuffer, createWebgl2ElementArrayBuffer, createWebgl2Program, createWebgl2Shader, createWebgl2VertexArray, defaultContextAttributeOptions, degreesToRadians, getWebgl2Context, glsl300, intersection, parseMtlFile, parseObjFile, radiansToDegrees, setupWebgl2VertexAttribPointer, worldActions };

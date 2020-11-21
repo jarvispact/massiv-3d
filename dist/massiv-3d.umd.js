@@ -1,40 +1,60 @@
 (function (global, factory) {
-    typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('gl-matrix')) :
-    typeof define === 'function' && define.amd ? define(['exports', 'gl-matrix'], factory) :
-    (global = typeof globalThis !== 'undefined' ? globalThis : global || self, factory(global.MASSIV = {}, global.glMatrix));
-}(this, (function (exports, glMatrix) { 'use strict';
+    typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
+    typeof define === 'function' && define.amd ? define(['exports'], factory) :
+    (global = typeof globalThis !== 'undefined' ? globalThis : global || self, factory(global.MASSIV = {}));
+}(this, (function (exports) { 'use strict';
 
     const hasMoreThanOneComponentsOfSameType = (componentTypes) => [...new Set(componentTypes)].length < componentTypes.length;
-    const createEntity = (name, _components) => {
-        const components = _components.reduce((accum, comp) => {
-            accum[comp.type] = comp;
-            return accum;
-        }, {});
-        let componentTypes = _components.map(c => c.type);
-        if (hasMoreThanOneComponentsOfSameType(componentTypes)) {
-            throw new Error('a entity can only one component of any type');
-        }
-        const addComponent = (component) => {
-            components[component.type] = component;
-            componentTypes.push(component.type);
-            if (hasMoreThanOneComponentsOfSameType(componentTypes)) {
+    class Entity {
+        constructor(name, components) {
+            this.name = name;
+            this.componentTypes = components.map(c => c.type);
+            this.components = components.reduce((accum, comp) => {
+                accum[comp.type] = comp;
+                return accum;
+            }, {});
+            if (hasMoreThanOneComponentsOfSameType(this.componentTypes)) {
                 throw new Error('a entity can only one component of any type');
             }
-        };
-        const removeComponent = (type) => {
-            components[type] = undefined;
-            componentTypes = componentTypes.filter(t => t !== type);
-        };
-        const getComponent = (type) => components[type];
-        const getComponentTypes = () => componentTypes;
-        return {
-            name,
-            addComponent,
-            removeComponent,
-            getComponent,
-            getComponentTypes,
-        };
-    };
+        }
+        getComponentByType(type) {
+            return this.components[type];
+        }
+        getComponentByClass(component) {
+            return this.components[component.constructor.name];
+        }
+        getComponentTypes() {
+            return this.componentTypes;
+        }
+        getComponents() {
+            return Object.values(this.components).filter(Boolean);
+        }
+        addComponent(component) {
+            if (this.componentTypes.includes(component.type)) {
+                throw new Error('a entity can only one component of any type');
+            }
+            this.components[component.type] = component;
+            this.componentTypes.push(component.type);
+            return this;
+        }
+        removeComponent(component) {
+            this.components[component.type] = undefined;
+            this.componentTypes = this.componentTypes.filter(t => t !== component.type);
+            return this;
+        }
+        removeComponentByType(type) {
+            const comp = this.getComponentByType(type);
+            if (comp)
+                this.removeComponent(comp);
+            return this;
+        }
+        removeComponentByClass(component) {
+            const comp = this.getComponentByType(component.constructor.name);
+            if (comp)
+                this.removeComponent(comp);
+            return this;
+        }
+    }
 
     const intersection = (list1, list2) => list1.filter(x => list2.includes(x));
 
@@ -878,9 +898,8 @@
         }
     }
 
-    glMatrix.glMatrix.setMatrixArrayType(Array);
-
     exports.DEG_TO_RAD = DEG_TO_RAD;
+    exports.Entity = Entity;
     exports.FileLoader = FileLoader;
     exports.GLSL300ATTRIBUTE = GLSL300ATTRIBUTE;
     exports.ImageLoader = ImageLoader;
@@ -889,7 +908,6 @@
     exports.RAD_TO_DEG = RAD_TO_DEG;
     exports.UBO = UBO;
     exports.World = World;
-    exports.createEntity = createEntity;
     exports.createTexture2D = createTexture2D;
     exports.createWebgl2ArrayBuffer = createWebgl2ArrayBuffer;
     exports.createWebgl2ElementArrayBuffer = createWebgl2ElementArrayBuffer;
