@@ -46,7 +46,7 @@ export class BoundingBox implements Component<'BoundingBox', BoundingBoxData> {
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     constructor(...args: any[]) {
-        if (typeof args[0].byteLength === 'number') {
+        if (args[0] && typeof args[0].byteLength === 'number') {
             this.type = 'BoundingBox';
             this.buffer = args[0];
             this.data = {
