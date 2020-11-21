@@ -1,6 +1,6 @@
 {
   "name": "massiv-3d",
-  "version": "0.0.8",
+  "version": "0.0.9",
   "description": "a simple high performance webgl library",
   "main": "dist/massiv-3d.cjs.js",
   "module": "dist/massiv-3d.esm.js",
