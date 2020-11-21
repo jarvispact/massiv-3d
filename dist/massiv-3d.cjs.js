@@ -6,6 +6,96 @@ var glMatrix = require('gl-matrix');
 
 const isSABSupported = () => 'SharedArrayBuffer' in window;
 
+const minArraySize = 3;
+const centerArraySize = 3;
+const maxArraySize = 3;
+const minSize = minArraySize * Float32Array.BYTES_PER_ELEMENT;
+const centerSize = centerArraySize * Float32Array.BYTES_PER_ELEMENT;
+const maxSize = maxArraySize * Float32Array.BYTES_PER_ELEMENT;
+const totalSize = minSize + centerSize + maxSize;
+const minOffset = 0;
+const centerOffset = minSize;
+const maxOffset = minSize + centerSize;
+const boundingBoxBufferLayout = {
+    min: { offset: minOffset, size: minSize },
+    center: { offset: centerOffset, size: centerSize },
+    max: { offset: maxOffset, size: maxSize },
+};
+class BoundingBox {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    constructor(...args) {
+        if (args[0] && typeof args[0].byteLength === 'number') {
+            this.type = 'BoundingBox';
+            this.buffer = args[0];
+            this.data = {
+                min: new Float32Array(this.buffer, boundingBoxBufferLayout.min.offset, minArraySize),
+                center: new Float32Array(this.buffer, boundingBoxBufferLayout.center.offset, centerArraySize),
+                max: new Float32Array(this.buffer, boundingBoxBufferLayout.max.offset, maxArraySize),
+            };
+        }
+        else {
+            this.type = 'BoundingBox';
+            this.buffer = isSABSupported() ? new SharedArrayBuffer(totalSize) : new ArrayBuffer(totalSize);
+            this.data = {
+                min: new Float32Array(this.buffer, boundingBoxBufferLayout.min.offset, minArraySize),
+                center: new Float32Array(this.buffer, boundingBoxBufferLayout.center.offset, centerArraySize),
+                max: new Float32Array(this.buffer, boundingBoxBufferLayout.max.offset, maxArraySize),
+            };
+            glMatrix.vec3.copy(this.data.min, args[0].min);
+            glMatrix.vec3.copy(this.data.center, args[0].center);
+            glMatrix.vec3.copy(this.data.max, args[0].max);
+        }
+    }
+    setFromGeometry(geometry, transform) {
+        const args = computeBoundingBox(geometry, transform);
+        glMatrix.vec3.copy(this.data.min, args.min);
+        glMatrix.vec3.copy(this.data.center, args.center);
+        glMatrix.vec3.copy(this.data.max, args.max);
+    }
+    static fromGeometry(geometry, transform) {
+        return new BoundingBox(computeBoundingBox(geometry, transform));
+    }
+    static fromBuffer(buffer) {
+        return new BoundingBox(buffer);
+    }
+}
+const computeBoundingBox = (geometry, transform) => {
+    const vertices = [];
+    for (let p = 0; p < geometry.data.positions.length; p += 3) {
+        vertices.push([geometry.data.positions[p], geometry.data.positions[p + 1], geometry.data.positions[p + 2]]);
+    }
+    const min = [0, 0, 0];
+    const center = [0, 0, 0];
+    const max = [0, 0, 0];
+    for (let i = 0; i < geometry.data.indices.length; i++) {
+        const idx = geometry.data.indices[i];
+        const x = vertices[idx][0];
+        const y = vertices[idx][1];
+        const z = vertices[idx][2];
+        if (x <= min[0])
+            min[0] = x;
+        if (y <= min[1])
+            min[1] = y;
+        if (z <= min[2])
+            min[2] = z;
+        if (x >= max[0])
+            max[0] = x;
+        if (y >= max[1])
+            max[1] = y;
+        if (z >= max[2])
+            max[2] = z;
+    }
+    center[0] = (min[0] + max[0]) / 2;
+    center[1] = (min[1] + max[1]) / 2;
+    center[2] = (min[2] + max[2]) / 2;
+    if (transform) {
+        glMatrix.vec3.transformMat4(min, min, transform.data.modelMatrix);
+        glMatrix.vec3.transformMat4(center, center, transform.data.modelMatrix);
+        glMatrix.vec3.transformMat4(max, max, transform.data.modelMatrix);
+    }
+    return { min, center, max };
+};
+
 const getGeometryBufferLayout = (args) => {
     const positionsSize = args.positions.length * Float32Array.BYTES_PER_ELEMENT;
     const indicesSize = args.indices.length * Uint32Array.BYTES_PER_ELEMENT;
@@ -80,7 +170,7 @@ const scalingSize = scalingArraySize * Float32Array.BYTES_PER_ELEMENT;
 const quaternionSize = quaternionArraySize * Float32Array.BYTES_PER_ELEMENT;
 const modelMatrixSize = modelMatrixArraySize * Float32Array.BYTES_PER_ELEMENT;
 const dirtySize = dirtyArraySize * Float32Array.BYTES_PER_ELEMENT;
-const totalSize = translationSize + scalingSize + quaternionSize + modelMatrixSize + dirtySize;
+const totalSize$1 = translationSize + scalingSize + quaternionSize + modelMatrixSize + dirtySize;
 const translationOffset = 0;
 const scalingOffset = translationSize;
 const quaternionOffset = translationSize + scalingSize;
@@ -113,7 +203,7 @@ class Transform {
         }
         else {
             this.type = 'Transform';
-            this.buffer = isSABSupported() ? new SharedArrayBuffer(totalSize) : new ArrayBuffer(totalSize);
+            this.buffer = isSABSupported() ? new SharedArrayBuffer(totalSize$1) : new ArrayBuffer(totalSize$1);
             this.data = {
                 translation: new Float32Array(this.buffer, bufferLayout.translation.offset, bufferLayout.translation.size),
                 scaling: new Float32Array(this.buffer, bufferLayout.scaling.offset, bufferLayout.scaling.size),
@@ -1148,6 +1238,7 @@ class UBO {
     }
 }
 
+exports.BoundingBox = BoundingBox;
 exports.DEG_TO_RAD = DEG_TO_RAD;
 exports.Entity = Entity;
 exports.FileLoader = FileLoader;
@@ -1160,6 +1251,8 @@ exports.RAD_TO_DEG = RAD_TO_DEG;
 exports.Transform = Transform;
 exports.UBO = UBO;
 exports.World = World;
+exports.boundingBoxBufferLayout = boundingBoxBufferLayout;
+exports.computeBoundingBox = computeBoundingBox;
 exports.createTexture2D = createTexture2D;
 exports.createWebgl2ArrayBuffer = createWebgl2ArrayBuffer;
 exports.createWebgl2ElementArrayBuffer = createWebgl2ElementArrayBuffer;

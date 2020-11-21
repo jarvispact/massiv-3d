@@ -1,4 +1,5 @@
 export * from './types';
+export * from './components/bounding-box';
 export * from './components/geometry';
 export * from './components/transform';
 export * from './ecs/component';
