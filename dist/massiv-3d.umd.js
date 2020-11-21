@@ -1,8 +1,244 @@
 (function (global, factory) {
-    typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
-    typeof define === 'function' && define.amd ? define(['exports'], factory) :
-    (global = typeof globalThis !== 'undefined' ? globalThis : global || self, factory(global.MASSIV = {}));
-}(this, (function (exports) { 'use strict';
+    typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('gl-matrix')) :
+    typeof define === 'function' && define.amd ? define(['exports', 'gl-matrix'], factory) :
+    (global = typeof globalThis !== 'undefined' ? globalThis : global || self, factory(global.MASSIV = {}, global.glMatrix));
+}(this, (function (exports, glMatrix) { 'use strict';
+
+    const isSABSupported = () => 'SharedArrayBuffer' in window;
+
+    const getGeometryBufferLayout = (args) => {
+        const positionsSize = args.positions.length * Float32Array.BYTES_PER_ELEMENT;
+        const indicesSize = args.indices.length * Uint32Array.BYTES_PER_ELEMENT;
+        const uvsSize = args.uvs ? args.uvs.length * Float32Array.BYTES_PER_ELEMENT : 0;
+        const normalsSize = args.normals ? args.normals.length * Float32Array.BYTES_PER_ELEMENT : 0;
+        const colorsSize = args.colors ? args.colors.length * Float32Array.BYTES_PER_ELEMENT : 0;
+        const positionsOffset = 0;
+        const indicesOffset = positionsSize;
+        const uvsOffset = positionsSize + indicesSize;
+        const normalsOffset = positionsSize + indicesSize + uvsSize;
+        const colorsOffset = positionsSize + indicesSize + uvsSize + normalsSize;
+        const bufferSize = positionsSize + indicesSize + uvsSize + normalsSize + colorsSize;
+        return {
+            bufferSize,
+            layout: {
+                positions: { offset: positionsOffset, size: args.positions.length },
+                indices: { offset: indicesOffset, size: args.indices.length },
+                uvs: { offset: uvsOffset, size: args.uvs ? args.uvs.length : 0 },
+                normals: { offset: normalsOffset, size: args.normals ? args.normals.length : 0 },
+                colors: { offset: colorsOffset, size: args.colors ? args.colors.length : 0 },
+            },
+        };
+    };
+    class Geometry {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        constructor(...args) {
+            if (args.length === 1) {
+                this.type = 'Geometry';
+                this.bufferLayout = getGeometryBufferLayout(args[0]);
+                this.buffer = isSABSupported() ? new SharedArrayBuffer(this.bufferLayout.bufferSize) : new ArrayBuffer(this.bufferLayout.bufferSize);
+                this.data = {
+                    positions: new Float32Array(this.buffer, this.bufferLayout.layout.positions.offset, this.bufferLayout.layout.positions.size),
+                    indices: new Uint32Array(this.buffer, this.bufferLayout.layout.indices.offset, this.bufferLayout.layout.indices.size),
+                    uvs: new Float32Array(this.buffer, this.bufferLayout.layout.uvs.offset, this.bufferLayout.layout.uvs.size),
+                    normals: new Float32Array(this.buffer, this.bufferLayout.layout.normals.offset, this.bufferLayout.layout.normals.size),
+                    colors: new Float32Array(this.buffer, this.bufferLayout.layout.colors.offset, this.bufferLayout.layout.colors.size),
+                };
+                this.data.positions.set(args[0].positions);
+                this.data.indices.set(args[0].indices);
+                this.data.uvs.set(args[0].uvs || []);
+                this.data.normals.set(args[0].normals || []);
+                this.data.colors.set(args[0].colors || []);
+            }
+            else if (args.length === 2) {
+                this.type = 'Geometry';
+                this.bufferLayout = args[0];
+                this.buffer = args[1];
+                this.data = {
+                    positions: new Float32Array(this.buffer, this.bufferLayout.layout.positions.offset, this.bufferLayout.layout.positions.size),
+                    indices: new Uint32Array(this.buffer, this.bufferLayout.layout.indices.offset, this.bufferLayout.layout.indices.size),
+                    uvs: new Float32Array(this.buffer, this.bufferLayout.layout.uvs.offset, this.bufferLayout.layout.uvs.size),
+                    normals: new Float32Array(this.buffer, this.bufferLayout.layout.normals.offset, this.bufferLayout.layout.normals.size),
+                    colors: new Float32Array(this.buffer, this.bufferLayout.layout.colors.offset, this.bufferLayout.layout.colors.size),
+                };
+            }
+            else {
+                throw new Error('invalid argument length');
+            }
+        }
+        static fromBuffer(bufferLayout, buffer) {
+            return new Geometry(bufferLayout, buffer);
+        }
+    }
+
+    const translationArraySize = 3;
+    const scalingArraySize = 3;
+    const quaternionArraySize = 4;
+    const modelMatrixArraySize = 16;
+    const dirtyArraySize = 1;
+    const translationSize = translationArraySize * Float32Array.BYTES_PER_ELEMENT;
+    const scalingSize = scalingArraySize * Float32Array.BYTES_PER_ELEMENT;
+    const quaternionSize = quaternionArraySize * Float32Array.BYTES_PER_ELEMENT;
+    const modelMatrixSize = modelMatrixArraySize * Float32Array.BYTES_PER_ELEMENT;
+    const dirtySize = dirtyArraySize * Float32Array.BYTES_PER_ELEMENT;
+    const totalSize = translationSize + scalingSize + quaternionSize + modelMatrixSize + dirtySize;
+    const translationOffset = 0;
+    const scalingOffset = translationSize;
+    const quaternionOffset = translationSize + scalingSize;
+    const modelMatrixOffset = translationSize + scalingSize + quaternionSize;
+    const dirtyOffset = translationSize + scalingSize + quaternionSize + modelMatrixSize;
+    const bufferLayout = {
+        translation: { offset: translationOffset, size: translationArraySize },
+        scaling: { offset: scalingOffset, size: scalingArraySize },
+        quaternion: { offset: quaternionOffset, size: quaternionArraySize },
+        modelMatrix: { offset: modelMatrixOffset, size: modelMatrixArraySize },
+        dirty: { offset: dirtyOffset, size: dirtyArraySize },
+    };
+    const tmp = {
+        vec3: glMatrix.vec3.create(),
+        quat: glMatrix.quat.create(),
+    };
+    class Transform {
+        constructor(args, buffer) {
+            this.type = 'Transform';
+            this.buffer = buffer || isSABSupported() ? new SharedArrayBuffer(totalSize) : new ArrayBuffer(totalSize);
+            this.data = {
+                translation: new Float32Array(this.buffer, bufferLayout.translation.offset, bufferLayout.translation.size),
+                scaling: new Float32Array(this.buffer, bufferLayout.scaling.offset, bufferLayout.scaling.size),
+                quaternion: new Float32Array(this.buffer, bufferLayout.quaternion.offset, bufferLayout.quaternion.size),
+                modelMatrix: new Float32Array(this.buffer, bufferLayout.modelMatrix.offset, bufferLayout.modelMatrix.size),
+                dirty: new Float32Array(this.buffer, bufferLayout.dirty.offset, bufferLayout.dirty.size),
+            };
+            if (args && args.translation) {
+                this.setTranslation(args.translation[0], args.translation[1], args.translation[2]);
+            }
+            else {
+                this.setTranslation(0, 0, 0);
+            }
+            if (args && args.scaling) {
+                this.setScale(args.scaling[0], args.scaling[1], args.scaling[2]);
+            }
+            else {
+                this.setScale(1, 1, 1);
+            }
+            if (args && args.quaternion) {
+                this.setQuaternion(args.quaternion[0], args.quaternion[1], args.quaternion[2], args.quaternion[3]);
+            }
+            else {
+                this.setQuaternion(0, 0, 0, 1);
+            }
+            this.update().setDirty();
+        }
+        isDirty() {
+            return this.data.dirty[0] === 1;
+        }
+        setDirty(dirty = true) {
+            this.data.dirty[0] = Number(dirty);
+            return this;
+        }
+        update() {
+            if (this.isDirty()) {
+                glMatrix.mat4.fromRotationTranslationScale(this.data.modelMatrix, this.data.quaternion, this.data.translation, this.data.scaling);
+            }
+            return this;
+        }
+        setTranslation(x, y, z) {
+            this.data.translation[0] = x;
+            this.data.translation[1] = y;
+            this.data.translation[2] = z;
+            this.setDirty();
+            return this;
+        }
+        setTranslationX(x) {
+            this.data.translation[0] = x;
+            this.setDirty();
+            return this;
+        }
+        setTranslationY(y) {
+            this.data.translation[1] = y;
+            this.setDirty();
+            return this;
+        }
+        setTranslationZ(z) {
+            this.data.translation[2] = z;
+            this.setDirty();
+            return this;
+        }
+        setScale(x, y, z) {
+            this.data.scaling[0] = x;
+            this.data.scaling[1] = y;
+            this.data.scaling[2] = z;
+            this.setDirty();
+            return this;
+        }
+        setScaleX(x) {
+            this.data.scaling[0] = x;
+            this.setDirty();
+            return this;
+        }
+        setScaleY(y) {
+            this.data.scaling[1] = y;
+            this.setDirty();
+            return this;
+        }
+        setScaleZ(z) {
+            this.data.scaling[2] = z;
+            this.setDirty();
+            return this;
+        }
+        setQuaternion(x, y, z, w) {
+            this.data.quaternion[0] = x;
+            this.data.quaternion[1] = y;
+            this.data.quaternion[2] = z;
+            this.data.quaternion[3] = w;
+            this.setDirty();
+            return this;
+        }
+        setQuaternionX(x) {
+            this.data.quaternion[0] = x;
+            this.setDirty();
+            return this;
+        }
+        setQuaternionY(y) {
+            this.data.quaternion[1] = y;
+            this.setDirty();
+            return this;
+        }
+        setQuaternionZ(z) {
+            this.data.quaternion[2] = z;
+            this.setDirty();
+            return this;
+        }
+        setQuaternionW(w) {
+            this.data.quaternion[3] = w;
+            this.setDirty();
+            return this;
+        }
+        translate(x, y, z) {
+            tmp.vec3[0] = x;
+            tmp.vec3[1] = y;
+            tmp.vec3[2] = z;
+            glMatrix.vec3.add(this.data.translation, this.data.translation, tmp.vec3);
+            this.setDirty();
+            return this;
+        }
+        scale(x, y, z) {
+            tmp.vec3[0] = x;
+            tmp.vec3[1] = y;
+            tmp.vec3[2] = z;
+            glMatrix.vec3.add(this.data.scaling, this.data.scaling, tmp.vec3);
+            this.setDirty();
+            return this;
+        }
+        rotate(x, y, z) {
+            glMatrix.quat.fromEuler(tmp.quat, x, y, z);
+            glMatrix.quat.multiply(this.data.quaternion, this.data.quaternion, tmp.quat);
+            this.setDirty();
+            return this;
+        }
+        static fromBuffer(buffer) {
+            return new Transform(undefined, buffer);
+        }
+    }
 
     const hasMoreThanOneComponentsOfSameType = (componentTypes) => [...new Set(componentTypes)].length < componentTypes.length;
     class Entity {
@@ -902,10 +1138,12 @@
     exports.Entity = Entity;
     exports.FileLoader = FileLoader;
     exports.GLSL300ATTRIBUTE = GLSL300ATTRIBUTE;
+    exports.Geometry = Geometry;
     exports.ImageLoader = ImageLoader;
     exports.KeyboardInput = KeyboardInput;
     exports.MouseInput = MouseInput;
     exports.RAD_TO_DEG = RAD_TO_DEG;
+    exports.Transform = Transform;
     exports.UBO = UBO;
     exports.World = World;
     exports.createTexture2D = createTexture2D;
@@ -916,6 +1154,7 @@
     exports.createWebgl2VertexArray = createWebgl2VertexArray;
     exports.defaultContextAttributeOptions = defaultContextAttributeOptions;
     exports.degreesToRadians = degreesToRadians;
+    exports.getGeometryBufferLayout = getGeometryBufferLayout;
     exports.getWebgl2Context = getWebgl2Context;
     exports.glsl300 = glsl300;
     exports.intersection = intersection;

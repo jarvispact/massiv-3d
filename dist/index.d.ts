@@ -1,4 +1,6 @@
 export * from './types';
+export * from './components/geometry';
+export * from './components/transform';
 export * from './ecs/component';
 export * from './ecs/entity';
 export * from './ecs/system';
