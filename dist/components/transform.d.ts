@@ -17,7 +17,8 @@ export declare class Transform implements Component<'Transform', TransformData> 
     type: 'Transform';
     buffer: BufferConstructor;
     data: TransformData;
-    constructor(args?: TransformArgs, buffer?: BufferConstructor);
+    constructor(args?: TransformArgs);
+    constructor(buffer: BufferConstructor);
     isDirty(): boolean;
     setDirty(dirty?: boolean): this;
     update(): this;

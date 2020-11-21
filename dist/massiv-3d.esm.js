@@ -94,35 +94,49 @@ const tmp = {
     quat: quat.create(),
 };
 class Transform {
-    constructor(args, buffer) {
-        this.type = 'Transform';
-        this.buffer = buffer || isSABSupported() ? new SharedArrayBuffer(totalSize) : new ArrayBuffer(totalSize);
-        this.data = {
-            translation: new Float32Array(this.buffer, bufferLayout.translation.offset, bufferLayout.translation.size),
-            scaling: new Float32Array(this.buffer, bufferLayout.scaling.offset, bufferLayout.scaling.size),
-            quaternion: new Float32Array(this.buffer, bufferLayout.quaternion.offset, bufferLayout.quaternion.size),
-            modelMatrix: new Float32Array(this.buffer, bufferLayout.modelMatrix.offset, bufferLayout.modelMatrix.size),
-            dirty: new Float32Array(this.buffer, bufferLayout.dirty.offset, bufferLayout.dirty.size),
-        };
-        if (args && args.translation) {
-            this.setTranslation(args.translation[0], args.translation[1], args.translation[2]);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    constructor(...args) {
+        if (typeof args[0].byteLength === 'number') {
+            this.type = 'Transform';
+            this.buffer = args[0];
+            this.data = {
+                translation: new Float32Array(this.buffer, bufferLayout.translation.offset, bufferLayout.translation.size),
+                scaling: new Float32Array(this.buffer, bufferLayout.scaling.offset, bufferLayout.scaling.size),
+                quaternion: new Float32Array(this.buffer, bufferLayout.quaternion.offset, bufferLayout.quaternion.size),
+                modelMatrix: new Float32Array(this.buffer, bufferLayout.modelMatrix.offset, bufferLayout.modelMatrix.size),
+                dirty: new Float32Array(this.buffer, bufferLayout.dirty.offset, bufferLayout.dirty.size),
+            };
         }
         else {
-            this.setTranslation(0, 0, 0);
+            this.type = 'Transform';
+            this.buffer = isSABSupported() ? new SharedArrayBuffer(totalSize) : new ArrayBuffer(totalSize);
+            this.data = {
+                translation: new Float32Array(this.buffer, bufferLayout.translation.offset, bufferLayout.translation.size),
+                scaling: new Float32Array(this.buffer, bufferLayout.scaling.offset, bufferLayout.scaling.size),
+                quaternion: new Float32Array(this.buffer, bufferLayout.quaternion.offset, bufferLayout.quaternion.size),
+                modelMatrix: new Float32Array(this.buffer, bufferLayout.modelMatrix.offset, bufferLayout.modelMatrix.size),
+                dirty: new Float32Array(this.buffer, bufferLayout.dirty.offset, bufferLayout.dirty.size),
+            };
+            if (args[0] && args[0].translation) {
+                this.setTranslation(args[0].translation[0], args[0].translation[1], args[0].translation[2]);
+            }
+            else {
+                this.setTranslation(0, 0, 0);
+            }
+            if (args[0] && args[0].scaling) {
+                this.setScale(args[0].scaling[0], args[0].scaling[1], args[0].scaling[2]);
+            }
+            else {
+                this.setScale(1, 1, 1);
+            }
+            if (args[0] && args[0].quaternion) {
+                this.setQuaternion(args[0].quaternion[0], args[0].quaternion[1], args[0].quaternion[2], args[0].quaternion[3]);
+            }
+            else {
+                this.setQuaternion(0, 0, 0, 1);
+            }
+            this.update().setDirty();
         }
-        if (args && args.scaling) {
-            this.setScale(args.scaling[0], args.scaling[1], args.scaling[2]);
-        }
-        else {
-            this.setScale(1, 1, 1);
-        }
-        if (args && args.quaternion) {
-            this.setQuaternion(args.quaternion[0], args.quaternion[1], args.quaternion[2], args.quaternion[3]);
-        }
-        else {
-            this.setQuaternion(0, 0, 0, 1);
-        }
-        this.update().setDirty();
     }
     isDirty() {
         return this.data.dirty[0] === 1;
@@ -232,7 +246,7 @@ class Transform {
         return this;
     }
     static fromBuffer(buffer) {
-        return new Transform(undefined, buffer);
+        return new Transform(buffer);
     }
 }
 
