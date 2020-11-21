@@ -3,7 +3,7 @@ import { Component } from '../ecs/component';
 import { BufferConstructor } from '../types';
 import { isSABSupported } from '../utils/is-sab-supported';
 
-type CreateTransformArgs = {
+type TransformArgs = {
     translation?: vec3;
     scaling?: vec3;
     quaternion?: quat;
@@ -54,7 +54,7 @@ export class Transform implements Component<'Transform', TransformData> {
     buffer: BufferConstructor;
     data: TransformData;
 
-    constructor(args?: CreateTransformArgs, buffer?: BufferConstructor) {
+    constructor(args?: TransformArgs, buffer?: BufferConstructor) {
         this.type = 'Transform';
         this.buffer = buffer || isSABSupported() ? new SharedArrayBuffer(totalSize) : new ArrayBuffer(totalSize);
         this.data = {

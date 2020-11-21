@@ -1,7 +1,7 @@
 import { quat, vec3 } from 'gl-matrix';
 import { Component } from '../ecs/component';
 import { BufferConstructor } from '../types';
-declare type CreateTransformArgs = {
+declare type TransformArgs = {
     translation?: vec3;
     scaling?: vec3;
     quaternion?: quat;
@@ -17,7 +17,7 @@ export declare class Transform implements Component<'Transform', TransformData> 
     type: 'Transform';
     buffer: BufferConstructor;
     data: TransformData;
-    constructor(args?: CreateTransformArgs, buffer?: BufferConstructor);
+    constructor(args?: TransformArgs, buffer?: BufferConstructor);
     isDirty(): boolean;
     setDirty(dirty?: boolean): this;
     update(): this;
