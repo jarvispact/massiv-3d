@@ -270,8 +270,8 @@ class Entity {
     getComponentByType(type) {
         return this.components[type];
     }
-    getComponentByClass(component) {
-        return this.components[component.constructor.name];
+    getComponentByClass(klass) {
+        return this.components[klass.name];
     }
     getComponentTypes() {
         return this.componentTypes;

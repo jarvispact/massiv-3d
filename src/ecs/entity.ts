@@ -26,8 +26,8 @@ export class Entity<Name extends string = string, Comp extends Component = Compo
         return this.components[type];
     }
 
-    getComponentByClass<C extends Comp>(component: Class<C>): C {
-        return this.components[component.constructor.name] as C;
+    getComponentByClass<C extends Comp>(klass: Class<C>): C {
+        return this.components[klass.name] as C;
     }
 
     getComponentTypes() {
