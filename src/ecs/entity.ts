@@ -1,4 +1,5 @@
 import { Class } from '../types';
+import { intersection } from '../utils/intersection';
 import { Component } from './component';
 
 const hasMoreThanOneComponentsOfSameType = (componentTypes: string[]) => [...new Set(componentTypes)].length < componentTypes.length;
@@ -64,5 +65,9 @@ export class Entity<Name extends string = string, Comp extends Component = Compo
         const comp = this.getComponentByType(component.constructor.name);
         if (comp) this.removeComponent(comp);
         return this;
+    }
+
+    hasComponents<T extends string>(types: Array<Comp['type']> | Array<T>) {
+        return intersection(types, this.getComponentTypes()).length === types.length;
     }
 }

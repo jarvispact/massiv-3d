@@ -13,4 +13,5 @@ export declare class Entity<Name extends string = string, Comp extends Component
     removeComponent(component: Comp): this;
     removeComponentByType<T extends string>(type: Comp['type'] | T): this;
     removeComponentByClass<C extends Comp>(component: Class<C>): this;
+    hasComponents<T extends string>(types: Array<Comp['type']> | Array<T>): boolean;
 }

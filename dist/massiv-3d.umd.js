@@ -344,6 +344,8 @@
         }
     }
 
+    const intersection = (list1, list2) => list1.filter(x => list2.includes(x));
+
     const hasMoreThanOneComponentsOfSameType = (componentTypes) => [...new Set(componentTypes)].length < componentTypes.length;
     class Entity {
         constructor(name, components) {
@@ -394,9 +396,10 @@
                 this.removeComponent(comp);
             return this;
         }
+        hasComponents(types) {
+            return intersection(types, this.getComponentTypes()).length === types.length;
+        }
     }
-
-    const intersection = (list1, list2) => list1.filter(x => list2.includes(x));
 
     const createGetDelta = (then = 0) => (now) => {
         now *= 0.001;
@@ -411,6 +414,7 @@
         removeEntity,
     };
     const actionValues = Object.values(worldActions)[0];
+    const defaultReducer = (state) => state;
     class World {
         constructor(args = {}) {
             this.subscribers = [];
@@ -420,11 +424,9 @@
             this.systems = [];
             this.queryCache = [];
             this.state = args.initialState;
-            this.reducer = args.reducer;
+            this.reducer = args.reducer || defaultReducer;
         }
         dispatch(action) {
-            if (!this.state || !this.reducer)
-                return this;
             const newState = this.reducer(this.state, action);
             for (let i = 0; i < this.subscribers.length; i++) {
                 this.subscribers[i](action, newState, this.state);
@@ -1017,10 +1019,23 @@
         return materials;
     };
 
+    const createMap = (in_min, in_max, out_min, out_max) => (value) => ((value - in_min) * (out_max - out_min)) / (in_max - in_min) + out_min;
+
+    const hexToRgb = (hex) => {
+        const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+        return result ? [parseInt(result[1], 16), parseInt(result[2], 16), parseInt(result[3], 16)] : null;
+    };
+
     const DEG_TO_RAD = Math.PI / 180;
     const RAD_TO_DEG = 180 / Math.PI;
     const degreesToRadians = (degrees) => degrees * DEG_TO_RAD;
     const radiansToDegrees = (radians) => radians * RAD_TO_DEG;
+
+    const componentToHex = (c) => {
+        const hex = c.toString(16);
+        return hex.length == 1 ? '0' + hex : hex;
+    };
+    const rgbToHex = (r, g, b) => '#' + componentToHex(r) + componentToHex(g) + componentToHex(b);
 
     const defaultContextAttributeOptions = {
         premultipliedAlpha: false,
@@ -1253,6 +1268,7 @@
     exports.World = World;
     exports.boundingBoxBufferLayout = boundingBoxBufferLayout;
     exports.computeBoundingBox = computeBoundingBox;
+    exports.createMap = createMap;
     exports.createTexture2D = createTexture2D;
     exports.createWebgl2ArrayBuffer = createWebgl2ArrayBuffer;
     exports.createWebgl2ElementArrayBuffer = createWebgl2ElementArrayBuffer;
@@ -1264,11 +1280,16 @@
     exports.getGeometryBufferLayout = getGeometryBufferLayout;
     exports.getWebgl2Context = getWebgl2Context;
     exports.glsl300 = glsl300;
+    exports.hexToRgb = hexToRgb;
     exports.intersection = intersection;
+    exports.isSABSupported = isSABSupported;
     exports.parseMtlFile = parseMtlFile;
     exports.parseObjFile = parseObjFile;
     exports.radiansToDegrees = radiansToDegrees;
+    exports.rgbToHex = rgbToHex;
     exports.setupWebgl2VertexAttribPointer = setupWebgl2VertexAttribPointer;
+    exports.toFloat = toFloat;
+    exports.toInt = toInt;
     exports.worldActions = worldActions;
 
     Object.defineProperty(exports, '__esModule', { value: true });

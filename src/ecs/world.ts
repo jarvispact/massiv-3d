@@ -25,6 +25,8 @@ const actionValues = Object.values(worldActions)[0];
 type InternalAction = ReturnType<typeof actionValues>;
 type GenericAction = { type: string, payload?: unknown };
 
+const defaultReducer = (state: unknown) => state;
+
 export class World<
     State extends Record<string, unknown> = Record<string, unknown>,
     WorldAction extends GenericAction = GenericAction> {
@@ -39,11 +41,10 @@ export class World<
 
     constructor(args: { initialState?: State, reducer?: Reducer<State, InternalAction | WorldAction> } = {}) {
         this.state = args.initialState as State;
-        this.reducer = args.reducer as Reducer<State, InternalAction | WorldAction>;
+        this.reducer = args.reducer || defaultReducer as Reducer<State, InternalAction | WorldAction>;
     }
 
     dispatch(action: InternalAction | WorldAction) {
-        if (!this.state || !this.reducer) return this;
         const newState = this.reducer(this.state, action);
         
         for (let i = 0; i < this.subscribers.length; i++) {

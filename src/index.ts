@@ -17,7 +17,13 @@ export * from './loader/image-loader';
 export * from './loader/parse-obj-file';
 export * from './loader/parse-mtl-file';
 
+export * from './utils/create-map';
+export * from './utils/hex-to-rgb';
 export * from './utils/intersection';
+export * from './utils/is-sab-supported';
 export * from './utils/math';
+export * from './utils/rgb-to-hex';
+export * from './utils/to-float';
+export * from './utils/to-int';
 
 export * from './webgl2/utils';

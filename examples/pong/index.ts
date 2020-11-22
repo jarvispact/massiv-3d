@@ -1,4 +1,4 @@
-import { createEntity, FileLoader, KeyboardInput, ParsedObjPrimitive, parseObjFile } from '../../src';
+import { Entity, FileLoader, KeyboardInput, ParsedObjPrimitive, parseObjFile } from '../../src';
 import { world } from './world';
 import { createTransform, Transform } from './components/transform';
 import { createVelocity } from './components/velocity';
@@ -99,12 +99,12 @@ const computeBoundingBox = (geometry: Geometry, transform?: Transform) => {
 
     const camera = new OrthographicCamera({ translation: [0, 0, 0], left: -aspect * 10, right: aspect * 10, bottom: -10, top: 10, near: -10, far: 10 });
 
-    const paddle = createEntity('Paddle', [paddleTransform, paddleVelocity, paddleGeometry, paddleBoundingBox]);
-    const ball = createEntity('Ball', [ballTransform, ballVelocity, ballGeometry, ballBoundingBox]);
-    const bottomWall = createEntity('BottomWall', [bottomWallTransform, bottomWallGeometry, bottomWallBoundingBox]);
-    const topWall = createEntity('TopWall', [topWallTransform, topWallGeometry, topWallBoundingBox]);
-    const leftWall = createEntity('LeftWall', [leftWallTransform, leftWallGeometry, leftWallBoundingBox]);
-    const rightWall = createEntity('RightWall', [rightWallTransform, rightWallGeometry, rightWallBoundingBox]);
+    const paddle = new Entity('Paddle', [paddleTransform, paddleVelocity, paddleGeometry, paddleBoundingBox]);
+    const ball = new Entity('Ball', [ballTransform, ballVelocity, ballGeometry, ballBoundingBox]);
+    const bottomWall = new Entity('BottomWall', [bottomWallTransform, bottomWallGeometry, bottomWallBoundingBox]);
+    const topWall = new Entity('TopWall', [topWallTransform, topWallGeometry, topWallBoundingBox]);
+    const leftWall = new Entity('LeftWall', [leftWallTransform, leftWallGeometry, leftWallBoundingBox]);
+    const rightWall = new Entity('RightWall', [rightWallTransform, rightWallGeometry, rightWallBoundingBox]);
     world.addEntity(paddle);
     world.addEntity(ball);
     world.addEntity(bottomWall);
