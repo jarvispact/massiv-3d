@@ -9,6 +9,7 @@ export class MouseInput {
     private buttonDownMap: Record<string, boolean>;
     private mouseX: number;
     private mouseY: number;
+    private wheelY: number;
 
     constructor(canvas: HTMLCanvasElement) {
         this.canvas = canvas;
@@ -22,6 +23,7 @@ export class MouseInput {
 
         this.mouseX = 0;
         this.mouseY = 0;
+        this.wheelY = 0;
 
         const mouseDownHandler = (event: MouseEvent) => {
             switch (event.button) {
@@ -60,9 +62,14 @@ export class MouseInput {
             }
         };
 
+        const wheelHandler = (event: WheelEvent) => {
+            this.wheelY = event.deltaY;
+        };
+
         this.canvas.addEventListener('mousedown', mouseDownHandler);
         this.canvas.addEventListener('mousemove', mouseMoveHandler);
         this.canvas.addEventListener('mouseup', mouseUpHandler);
+        this.canvas.addEventListener('wheel', wheelHandler);
     }
 
     static get BUTTON() {
@@ -79,5 +86,9 @@ export class MouseInput {
 
     getMouseY() {
         return this.mouseY;
+    }
+
+    getWheelDeltaY() {
+        return this.wheelY;
     }
 }

@@ -8,6 +8,7 @@ export declare class MouseInput {
     private buttonDownMap;
     private mouseX;
     private mouseY;
+    private wheelY;
     constructor(canvas: HTMLCanvasElement);
     static get BUTTON(): {
         readonly PRIMARY: 0;
@@ -17,5 +18,6 @@ export declare class MouseInput {
     isButtonDown(button: keyof typeof BUTTON): boolean;
     getMouseX(): number;
     getMouseY(): number;
+    getWheelDeltaY(): number;
 }
 export {};

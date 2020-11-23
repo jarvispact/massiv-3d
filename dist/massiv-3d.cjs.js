@@ -581,6 +581,7 @@ class MouseInput {
         }, {});
         this.mouseX = 0;
         this.mouseY = 0;
+        this.wheelY = 0;
         const mouseDownHandler = (event) => {
             switch (event.button) {
                 case BUTTON.PRIMARY:
@@ -611,9 +612,13 @@ class MouseInput {
                     break;
             }
         };
+        const wheelHandler = (event) => {
+            this.wheelY = event.deltaY;
+        };
         this.canvas.addEventListener('mousedown', mouseDownHandler);
         this.canvas.addEventListener('mousemove', mouseMoveHandler);
         this.canvas.addEventListener('mouseup', mouseUpHandler);
+        this.canvas.addEventListener('wheel', wheelHandler);
     }
     static get BUTTON() {
         return BUTTON;
@@ -626,6 +631,9 @@ class MouseInput {
     }
     getMouseY() {
         return this.mouseY;
+    }
+    getWheelDeltaY() {
+        return this.wheelY;
     }
 }
 
