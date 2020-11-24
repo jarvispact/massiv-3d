@@ -18,6 +18,6 @@ export declare class MouseInput {
     isButtonDown(button: keyof typeof BUTTON): boolean;
     getMouseX(): number;
     getMouseY(): number;
-    getWheelDeltaY(): number;
+    getWheelY(): number;
 }
 export {};

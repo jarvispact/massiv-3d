@@ -88,7 +88,9 @@ export class MouseInput {
         return this.mouseY;
     }
 
-    getWheelDeltaY() {
-        return this.wheelY;
+    getWheelY() {
+        const val = this.wheelY;
+        this.wheelY = 0;
+        return val;
     }
 }
