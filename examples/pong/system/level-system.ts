@@ -32,7 +32,6 @@ export const createLevelSystem = (ballEntity: Entity): System => {
             currentLevelStartTime = Date.now();
             levelDisplay.textContent = `Level: ${world.state.level}`;
 
-            console.log(v.data.translation[0], v.data.translation[0]);
             if (v.data.translation[0] < 0) {
                 v.data.translation[0] += v.data.translation[0] / 5;
             } else {

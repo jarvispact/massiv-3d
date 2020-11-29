@@ -12,6 +12,8 @@ import { createUpdateBoundingBoxSystem } from './system/update-bounding-box-syst
 const createColorComponent = (r: number, g: number, b: number): Component<'Color', vec3> => ({ type: 'Color', data: vec3.fromValues(r, g, b) });
 const createActiveComponent = (initialActive: boolean): Component<'Active', boolean> => ({ type: 'Active', data: initialActive });
 
+const randomNegative = (val: number) => Math.round(Math.random()) === 0 ? -val : val;
+
 (async () => {
     const canvas = document.getElementById('canvas') as HTMLCanvasElement;
     canvas.width = window.innerWidth;
@@ -31,7 +33,7 @@ const createActiveComponent = (initialActive: boolean): Component<'Active', bool
 
     const ballTransform = new Transform();
     const ballGeometry = new Geometry(ball);
-    const ballVelocity = new Velocity({ translation: [1.5, 0, 5] });
+    const ballVelocity = new Velocity({ translation: [randomNegative(1.5), 0, -5] });
     const ballBoundingBox = BoundingBox.fromGeometry(ballGeometry, ballTransform);
     const ballEntity = new Entity('Ball', [ballTransform, ballGeometry, ballVelocity, ballBoundingBox, createColorComponent(1, 0, 0), createActiveComponent(false)]);
 

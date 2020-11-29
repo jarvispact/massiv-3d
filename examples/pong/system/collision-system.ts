@@ -7,8 +7,8 @@ export const createCollisionSystem = (ballEntity: Entity, tableEntity: Entity): 
     const tableBoundingBox = tableEntity.getComponentByClass(BoundingBox);
 
     const bt = ballTransform.data.translation;
-    const bbx = ballBoundingBox.getWorldPosition();
-    const tbx = tableBoundingBox.getWorldPosition();    
+    const bbx = ballBoundingBox.data;
+    const tbx = tableBoundingBox.data;
 
     return () => {        
         // ball - right wall

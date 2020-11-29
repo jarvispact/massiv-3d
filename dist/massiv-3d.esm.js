@@ -2,20 +2,32 @@ import { vec3, quat, mat4 } from 'gl-matrix';
 
 const isSABSupported = () => 'SharedArrayBuffer' in window;
 
+const initialMinArraySize = 3;
+const initialCenterArraySize = 3;
+const initialMaxArraySize = 3;
 const minArraySize = 3;
 const centerArraySize = 3;
 const maxArraySize = 3;
+const initialMinSize = initialMinArraySize * Float32Array.BYTES_PER_ELEMENT;
+const initialCenterSize = initialCenterArraySize * Float32Array.BYTES_PER_ELEMENT;
+const initialMaxSize = initialMaxArraySize * Float32Array.BYTES_PER_ELEMENT;
 const minSize = minArraySize * Float32Array.BYTES_PER_ELEMENT;
 const centerSize = centerArraySize * Float32Array.BYTES_PER_ELEMENT;
 const maxSize = maxArraySize * Float32Array.BYTES_PER_ELEMENT;
-const totalSize = minSize + centerSize + maxSize;
-const minOffset = 0;
-const centerOffset = minSize;
-const maxOffset = minSize + centerSize;
+const totalSize = initialMinSize + initialCenterSize + initialMaxSize + minSize + centerSize + maxSize;
+const initialMinOffset = 0;
+const initialCenterOffset = initialMinSize;
+const initialMaxOffset = initialMinSize + initialCenterSize;
+const minOffset = initialMinSize + initialCenterSize + initialMaxSize;
+const centerOffset = initialMinSize + initialCenterSize + initialMaxSize + minSize;
+const maxOffset = initialMinSize + initialCenterSize + initialMaxSize + minSize + centerSize;
 const boundingBoxBufferLayout = {
-    min: { offset: minOffset, size: minSize },
-    center: { offset: centerOffset, size: centerSize },
-    max: { offset: maxOffset, size: maxSize },
+    initialMin: { offset: initialMinOffset, size: initialMinArraySize },
+    initialCenter: { offset: initialCenterOffset, size: initialCenterArraySize },
+    initialMax: { offset: initialMaxOffset, size: initialMaxArraySize },
+    min: { offset: minOffset, size: minArraySize },
+    center: { offset: centerOffset, size: centerArraySize },
+    max: { offset: maxOffset, size: maxArraySize },
 };
 class BoundingBox {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -24,35 +36,35 @@ class BoundingBox {
             this.type = 'BoundingBox';
             this.buffer = args[0];
             this.data = {
-                min: new Float32Array(this.buffer, boundingBoxBufferLayout.min.offset, minArraySize),
-                center: new Float32Array(this.buffer, boundingBoxBufferLayout.center.offset, centerArraySize),
-                max: new Float32Array(this.buffer, boundingBoxBufferLayout.max.offset, maxArraySize),
-            };
-            this.worldPosition = {
-                min: new Float32Array(this.buffer, boundingBoxBufferLayout.min.offset, minArraySize),
-                center: new Float32Array(this.buffer, boundingBoxBufferLayout.center.offset, centerArraySize),
-                max: new Float32Array(this.buffer, boundingBoxBufferLayout.max.offset, maxArraySize),
+                _initial: {
+                    min: new Float32Array(this.buffer, boundingBoxBufferLayout.initialMin.offset, boundingBoxBufferLayout.initialMin.size),
+                    center: new Float32Array(this.buffer, boundingBoxBufferLayout.initialCenter.offset, boundingBoxBufferLayout.initialCenter.size),
+                    max: new Float32Array(this.buffer, boundingBoxBufferLayout.initialMax.offset, boundingBoxBufferLayout.initialMax.size),
+                },
+                min: new Float32Array(this.buffer, boundingBoxBufferLayout.min.offset, boundingBoxBufferLayout.min.size),
+                center: new Float32Array(this.buffer, boundingBoxBufferLayout.center.offset, boundingBoxBufferLayout.center.size),
+                max: new Float32Array(this.buffer, boundingBoxBufferLayout.max.offset, boundingBoxBufferLayout.max.size),
             };
         }
         else {
             this.type = 'BoundingBox';
             this.buffer = isSABSupported() ? new SharedArrayBuffer(totalSize) : new ArrayBuffer(totalSize);
             this.data = {
-                min: new Float32Array(this.buffer, boundingBoxBufferLayout.min.offset, minArraySize),
-                center: new Float32Array(this.buffer, boundingBoxBufferLayout.center.offset, centerArraySize),
-                max: new Float32Array(this.buffer, boundingBoxBufferLayout.max.offset, maxArraySize),
+                _initial: {
+                    min: new Float32Array(this.buffer, boundingBoxBufferLayout.initialMin.offset, boundingBoxBufferLayout.initialMin.size),
+                    center: new Float32Array(this.buffer, boundingBoxBufferLayout.initialCenter.offset, boundingBoxBufferLayout.initialCenter.size),
+                    max: new Float32Array(this.buffer, boundingBoxBufferLayout.initialMax.offset, boundingBoxBufferLayout.initialMax.size),
+                },
+                min: new Float32Array(this.buffer, boundingBoxBufferLayout.min.offset, boundingBoxBufferLayout.min.size),
+                center: new Float32Array(this.buffer, boundingBoxBufferLayout.center.offset, boundingBoxBufferLayout.center.size),
+                max: new Float32Array(this.buffer, boundingBoxBufferLayout.max.offset, boundingBoxBufferLayout.max.size),
             };
+            vec3.copy(this.data._initial.min, args[0].min);
+            vec3.copy(this.data._initial.center, args[0].center);
+            vec3.copy(this.data._initial.max, args[0].max);
             vec3.copy(this.data.min, args[0].min);
             vec3.copy(this.data.center, args[0].center);
             vec3.copy(this.data.max, args[0].max);
-            this.worldPosition = {
-                min: new Float32Array(3),
-                center: new Float32Array(3),
-                max: new Float32Array(3),
-            };
-            vec3.copy(this.worldPosition.min, args[0].min);
-            vec3.copy(this.worldPosition.center, args[0].center);
-            vec3.copy(this.worldPosition.max, args[0].max);
         }
     }
     setFromGeometry(geometry, transform) {
@@ -61,16 +73,13 @@ class BoundingBox {
         vec3.copy(this.data.center, args.center);
         vec3.copy(this.data.max, args.max);
     }
-    updateWorldPosition(transform) {
-        vec3.copy(this.worldPosition.min, this.data.min);
-        vec3.copy(this.worldPosition.center, this.data.center);
-        vec3.copy(this.worldPosition.max, this.data.max);
-        vec3.transformMat4(this.worldPosition.min, this.worldPosition.min, transform.data.modelMatrix);
-        vec3.transformMat4(this.worldPosition.center, this.worldPosition.center, transform.data.modelMatrix);
-        vec3.transformMat4(this.worldPosition.max, this.worldPosition.max, transform.data.modelMatrix);
-    }
-    getWorldPosition() {
-        return this.worldPosition;
+    updateFromTransform(transform) {
+        vec3.copy(this.data.min, this.data._initial.min);
+        vec3.copy(this.data.center, this.data._initial.center);
+        vec3.copy(this.data.max, this.data._initial.max);
+        vec3.transformMat4(this.data.min, this.data.min, transform.data.modelMatrix);
+        vec3.transformMat4(this.data.center, this.data.center, transform.data.modelMatrix);
+        vec3.transformMat4(this.data.max, this.data.max, transform.data.modelMatrix);
     }
     static fromGeometry(geometry, transform) {
         return new BoundingBox(computeBoundingBox(geometry, transform));

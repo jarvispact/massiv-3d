@@ -4,6 +4,18 @@ import { BufferConstructor } from '../types';
 import { Geometry } from './geometry';
 import { Transform } from './transform';
 export declare const boundingBoxBufferLayout: {
+    initialMin: {
+        offset: number;
+        size: number;
+    };
+    initialCenter: {
+        offset: number;
+        size: number;
+    };
+    initialMax: {
+        offset: number;
+        size: number;
+    };
     min: {
         offset: number;
         size: number;
@@ -23,6 +35,11 @@ declare type BoundingBoxArgs = {
     max: vec3;
 };
 declare type BoundingBoxData = {
+    _initial: {
+        min: Float32Array;
+        center: Float32Array;
+        max: Float32Array;
+    };
     min: Float32Array;
     center: Float32Array;
     max: Float32Array;
@@ -31,12 +48,10 @@ export declare class BoundingBox implements Component<'BoundingBox', BoundingBox
     type: 'BoundingBox';
     buffer: BufferConstructor;
     data: BoundingBoxData;
-    private worldPosition;
     constructor(args: BoundingBoxArgs);
     constructor(buffer: BufferConstructor);
     setFromGeometry(geometry: Geometry, transform?: Transform): void;
-    updateWorldPosition(transform: Transform): void;
-    getWorldPosition(): BoundingBoxData;
+    updateFromTransform(transform: Transform): void;
     static fromGeometry(geometry: Geometry, transform?: Transform): BoundingBox;
     static fromBuffer(buffer: BufferConstructor): BoundingBox;
 }

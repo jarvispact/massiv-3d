@@ -13,7 +13,7 @@ export const createUpdateBoundingBoxSystem = (): System => {
                 cache.push({
                     name,
                     update: () => {
-                        if (active.data) boundingbox.updateWorldPosition(transform);
+                        if (active.data) boundingbox.updateFromTransform(transform);
                     },
                 });
             }

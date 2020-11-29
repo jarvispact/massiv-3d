@@ -3,8 +3,8 @@ import { BoundingBox, Entity, KeyboardInput, System, Transform, Velocity } from 
 export const createPlayerControlSystem = (playerEntity: Entity, tableEntity: Entity, keyboardInput: KeyboardInput): System => {
     const playerTransform = playerEntity.getComponentByClass(Transform);
     const playerVelocity = playerEntity.getComponentByClass(Velocity);
-    const playerBB = playerEntity.getComponentByClass(BoundingBox).getWorldPosition();
-    const tableBB = tableEntity.getComponentByClass(BoundingBox).getWorldPosition();
+    const playerBB = playerEntity.getComponentByClass(BoundingBox).data;
+    const tableBB = tableEntity.getComponentByClass(BoundingBox).data;
     const v = playerVelocity.data.translation;
 
     return (delta) => {
