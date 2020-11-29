@@ -98,7 +98,7 @@ export class Transform implements Component<'Transform', TransformData> {
                 this.setQuaternion(0, 0, 0, 1);
             }
 
-            this.update().setDirty();
+            this.setDirty().update();
         }
     }
 

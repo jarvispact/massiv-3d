@@ -28,6 +28,11 @@ class BoundingBox {
                 center: new Float32Array(this.buffer, boundingBoxBufferLayout.center.offset, centerArraySize),
                 max: new Float32Array(this.buffer, boundingBoxBufferLayout.max.offset, maxArraySize),
             };
+            this.worldPosition = {
+                min: new Float32Array(this.buffer, boundingBoxBufferLayout.min.offset, minArraySize),
+                center: new Float32Array(this.buffer, boundingBoxBufferLayout.center.offset, centerArraySize),
+                max: new Float32Array(this.buffer, boundingBoxBufferLayout.max.offset, maxArraySize),
+            };
         }
         else {
             this.type = 'BoundingBox';
@@ -40,6 +45,14 @@ class BoundingBox {
             vec3.copy(this.data.min, args[0].min);
             vec3.copy(this.data.center, args[0].center);
             vec3.copy(this.data.max, args[0].max);
+            this.worldPosition = {
+                min: new Float32Array(3),
+                center: new Float32Array(3),
+                max: new Float32Array(3),
+            };
+            vec3.copy(this.worldPosition.min, args[0].min);
+            vec3.copy(this.worldPosition.center, args[0].center);
+            vec3.copy(this.worldPosition.max, args[0].max);
         }
     }
     setFromGeometry(geometry, transform) {
@@ -47,6 +60,17 @@ class BoundingBox {
         vec3.copy(this.data.min, args.min);
         vec3.copy(this.data.center, args.center);
         vec3.copy(this.data.max, args.max);
+    }
+    updateWorldPosition(transform) {
+        vec3.copy(this.worldPosition.min, this.data.min);
+        vec3.copy(this.worldPosition.center, this.data.center);
+        vec3.copy(this.worldPosition.max, this.data.max);
+        vec3.transformMat4(this.worldPosition.min, this.worldPosition.min, transform.data.modelMatrix);
+        vec3.transformMat4(this.worldPosition.center, this.worldPosition.center, transform.data.modelMatrix);
+        vec3.transformMat4(this.worldPosition.max, this.worldPosition.max, transform.data.modelMatrix);
+    }
+    getWorldPosition() {
+        return this.worldPosition;
     }
     static fromGeometry(geometry, transform) {
         return new BoundingBox(computeBoundingBox(geometry, transform));
@@ -63,7 +87,21 @@ const computeBoundingBox = (geometry, transform) => {
     const min = [0, 0, 0];
     const center = [0, 0, 0];
     const max = [0, 0, 0];
-    for (let i = 0; i < geometry.data.indices.length; i++) {
+    // the following separation for index 0 and the rest is done
+    // in the case that the geometry is translated, scaled or rotated.
+    // initialize from first index 0
+    const idx = geometry.data.indices[0];
+    const x = vertices[idx][0];
+    const y = vertices[idx][1];
+    const z = vertices[idx][2];
+    min[0] = x;
+    min[1] = y;
+    min[2] = z;
+    max[0] = x;
+    max[1] = y;
+    max[2] = z;
+    // starting at 1
+    for (let i = 1; i < geometry.data.indices.length - 1; i++) {
         const idx = geometry.data.indices[i];
         const x = vertices[idx][0];
         const y = vertices[idx][1];
@@ -225,7 +263,7 @@ class Transform {
             else {
                 this.setQuaternion(0, 0, 0, 1);
             }
-            this.update().setDirty();
+            this.setDirty().update();
         }
     }
     isDirty() {
@@ -337,6 +375,84 @@ class Transform {
     }
     static fromBuffer(buffer) {
         return new Transform(buffer);
+    }
+}
+
+const translationArraySize$1 = 3;
+const scalingArraySize$1 = 3;
+const rotationArraySize = 3;
+const translationSize$1 = translationArraySize$1 * Float32Array.BYTES_PER_ELEMENT;
+const scalingSize$1 = scalingArraySize$1 * Float32Array.BYTES_PER_ELEMENT;
+const rotationSize = rotationArraySize * Float32Array.BYTES_PER_ELEMENT;
+const totalSize$2 = translationSize$1 + scalingSize$1 + rotationSize;
+const translationOffset$1 = 0;
+const scalingOffset$1 = translationSize$1;
+const rotationOffset = translationSize$1 + scalingSize$1;
+const bufferLayout$1 = {
+    translation: { offset: translationOffset$1, size: translationArraySize$1 },
+    scaling: { offset: scalingOffset$1, size: scalingArraySize$1 },
+    rotation: { offset: rotationOffset, size: rotationArraySize },
+};
+class Velocity {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    constructor(...args) {
+        if (args[0] && typeof args[0].byteLength === 'number') {
+            this.type = 'Velocity';
+            this.buffer = args[0];
+            this.data = {
+                translation: new Float32Array(this.buffer, bufferLayout$1.translation.offset, bufferLayout$1.translation.size),
+                scaling: new Float32Array(this.buffer, bufferLayout$1.scaling.offset, bufferLayout$1.scaling.size),
+                rotation: new Float32Array(this.buffer, bufferLayout$1.rotation.offset, bufferLayout$1.rotation.size),
+            };
+        }
+        else {
+            this.type = 'Velocity';
+            this.buffer = isSABSupported() ? new SharedArrayBuffer(totalSize$2) : new ArrayBuffer(totalSize$2);
+            this.data = {
+                translation: new Float32Array(this.buffer, bufferLayout$1.translation.offset, bufferLayout$1.translation.size),
+                scaling: new Float32Array(this.buffer, bufferLayout$1.scaling.offset, bufferLayout$1.scaling.size),
+                rotation: new Float32Array(this.buffer, bufferLayout$1.rotation.offset, bufferLayout$1.rotation.size),
+            };
+            if (args[0] && args[0].translation) {
+                this.setTranslation(args[0].translation[0], args[0].translation[1], args[0].translation[2]);
+            }
+            else {
+                this.setTranslation(0, 0, 0);
+            }
+            if (args[0] && args[0].scaling) {
+                this.setScale(args[0].scaling[0], args[0].scaling[1], args[0].scaling[2]);
+            }
+            else {
+                this.setScale(0, 0, 0);
+            }
+            if (args[0] && args[0].rotation) {
+                this.setRotation(args[0].rotation[0], args[0].rotation[1], args[0].rotation[2]);
+            }
+            else {
+                this.setRotation(0, 0, 0);
+            }
+        }
+    }
+    setTranslation(x, y, z) {
+        this.data.translation[0] = x;
+        this.data.translation[1] = y;
+        this.data.translation[2] = z;
+        return this;
+    }
+    setScale(x, y, z) {
+        this.data.scaling[0] = x;
+        this.data.scaling[1] = y;
+        this.data.scaling[2] = z;
+        return this;
+    }
+    setRotation(x, y, z) {
+        this.data.rotation[0] = x;
+        this.data.rotation[1] = y;
+        this.data.rotation[2] = z;
+        return this;
+    }
+    static fromBuffer(buffer) {
+        return new Velocity(buffer);
     }
 }
 
@@ -1259,4 +1375,4 @@ class UBO {
     }
 }
 
-export { BoundingBox, DEG_TO_RAD, Entity, FileLoader, GLSL300ATTRIBUTE, Geometry, ImageLoader, KeyboardInput, MouseInput, RAD_TO_DEG, Transform, UBO, World, boundingBoxBufferLayout, computeBoundingBox, createMap, createTexture2D, createWebgl2ArrayBuffer, createWebgl2ElementArrayBuffer, createWebgl2Program, createWebgl2Shader, createWebgl2VertexArray, defaultContextAttributeOptions, degreesToRadians, getGeometryBufferLayout, getWebgl2Context, glsl300, hexToRgb, intersection, isSABSupported, parseMtlFile, parseObjFile, radiansToDegrees, rgbToHex, setupWebgl2VertexAttribPointer, toFloat, toInt, worldActions };
+export { BoundingBox, DEG_TO_RAD, Entity, FileLoader, GLSL300ATTRIBUTE, Geometry, ImageLoader, KeyboardInput, MouseInput, RAD_TO_DEG, Transform, UBO, Velocity, World, boundingBoxBufferLayout, computeBoundingBox, createMap, createTexture2D, createWebgl2ArrayBuffer, createWebgl2ElementArrayBuffer, createWebgl2Program, createWebgl2Shader, createWebgl2VertexArray, defaultContextAttributeOptions, degreesToRadians, getGeometryBufferLayout, getWebgl2Context, glsl300, hexToRgb, intersection, isSABSupported, parseMtlFile, parseObjFile, radiansToDegrees, rgbToHex, setupWebgl2VertexAttribPointer, toFloat, toInt, worldActions };

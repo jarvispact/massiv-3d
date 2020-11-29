@@ -31,9 +31,12 @@ export declare class BoundingBox implements Component<'BoundingBox', BoundingBox
     type: 'BoundingBox';
     buffer: BufferConstructor;
     data: BoundingBoxData;
+    private worldPosition;
     constructor(args: BoundingBoxArgs);
     constructor(buffer: BufferConstructor);
     setFromGeometry(geometry: Geometry, transform?: Transform): void;
+    updateWorldPosition(transform: Transform): void;
+    getWorldPosition(): BoundingBoxData;
     static fromGeometry(geometry: Geometry, transform?: Transform): BoundingBox;
     static fromBuffer(buffer: BufferConstructor): BoundingBox;
 }
