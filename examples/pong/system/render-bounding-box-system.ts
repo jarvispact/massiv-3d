@@ -27,8 +27,6 @@ const cameraUBOConfig = {
 
 type UBOConfig = typeof cameraUBOConfig;
 
-const identityMatrix = mat4.fromValues(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1);
-
 export const createRenderBoundingBoxSystem = (gl: WebGL2RenderingContext, cameraUbo: UBO<UBOConfig>): System => {
     const cache: Record<string, CachedEntity> = {};
 

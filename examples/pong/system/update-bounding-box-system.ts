@@ -1,4 +1,3 @@
-import { vec3 } from 'gl-matrix';
 import { BoundingBox, Component, System, Transform } from '../../../src';
 import { world } from '../world';
 
