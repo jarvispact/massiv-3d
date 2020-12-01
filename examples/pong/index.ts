@@ -48,12 +48,12 @@ const randomNegative = (val: number) => Math.round(Math.random()) === 0 ? -val :
     const tableBoundingBox = BoundingBox.fromGeometry(tableGeometry, tableTransform);    
     const tableEntity = new Entity('Table', [tableTransform, tableGeometry, tableBoundingBox, createColorComponent(0.6, 0.6, 0.6), createActiveComponent(false)]);
 
-    world.addSystem(createWebgl2RenderSystem(canvas, camera));
     world.addSystem(createPlayerControlSystem(playerEntity, tableEntity, keyboardInput));
     world.addSystem(createBallMovementSystem(ballEntity));
     world.addSystem(createUpdateBoundingBoxSystem());
     world.addSystem(createLevelSystem(ballEntity));
-    world.addSystem(createCollisionSystem(ballEntity, tableEntity));
+    world.addSystem(createCollisionSystem(ballEntity, playerEntity, tableEntity));
+    world.addSystem(createWebgl2RenderSystem(canvas, camera));
 
     world.addEntity(ballEntity);
     world.addEntity(playerEntity);
