@@ -2,10 +2,12 @@ import { BoundingBox, Entity, System, Transform, Velocity } from '../../../src';
 
 export const createCollisionSystem = (ballEntity: Entity, playerEntity: Entity, tableEntity: Entity): System => {
     const ballTransform = ballEntity.getComponentByClass(Transform);
-    const playerTransform = playerEntity.getComponentByClass(Transform);
     const ballVelocity = ballEntity.getComponentByClass(Velocity);
     const ballBoundingBox = ballEntity.getComponentByClass(BoundingBox);
+
+    const playerTransform = playerEntity.getComponentByClass(Transform);
     const playerBoundingBox = playerEntity.getComponentByClass(BoundingBox);
+
     const tableBoundingBox = tableEntity.getComponentByClass(BoundingBox);
 
     const bbx = ballBoundingBox.data;

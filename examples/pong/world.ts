@@ -31,13 +31,3 @@ export const world = new World<State, Action>({
         }
     }
 });
-
-const info = document.getElementById('info') as HTMLDivElement;
-
-world.subscribe((action, newState) => {
-    if (action.type === 'RESET' || action.type === 'TOGGLE-PAUSE-STATE' && newState.paused) {
-        info.style.display = 'block';
-    } else if (action.type === 'TOGGLE-PAUSE-STATE' && !newState.paused) {
-        info.style.display = 'none';
-    }
-});
