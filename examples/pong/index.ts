@@ -5,7 +5,6 @@ import { createWebgl2RenderSystem } from './system/webgl-2-render-system';
 import { vec3 } from 'gl-matrix';
 import { createLevelSystem } from './system/level-system';
 import { createCollisionSystem } from './system/collision-system';
-import { createUpdateBoundingBoxSystem } from './system/update-bounding-box-system';
 import { createMovementSystem } from './system/movement-system';
 import { createInputSystem } from './system/input-system';
 
@@ -54,7 +53,6 @@ const randomNegative = (val: number) => Math.round(Math.random()) === 0 ? -val :
 
     world.addSystem(createInputSystem(canvas, playerEntity, ballEntity));
     world.addSystem(createMovementSystem());
-    world.addSystem(createUpdateBoundingBoxSystem());
     world.addSystem(createLevelSystem(ballEntity));
     world.addSystem(createCollisionSystem(ballEntity, playerEntity, tableEntity));
     world.addSystem(createWebgl2RenderSystem(canvas, camera));
