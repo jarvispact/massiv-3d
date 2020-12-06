@@ -1,12 +1,11 @@
 import { BoundingBox, Entity, System, Transform, Velocity } from '../../../src';
-import { ActiveComponent, randomNegative } from '../misc';
+import { randomNegative } from '../misc';
 import { world, worldActions } from '../world';
 
 export const createCollisionSystem = (ballEntity: Entity, playerEntity: Entity, tableEntity: Entity): System => {
     const ballTransform = ballEntity.getComponentByClass(Transform);
     const ballVelocity = ballEntity.getComponentByClass(Velocity);
     const ballBoundingBox = ballEntity.getComponentByClass(BoundingBox);
-    const ballActive = ballEntity.getComponentByType('Active') as ActiveComponent;
 
     const playerTransform = playerEntity.getComponentByClass(Transform);
     const playerBoundingBox = playerEntity.getComponentByClass(BoundingBox);
@@ -22,7 +21,6 @@ export const createCollisionSystem = (ballEntity: Entity, playerEntity: Entity, 
             ballTransform.setTranslation(0, 0, 0).update();
             playerTransform.setTranslation(0, 0, 0).update();
             ballVelocity.setTranslation(randomNegative(1.5), 0, -5);
-            ballActive.data = false;
         }
     });
 
@@ -49,7 +47,7 @@ export const createCollisionSystem = (ballEntity: Entity, playerEntity: Entity, 
         }
 
         // ball - bottom wall (reset)
-        if (bbx.max[2] >= tbx.max[2] + 1) {
+        if (bbx.max[2] >= tbx.max[2]) {
             world.dispatch(worldActions.reset());
         }
 
@@ -69,7 +67,7 @@ export const createCollisionSystem = (ballEntity: Entity, playerEntity: Entity, 
                 if (ballVelocity.data.translation[0] >= 0) {
                     ballVelocity.data.translation[0] -= 1;
                 } else {
-                    ballVelocity.data.translation[0] -= 3;
+                    ballVelocity.data.translation[0] -= 2;
                 }
             }
         }

@@ -5,6 +5,3 @@ export const randomNegative = (val: number) => Math.round(Math.random()) === 0 ?
 
 export const createColorComponent = (r: number, g: number, b: number): Component<'Color', vec3> => ({ type: 'Color', data: vec3.fromValues(r, g, b) });
 export type ColorComponent = ReturnType<typeof createColorComponent>;
-
-export const createActiveComponent = (initialActive: boolean): Component<'Active', boolean> => ({ type: 'Active', data: initialActive });
-export type ActiveComponent = ReturnType<typeof createActiveComponent>;

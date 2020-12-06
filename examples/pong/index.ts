@@ -6,7 +6,7 @@ import { createLevelSystem } from './system/level-system';
 import { createCollisionSystem } from './system/collision-system';
 import { createMovementSystem } from './system/movement-system';
 import { createInputSystem } from './system/input-system';
-import { createActiveComponent, createColorComponent, randomNegative } from './misc';
+import { createColorComponent, randomNegative } from './misc';
 
 (async () => {
     const canvas = document.getElementById('canvas') as HTMLCanvasElement;
@@ -33,20 +33,20 @@ import { createActiveComponent, createColorComponent, randomNegative } from './m
     const ballGeometry = new Geometry(ball);
     const ballVelocity = new Velocity({ translation: [randomNegative(1.5), 0, -5] });
     const ballBoundingBox = BoundingBox.fromGeometry(ballGeometry, ballTransform);
-    const ballEntity = new Entity('Ball', [ballTransform, ballGeometry, ballVelocity, ballBoundingBox, createColorComponent(1, 0, 0), createActiveComponent(false)]);
+    const ballEntity = new Entity('Ball', [ballTransform, ballGeometry, ballVelocity, ballBoundingBox, createColorComponent(1, 0, 0)]);
 
     const playerTransform = new Transform();
     const playerGeometry = new Geometry(player);
     const playerVelocity = new Velocity({ translation: [0, 0, 0] });
     const playerBoundingBox = BoundingBox.fromGeometry(playerGeometry, playerTransform);
-    const playerEntity = new Entity('Player', [playerTransform, playerGeometry, playerVelocity, playerBoundingBox, createColorComponent(0, 1, 0), createActiveComponent(false)]);
+    const playerEntity = new Entity('Player', [playerTransform, playerGeometry, playerVelocity, playerBoundingBox, createColorComponent(0, 1, 0)]);
 
     const tableTransform = new Transform();
     const tableGeometry = new Geometry(table);
     const tableBoundingBox = BoundingBox.fromGeometry(tableGeometry, tableTransform);
-    const tableEntity = new Entity('Table', [tableTransform, tableGeometry, tableBoundingBox, createColorComponent(0.6, 0.6, 0.6), createActiveComponent(false)]);
+    const tableEntity = new Entity('Table', [tableTransform, tableGeometry, tableBoundingBox, createColorComponent(0.6, 0.6, 0.6)]);
 
-    world.addSystem(createInputSystem(canvas, playerEntity, ballEntity));
+    world.addSystem(createInputSystem(canvas, playerEntity));
     world.addSystem(createMovementSystem());
     world.addSystem(createLevelSystem(ballEntity));
     world.addSystem(createCollisionSystem(ballEntity, playerEntity, tableEntity));
