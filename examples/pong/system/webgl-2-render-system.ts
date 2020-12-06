@@ -1,9 +1,7 @@
-import { createWebgl2ArrayBuffer, createWebgl2ElementArrayBuffer, createWebgl2Program, createWebgl2Shader, createWebgl2VertexArray, Geometry, getWebgl2Context, glsl300, setupWebgl2VertexAttribPointer, System, Transform, UBO } from '../../../src';
+import { createWebgl2ArrayBuffer, createWebgl2ElementArrayBuffer, createWebgl2Program, createWebgl2Shader, createWebgl2VertexArray, Geometry, glsl300, setupWebgl2VertexAttribPointer, System, Transform } from '../../../src';
 import { world } from '../world';
-import { Camera } from '../camera/camera';
 import { vec3 } from 'gl-matrix';
-import { PerspectiveCamera } from '../camera/perspective-camera';
-import { createRenderBoundingBoxSystem } from './render-bounding-box-system';
+import { CameraUBO } from '../misc';
 
 type CachedEntity = {
     name: string;
@@ -66,32 +64,15 @@ const fs = glsl300({
     }
 `;
 
-export const createWebgl2RenderSystem = (canvas: HTMLCanvasElement, camera: Camera): System => {
-    const gl = getWebgl2Context(canvas);
+export const createWebgl2RenderSystem = (gl: WebGL2RenderingContext, cameraUbo: CameraUBO): System => {
     const cache: Array<CachedEntity> = [];
 
     const vertexShader = createWebgl2Shader(gl, gl.VERTEX_SHADER, vs.sourceCode);
     const fragmentShader = createWebgl2Shader(gl, gl.FRAGMENT_SHADER, fs.sourceCode);
     const shaderProgram = createWebgl2Program(gl, vertexShader, fragmentShader);
     gl.useProgram(shaderProgram);
+    cameraUbo.bindToShaderProgram(shaderProgram);
 
-    const ubo = new UBO(gl, 'CameraUniforms', 0, {
-        'CameraUniforms.translation': { data: camera.translation },
-        'CameraUniforms.viewMatrix': { data: camera.viewMatrix },
-        'CameraUniforms.projectionMatrix': { data: camera.projectionMatrix },
-    });
-
-    window.addEventListener('resize', () => {
-        canvas.width = canvas.clientWidth;
-        canvas.height = canvas.clientHeight;
-        gl.viewport(0, 0, canvas.width, canvas.height);
-        if (camera instanceof PerspectiveCamera) {
-            camera.setAspect(canvas.width / canvas.height);
-            ubo.setView('CameraUniforms.projectionMatrix', camera.projectionMatrix).update();
-        }
-    });
-
-    ubo.bindToShaderProgram(shaderProgram);
     const modelMatrixLocation = gl.getUniformLocation(shaderProgram, 'modelMatrix');
     const colorLocation = gl.getUniformLocation(shaderProgram, 'color');
 
@@ -111,6 +92,7 @@ export const createWebgl2RenderSystem = (canvas: HTMLCanvasElement, camera: Came
                 const indexBuffer = createWebgl2ElementArrayBuffer(gl, geometry.data.indices);
                 const indexCount = geometry.data.indices.length;
 
+                gl.useProgram(shaderProgram);
                 gl.uniformMatrix4fv(modelMatrixLocation, false, transform.data.modelMatrix);
                 gl.uniform3fv(colorLocation, color.data);
 
@@ -137,15 +119,11 @@ export const createWebgl2RenderSystem = (canvas: HTMLCanvasElement, camera: Came
         }
     });
 
-    const renderBBSystem = createRenderBoundingBoxSystem(gl, ubo);
-
-    return (delta, time) => {
+    return () => {
         gl.useProgram(shaderProgram);
 
         for (let i = 0; i < cache.length; i++) {
             cache[i].update();
         }
-
-        renderBBSystem(delta, time);
     };
 };

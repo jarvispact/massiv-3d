@@ -1,4 +1,4 @@
-import { BoundingBox, Entity, FileLoader, Geometry, ParsedObjPrimitive, parseObjFile, Transform, Velocity } from '../../src';
+import { BoundingBox, Entity, FileLoader, Geometry, getWebgl2Context, ParsedObjPrimitive, parseObjFile, Transform, UBO, Velocity } from '../../src';
 import { world } from './world';
 import { PerspectiveCamera } from './camera/perspective-camera';
 import { createWebgl2RenderSystem } from './system/webgl-2-render-system';
@@ -6,12 +6,17 @@ import { createLevelSystem } from './system/level-system';
 import { createCollisionSystem } from './system/collision-system';
 import { createMovementSystem } from './system/movement-system';
 import { createInputSystem } from './system/input-system';
-import { createColorComponent, randomNegative } from './misc';
+import { getCameraUBOConfig, createColorComponent, randomNegative } from './misc';
+import { createRenderBoundingBoxSystem } from './system/render-bounding-box-system';
 
 (async () => {
+    const objects = await FileLoader.load('./assets/pong.obj').then(parseObjFile);
+
     const canvas = document.getElementById('canvas') as HTMLCanvasElement;
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
+
+    const gl = getWebgl2Context(canvas);
 
     const info = document.getElementById('info') as HTMLDivElement;
     world.subscribe((action, newState) => {
@@ -23,26 +28,30 @@ import { createColorComponent, randomNegative } from './misc';
     });
 
     const camera = new PerspectiveCamera({ translation: [0, 3, 10], fov: 45, aspect: canvas.width / canvas.height, near: 0.01, far: 1000 });
+    const ubo = new UBO(gl, 'CameraUniforms', 0, getCameraUBOConfig(camera));
 
-    const objects = await FileLoader.load('./assets/pong.obj').then(parseObjFile);
-    const ball = objects.find(o => o.name === 'Ball_Sphere') as ParsedObjPrimitive;
-    const table = objects.find(o => o.name === 'Table_Cube') as ParsedObjPrimitive;
-    const player = objects.find(o => o.name === 'Player_Cube.001') as ParsedObjPrimitive;
+    window.addEventListener('resize', () => {
+        canvas.width = canvas.clientWidth;
+        canvas.height = canvas.clientHeight;
+        gl.viewport(0, 0, canvas.width, canvas.height);
+        camera.setAspect(canvas.width / canvas.height);
+        ubo.setView('CameraUniforms.projectionMatrix', camera.projectionMatrix).update();
+    });
 
     const ballTransform = new Transform();
-    const ballGeometry = new Geometry(ball);
+    const ballGeometry = new Geometry(objects.find(o => o.name === 'Ball_Sphere') as ParsedObjPrimitive);
     const ballVelocity = new Velocity({ translation: [randomNegative(1.5), 0, -5] });
     const ballBoundingBox = BoundingBox.fromGeometry(ballGeometry, ballTransform);
     const ballEntity = new Entity('Ball', [ballTransform, ballGeometry, ballVelocity, ballBoundingBox, createColorComponent(1, 0, 0)]);
 
     const playerTransform = new Transform();
-    const playerGeometry = new Geometry(player);
+    const playerGeometry = new Geometry(objects.find(o => o.name === 'Player_Cube.001') as ParsedObjPrimitive);
     const playerVelocity = new Velocity({ translation: [0, 0, 0] });
     const playerBoundingBox = BoundingBox.fromGeometry(playerGeometry, playerTransform);
     const playerEntity = new Entity('Player', [playerTransform, playerGeometry, playerVelocity, playerBoundingBox, createColorComponent(0, 1, 0)]);
 
     const tableTransform = new Transform();
-    const tableGeometry = new Geometry(table);
+    const tableGeometry = new Geometry(objects.find(o => o.name === 'Table_Cube') as ParsedObjPrimitive);
     const tableBoundingBox = BoundingBox.fromGeometry(tableGeometry, tableTransform);
     const tableEntity = new Entity('Table', [tableTransform, tableGeometry, tableBoundingBox, createColorComponent(0.6, 0.6, 0.6)]);
 
@@ -50,7 +59,8 @@ import { createColorComponent, randomNegative } from './misc';
     world.addSystem(createMovementSystem());
     world.addSystem(createLevelSystem(ballEntity));
     world.addSystem(createCollisionSystem(ballEntity, playerEntity, tableEntity));
-    world.addSystem(createWebgl2RenderSystem(canvas, camera));
+    world.addSystem(createWebgl2RenderSystem(gl, ubo));
+    world.addSystem(createRenderBoundingBoxSystem(gl, ubo));
 
     world.addEntity(ballEntity);
     world.addEntity(playerEntity);
