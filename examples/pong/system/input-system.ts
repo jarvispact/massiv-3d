@@ -1,10 +1,12 @@
-import { Component, Entity, KeyboardInput, System, Velocity } from '../../../src';
+import { Entity, KeyboardInput, System, Velocity } from '../../../src';
+import { ActiveComponent } from '../misc';
 import { world, worldActions } from '../world';
 
 export const createInputSystem = (canvas: HTMLCanvasElement, playerEntity: Entity, ballEntity: Entity): System => {
     const keyboardInput = new KeyboardInput(canvas);
     const playerVelocity = playerEntity.getComponentByClass(Velocity);
-    const ballActive = ballEntity.getComponentByType('Active') as Component<'Active', boolean>;
+    const ballActive = ballEntity.getComponentByType('Active') as ActiveComponent;
+    const playerActive = playerEntity.getComponentByType('Active') as ActiveComponent;
 
     keyboardInput.onKeyUp((event) => {
         if (event.key === KeyboardInput.KEY.SPACE) world.dispatch(worldActions.togglePauseState());
@@ -13,6 +15,7 @@ export const createInputSystem = (canvas: HTMLCanvasElement, playerEntity: Entit
     world.subscribe((action, newState) => {
         if (action.type === 'TOGGLE-PAUSE-STATE') {
             ballActive.data = !newState.paused;
+            playerActive.data = !newState.paused;
         }
     });
 

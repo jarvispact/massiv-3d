@@ -2,6 +2,7 @@ import { mat4, vec3 } from 'gl-matrix';
 import {
     BoundingBox,
     createWebgl2ArrayBuffer,
+    createWebgl2ElementArrayBuffer,
     createWebgl2Program,
     createWebgl2Shader,
     createWebgl2VertexArray,
@@ -63,50 +64,11 @@ export const createRenderBoundingBoxSystem = (gl: WebGL2RenderingContext, camera
         const shaderProgram = createWebgl2Program(gl, vertexShader, fragmentShader);
         const vao = createWebgl2VertexArray(gl);
 
-        const min = boundingBox.data.min;
-        const max = boundingBox.data.max;
-
-        const positions = new Float32Array([
-            // line 1
-            min[0], min[1], max[2], // -x -y +z
-            max[0], min[1], max[2], // +x -y +z
-            // line 2
-            min[0], max[1], max[2], // -x +y +z
-            max[0], max[1], max[2], // +x +y +z
-            // line 3
-            min[0], min[1], min[2], // -x -y -z
-            max[0], min[1], min[2], // +x -y -z
-            // line 4
-            min[0], max[1], min[2], // -x +y -z
-            max[0], max[1], min[2], // +x +y -z
-            // line 5
-            max[0], min[1], max[2], // +x -y +z
-            max[0], min[1], min[2], // +x -y -z
-            // line 6
-            max[0], max[1], max[2], // +x +y +z
-            max[0], max[1], min[2], // +x +y -z
-            // line 5
-            min[0], min[1], max[2], // -x -y +z
-            min[0], min[1], min[2], // -x -y -z
-            // line 6
-            min[0], max[1], max[2], // -x +y +z
-            min[0], max[1], min[2], // -x +y -z
-            // line 7
-            min[0], min[1], max[2], // -x -y +z
-            min[0], max[1], max[2], // -x +y +z
-            // line 8
-            max[0], min[1], max[2], // +x -y +z
-            max[0], max[1], max[2], // +x +y +z
-            // line 9
-            min[0], min[1], min[2], // -x -y -z
-            min[0], max[1], min[2], // -x +y -z
-            // line 10
-            max[0], min[1], min[2], // +x -y -z
-            max[0], max[1], min[2], // +x +y -z
-        ]);
-
-        const positionBuffer = createWebgl2ArrayBuffer(gl, positions);
+        const lineGeometry = boundingBox.getLineGeometry();
+        const positionBuffer = createWebgl2ArrayBuffer(gl, lineGeometry.data.positions);
         setupWebgl2VertexAttribPointer(gl, 0, 3);
+        const indexBuffer = createWebgl2ElementArrayBuffer(gl, lineGeometry.data.indices);
+        const indexCount = lineGeometry.data.indices.length;
 
         gl.useProgram(shaderProgram);
         cameraUbo.bindToShaderProgram(shaderProgram);
@@ -117,15 +79,19 @@ export const createRenderBoundingBoxSystem = (gl: WebGL2RenderingContext, camera
         const cachedEntity = {
             update: () => {
                 gl.useProgram(shaderProgram);
-                gl.bindVertexArray(vao);
+
                 gl.uniformMatrix4fv(modelMatrixLocation, false, transform.data.modelMatrix);
-                gl.drawArrays(gl.LINES, 0, positions.length);
+
+                gl.bindVertexArray(vao);
+                gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
+                gl.drawElements(gl.LINES, indexCount, gl.UNSIGNED_INT, 0);
             },
             cleanup: () => {
                 gl.deleteShader(vertexShader);
                 gl.deleteShader(fragmentShader);
                 gl.deleteProgram(shaderProgram);
                 gl.deleteBuffer(positionBuffer);
+                gl.deleteBuffer(indexBuffer);
                 gl.deleteVertexArray(vao);
             },
         };

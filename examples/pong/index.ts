@@ -1,17 +1,12 @@
-import { BoundingBox, Component, Entity, FileLoader, Geometry, ParsedObjPrimitive, parseObjFile, Transform, Velocity } from '../../src';
+import { BoundingBox, Entity, FileLoader, Geometry, ParsedObjPrimitive, parseObjFile, Transform, Velocity } from '../../src';
 import { world } from './world';
 import { PerspectiveCamera } from './camera/perspective-camera';
 import { createWebgl2RenderSystem } from './system/webgl-2-render-system';
-import { vec3 } from 'gl-matrix';
 import { createLevelSystem } from './system/level-system';
 import { createCollisionSystem } from './system/collision-system';
 import { createMovementSystem } from './system/movement-system';
 import { createInputSystem } from './system/input-system';
-
-const createColorComponent = (r: number, g: number, b: number): Component<'Color', vec3> => ({ type: 'Color', data: vec3.fromValues(r, g, b) });
-const createActiveComponent = (initialActive: boolean): Component<'Active', boolean> => ({ type: 'Active', data: initialActive });
-
-const randomNegative = (val: number) => Math.round(Math.random()) === 0 ? -val : val;
+import { createActiveComponent, createColorComponent, randomNegative } from './misc';
 
 (async () => {
     const canvas = document.getElementById('canvas') as HTMLCanvasElement;
@@ -20,7 +15,7 @@ const randomNegative = (val: number) => Math.round(Math.random()) === 0 ? -val :
 
     const info = document.getElementById('info') as HTMLDivElement;
     world.subscribe((action, newState) => {
-        if (action.type === 'RESET' || action.type === 'TOGGLE-PAUSE-STATE' && newState.paused) {
+        if (action.type === 'RESET' || (action.type === 'TOGGLE-PAUSE-STATE' && newState.paused)) {
             info.style.display = 'block';
         } else if (action.type === 'TOGGLE-PAUSE-STATE' && !newState.paused) {
             info.style.display = 'none';
@@ -44,11 +39,11 @@ const randomNegative = (val: number) => Math.round(Math.random()) === 0 ? -val :
     const playerGeometry = new Geometry(player);
     const playerVelocity = new Velocity({ translation: [0, 0, 0] });
     const playerBoundingBox = BoundingBox.fromGeometry(playerGeometry, playerTransform);
-    const playerEntity = new Entity('Player', [playerTransform, playerGeometry, playerVelocity, playerBoundingBox, createColorComponent(0, 1, 0), createActiveComponent(true)]);
+    const playerEntity = new Entity('Player', [playerTransform, playerGeometry, playerVelocity, playerBoundingBox, createColorComponent(0, 1, 0), createActiveComponent(false)]);
 
     const tableTransform = new Transform();
     const tableGeometry = new Geometry(table);
-    const tableBoundingBox = BoundingBox.fromGeometry(tableGeometry, tableTransform);    
+    const tableBoundingBox = BoundingBox.fromGeometry(tableGeometry, tableTransform);
     const tableEntity = new Entity('Table', [tableTransform, tableGeometry, tableBoundingBox, createColorComponent(0.6, 0.6, 0.6), createActiveComponent(false)]);
 
     world.addSystem(createInputSystem(canvas, playerEntity, ballEntity));

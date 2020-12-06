@@ -116,6 +116,10 @@ export class BoundingBox implements Component<'BoundingBox', BoundingBoxData> {
         vec3.transformMat4(this.data.max, this.data.max, transform.data.modelMatrix);
     }
 
+    getLineGeometry() {
+        return getLineGeometryFromBoundingBox(this);
+    }
+
     static fromGeometry(geometry: Geometry, transform?: Transform) {
         return new BoundingBox(computeBoundingBox(geometry, transform));
     }
@@ -153,7 +157,6 @@ export const computeBoundingBox = (geometry: Geometry, transform?: Transform) =>
     max[1] = y;
     max[2] = z;
 
-    
     // starting at 1
     for (let i = 1; i < geometry.data.indices.length - 1; i++) {
         const idx = geometry.data.indices[i];
@@ -182,3 +185,62 @@ export const computeBoundingBox = (geometry: Geometry, transform?: Transform) =>
 
     return { min, center, max };
 };
+
+export const getLineGeometryFromBoundingBox = (boundingBox: BoundingBox) => {
+    const min = boundingBox.data.min;
+    const max = boundingBox.data.max;
+
+    const positions = new Float32Array([
+        min[0], min[1], max[2],
+        max[0], min[1], max[2],
+        min[0], max[1], max[2],
+        max[0], max[1], max[2],
+        min[0], min[1], min[2],
+        max[0], min[1], min[2],
+        min[0], max[1], min[2],
+        max[0], max[1], min[2],
+    ]);
+
+    const indices = new Uint32Array([0, 1, 2, 3, 4, 5, 6, 7, 1, 5, 3, 7, 0, 4, 2, 6, 0, 2, 1, 3, 4, 6, 5, 7]);
+
+    return new Geometry({ positions, indices });
+};
+
+// const positions = new Float32Array([
+//     // line 1
+//     min[0], min[1], max[2], // -x -y +z
+//     max[0], min[1], max[2], // +x -y +z
+//     // line 2
+//     min[0], max[1], max[2], // -x +y +z
+//     max[0], max[1], max[2], // +x +y +z
+//     // line 3
+//     min[0], min[1], min[2], // -x -y -z
+//     max[0], min[1], min[2], // +x -y -z
+//     // line 4
+//     min[0], max[1], min[2], // -x +y -z
+//     max[0], max[1], min[2], // +x +y -z
+//     // line 5
+//     max[0], min[1], max[2], // +x -y +z
+//     max[0], min[1], min[2], // +x -y -z
+//     // line 6
+//     max[0], max[1], max[2], // +x +y +z
+//     max[0], max[1], min[2], // +x +y -z
+//     // line 5
+//     min[0], min[1], max[2], // -x -y +z
+//     min[0], min[1], min[2], // -x -y -z
+//     // line 6
+//     min[0], max[1], max[2], // -x +y +z
+//     min[0], max[1], min[2], // -x +y -z
+//     // line 7
+//     min[0], min[1], max[2], // -x -y +z
+//     min[0], max[1], max[2], // -x +y +z
+//     // line 8
+//     max[0], min[1], max[2], // +x -y +z
+//     max[0], max[1], max[2], // +x +y +z
+//     // line 9
+//     min[0], min[1], min[2], // -x -y -z
+//     min[0], max[1], min[2], // -x +y -z
+//     // line 10
+//     max[0], min[1], min[2], // +x -y -z
+//     max[0], max[1], min[2], // +x +y -z
+// ]);

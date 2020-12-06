@@ -1,4 +1,5 @@
-import { BoundingBox, Component, System, Transform, Velocity } from '../../../src';
+import { BoundingBox, System, Transform, Velocity } from '../../../src';
+import { ActiveComponent } from '../misc';
 import { world } from '../world';
 
 export const createMovementSystem = (): System => {
@@ -8,7 +9,7 @@ export const createMovementSystem = (): System => {
         if (action.type === 'ADD-ENTITY') {
             const transform = action.payload.getComponentByClass(Transform);
             const velocity = action.payload.getComponentByClass(Velocity);
-            const active = action.payload.getComponentByType('Active') as Component<'Active', boolean>;
+            const active = action.payload.getComponentByType('Active') as ActiveComponent;
             const boundingbox = action.payload.getComponentByClass(BoundingBox);
             if (transform && velocity && active) {
                 cache.push({

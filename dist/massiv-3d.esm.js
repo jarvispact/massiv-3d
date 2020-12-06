@@ -2,6 +2,70 @@ import { vec3, quat, mat4 } from 'gl-matrix';
 
 const isSABSupported = () => 'SharedArrayBuffer' in window;
 
+const getGeometryBufferLayout = (args) => {
+    const positionsSize = args.positions.length * Float32Array.BYTES_PER_ELEMENT;
+    const indicesSize = args.indices.length * Uint32Array.BYTES_PER_ELEMENT;
+    const uvsSize = args.uvs ? args.uvs.length * Float32Array.BYTES_PER_ELEMENT : 0;
+    const normalsSize = args.normals ? args.normals.length * Float32Array.BYTES_PER_ELEMENT : 0;
+    const colorsSize = args.colors ? args.colors.length * Float32Array.BYTES_PER_ELEMENT : 0;
+    const positionsOffset = 0;
+    const indicesOffset = positionsSize;
+    const uvsOffset = positionsSize + indicesSize;
+    const normalsOffset = positionsSize + indicesSize + uvsSize;
+    const colorsOffset = positionsSize + indicesSize + uvsSize + normalsSize;
+    const bufferSize = positionsSize + indicesSize + uvsSize + normalsSize + colorsSize;
+    return {
+        bufferSize,
+        layout: {
+            positions: { offset: positionsOffset, size: args.positions.length },
+            indices: { offset: indicesOffset, size: args.indices.length },
+            uvs: { offset: uvsOffset, size: args.uvs ? args.uvs.length : 0 },
+            normals: { offset: normalsOffset, size: args.normals ? args.normals.length : 0 },
+            colors: { offset: colorsOffset, size: args.colors ? args.colors.length : 0 },
+        },
+    };
+};
+class Geometry {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    constructor(...args) {
+        if (args.length === 1) {
+            this.type = 'Geometry';
+            this.bufferLayout = getGeometryBufferLayout(args[0]);
+            this.buffer = isSABSupported() ? new SharedArrayBuffer(this.bufferLayout.bufferSize) : new ArrayBuffer(this.bufferLayout.bufferSize);
+            this.data = {
+                positions: new Float32Array(this.buffer, this.bufferLayout.layout.positions.offset, this.bufferLayout.layout.positions.size),
+                indices: new Uint32Array(this.buffer, this.bufferLayout.layout.indices.offset, this.bufferLayout.layout.indices.size),
+                uvs: new Float32Array(this.buffer, this.bufferLayout.layout.uvs.offset, this.bufferLayout.layout.uvs.size),
+                normals: new Float32Array(this.buffer, this.bufferLayout.layout.normals.offset, this.bufferLayout.layout.normals.size),
+                colors: new Float32Array(this.buffer, this.bufferLayout.layout.colors.offset, this.bufferLayout.layout.colors.size),
+            };
+            this.data.positions.set(args[0].positions);
+            this.data.indices.set(args[0].indices);
+            this.data.uvs.set(args[0].uvs || []);
+            this.data.normals.set(args[0].normals || []);
+            this.data.colors.set(args[0].colors || []);
+        }
+        else if (args.length === 2) {
+            this.type = 'Geometry';
+            this.bufferLayout = args[0];
+            this.buffer = args[1];
+            this.data = {
+                positions: new Float32Array(this.buffer, this.bufferLayout.layout.positions.offset, this.bufferLayout.layout.positions.size),
+                indices: new Uint32Array(this.buffer, this.bufferLayout.layout.indices.offset, this.bufferLayout.layout.indices.size),
+                uvs: new Float32Array(this.buffer, this.bufferLayout.layout.uvs.offset, this.bufferLayout.layout.uvs.size),
+                normals: new Float32Array(this.buffer, this.bufferLayout.layout.normals.offset, this.bufferLayout.layout.normals.size),
+                colors: new Float32Array(this.buffer, this.bufferLayout.layout.colors.offset, this.bufferLayout.layout.colors.size),
+            };
+        }
+        else {
+            throw new Error('invalid argument length');
+        }
+    }
+    static fromBuffer(bufferLayout, buffer) {
+        return new Geometry(bufferLayout, buffer);
+    }
+}
+
 const initialMinArraySize = 3;
 const initialCenterArraySize = 3;
 const initialMaxArraySize = 3;
@@ -81,6 +145,9 @@ class BoundingBox {
         vec3.transformMat4(this.data.center, this.data.center, transform.data.modelMatrix);
         vec3.transformMat4(this.data.max, this.data.max, transform.data.modelMatrix);
     }
+    getLineGeometry() {
+        return getLineGeometryFromBoundingBox(this);
+    }
     static fromGeometry(geometry, transform) {
         return new BoundingBox(computeBoundingBox(geometry, transform));
     }
@@ -138,70 +205,60 @@ const computeBoundingBox = (geometry, transform) => {
     }
     return { min, center, max };
 };
-
-const getGeometryBufferLayout = (args) => {
-    const positionsSize = args.positions.length * Float32Array.BYTES_PER_ELEMENT;
-    const indicesSize = args.indices.length * Uint32Array.BYTES_PER_ELEMENT;
-    const uvsSize = args.uvs ? args.uvs.length * Float32Array.BYTES_PER_ELEMENT : 0;
-    const normalsSize = args.normals ? args.normals.length * Float32Array.BYTES_PER_ELEMENT : 0;
-    const colorsSize = args.colors ? args.colors.length * Float32Array.BYTES_PER_ELEMENT : 0;
-    const positionsOffset = 0;
-    const indicesOffset = positionsSize;
-    const uvsOffset = positionsSize + indicesSize;
-    const normalsOffset = positionsSize + indicesSize + uvsSize;
-    const colorsOffset = positionsSize + indicesSize + uvsSize + normalsSize;
-    const bufferSize = positionsSize + indicesSize + uvsSize + normalsSize + colorsSize;
-    return {
-        bufferSize,
-        layout: {
-            positions: { offset: positionsOffset, size: args.positions.length },
-            indices: { offset: indicesOffset, size: args.indices.length },
-            uvs: { offset: uvsOffset, size: args.uvs ? args.uvs.length : 0 },
-            normals: { offset: normalsOffset, size: args.normals ? args.normals.length : 0 },
-            colors: { offset: colorsOffset, size: args.colors ? args.colors.length : 0 },
-        },
-    };
+const getLineGeometryFromBoundingBox = (boundingBox) => {
+    const min = boundingBox.data.min;
+    const max = boundingBox.data.max;
+    const positions = new Float32Array([
+        min[0], min[1], max[2],
+        max[0], min[1], max[2],
+        min[0], max[1], max[2],
+        max[0], max[1], max[2],
+        min[0], min[1], min[2],
+        max[0], min[1], min[2],
+        min[0], max[1], min[2],
+        max[0], max[1], min[2],
+    ]);
+    const indices = new Uint32Array([0, 1, 2, 3, 4, 5, 6, 7, 1, 5, 3, 7, 0, 4, 2, 6, 0, 2, 1, 3, 4, 6, 5, 7]);
+    return new Geometry({ positions, indices });
 };
-class Geometry {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    constructor(...args) {
-        if (args.length === 1) {
-            this.type = 'Geometry';
-            this.bufferLayout = getGeometryBufferLayout(args[0]);
-            this.buffer = isSABSupported() ? new SharedArrayBuffer(this.bufferLayout.bufferSize) : new ArrayBuffer(this.bufferLayout.bufferSize);
-            this.data = {
-                positions: new Float32Array(this.buffer, this.bufferLayout.layout.positions.offset, this.bufferLayout.layout.positions.size),
-                indices: new Uint32Array(this.buffer, this.bufferLayout.layout.indices.offset, this.bufferLayout.layout.indices.size),
-                uvs: new Float32Array(this.buffer, this.bufferLayout.layout.uvs.offset, this.bufferLayout.layout.uvs.size),
-                normals: new Float32Array(this.buffer, this.bufferLayout.layout.normals.offset, this.bufferLayout.layout.normals.size),
-                colors: new Float32Array(this.buffer, this.bufferLayout.layout.colors.offset, this.bufferLayout.layout.colors.size),
-            };
-            this.data.positions.set(args[0].positions);
-            this.data.indices.set(args[0].indices);
-            this.data.uvs.set(args[0].uvs || []);
-            this.data.normals.set(args[0].normals || []);
-            this.data.colors.set(args[0].colors || []);
-        }
-        else if (args.length === 2) {
-            this.type = 'Geometry';
-            this.bufferLayout = args[0];
-            this.buffer = args[1];
-            this.data = {
-                positions: new Float32Array(this.buffer, this.bufferLayout.layout.positions.offset, this.bufferLayout.layout.positions.size),
-                indices: new Uint32Array(this.buffer, this.bufferLayout.layout.indices.offset, this.bufferLayout.layout.indices.size),
-                uvs: new Float32Array(this.buffer, this.bufferLayout.layout.uvs.offset, this.bufferLayout.layout.uvs.size),
-                normals: new Float32Array(this.buffer, this.bufferLayout.layout.normals.offset, this.bufferLayout.layout.normals.size),
-                colors: new Float32Array(this.buffer, this.bufferLayout.layout.colors.offset, this.bufferLayout.layout.colors.size),
-            };
-        }
-        else {
-            throw new Error('invalid argument length');
-        }
-    }
-    static fromBuffer(bufferLayout, buffer) {
-        return new Geometry(bufferLayout, buffer);
-    }
-}
+// const positions = new Float32Array([
+//     // line 1
+//     min[0], min[1], max[2], // -x -y +z
+//     max[0], min[1], max[2], // +x -y +z
+//     // line 2
+//     min[0], max[1], max[2], // -x +y +z
+//     max[0], max[1], max[2], // +x +y +z
+//     // line 3
+//     min[0], min[1], min[2], // -x -y -z
+//     max[0], min[1], min[2], // +x -y -z
+//     // line 4
+//     min[0], max[1], min[2], // -x +y -z
+//     max[0], max[1], min[2], // +x +y -z
+//     // line 5
+//     max[0], min[1], max[2], // +x -y +z
+//     max[0], min[1], min[2], // +x -y -z
+//     // line 6
+//     max[0], max[1], max[2], // +x +y +z
+//     max[0], max[1], min[2], // +x +y -z
+//     // line 5
+//     min[0], min[1], max[2], // -x -y +z
+//     min[0], min[1], min[2], // -x -y -z
+//     // line 6
+//     min[0], max[1], max[2], // -x +y +z
+//     min[0], max[1], min[2], // -x +y -z
+//     // line 7
+//     min[0], min[1], max[2], // -x -y +z
+//     min[0], max[1], max[2], // -x +y +z
+//     // line 8
+//     max[0], min[1], max[2], // +x -y +z
+//     max[0], max[1], max[2], // +x +y +z
+//     // line 9
+//     min[0], min[1], min[2], // -x -y -z
+//     min[0], max[1], min[2], // -x +y -z
+//     // line 10
+//     max[0], min[1], min[2], // +x -y -z
+//     max[0], max[1], min[2], // +x +y -z
+// ]);
 
 const translationArraySize = 3;
 const scalingArraySize = 3;
@@ -1384,4 +1441,4 @@ class UBO {
     }
 }
 
-export { BoundingBox, DEG_TO_RAD, Entity, FileLoader, GLSL300ATTRIBUTE, Geometry, ImageLoader, KeyboardInput, MouseInput, RAD_TO_DEG, Transform, UBO, Velocity, World, boundingBoxBufferLayout, computeBoundingBox, createMap, createTexture2D, createWebgl2ArrayBuffer, createWebgl2ElementArrayBuffer, createWebgl2Program, createWebgl2Shader, createWebgl2VertexArray, defaultContextAttributeOptions, degreesToRadians, getGeometryBufferLayout, getWebgl2Context, glsl300, hexToRgb, intersection, isSABSupported, parseMtlFile, parseObjFile, radiansToDegrees, rgbToHex, setupWebgl2VertexAttribPointer, toFloat, toInt, worldActions };
+export { BoundingBox, DEG_TO_RAD, Entity, FileLoader, GLSL300ATTRIBUTE, Geometry, ImageLoader, KeyboardInput, MouseInput, RAD_TO_DEG, Transform, UBO, Velocity, World, boundingBoxBufferLayout, computeBoundingBox, createMap, createTexture2D, createWebgl2ArrayBuffer, createWebgl2ElementArrayBuffer, createWebgl2Program, createWebgl2Shader, createWebgl2VertexArray, defaultContextAttributeOptions, degreesToRadians, getGeometryBufferLayout, getLineGeometryFromBoundingBox, getWebgl2Context, glsl300, hexToRgb, intersection, isSABSupported, parseMtlFile, parseObjFile, radiansToDegrees, rgbToHex, setupWebgl2VertexAttribPointer, toFloat, toInt, worldActions };

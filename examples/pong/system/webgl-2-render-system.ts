@@ -137,15 +137,15 @@ export const createWebgl2RenderSystem = (canvas: HTMLCanvasElement, camera: Came
         }
     });
 
-    const renderBBSystem = createRenderBoundingBoxSystem(gl, ubo);
+    // const renderBBSystem = createRenderBoundingBoxSystem(gl, ubo);
 
     return (delta, time) => {
-        gl.useProgram(shaderProgram);
+        // gl.useProgram(shaderProgram);
 
         for (let i = 0; i < cache.length; i++) {
             cache[i].update();
         }
 
-        renderBBSystem(delta, time);
+        // renderBBSystem(delta, time);
     };
 };

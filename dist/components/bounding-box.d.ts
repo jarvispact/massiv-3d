@@ -52,6 +52,7 @@ export declare class BoundingBox implements Component<'BoundingBox', BoundingBox
     constructor(buffer: BufferConstructor);
     setFromGeometry(geometry: Geometry, transform?: Transform): void;
     updateFromTransform(transform: Transform): void;
+    getLineGeometry(): Geometry;
     static fromGeometry(geometry: Geometry, transform?: Transform): BoundingBox;
     static fromBuffer(buffer: BufferConstructor): BoundingBox;
 }
@@ -60,4 +61,5 @@ export declare const computeBoundingBox: (geometry: Geometry, transform?: Transf
     center: [number, number, number];
     max: [number, number, number];
 };
+export declare const getLineGeometryFromBoundingBox: (boundingBox: BoundingBox) => Geometry;
 export {};
