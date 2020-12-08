@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-empty-function */
 import { vec3 } from 'gl-matrix';
-import { Component, Entity, UBO } from '../../src';
+import { Component, UBO } from '../../src';
 import { PerspectiveCamera } from './camera/perspective-camera';
 
 export const randomNegative = (val: number) => Math.round(Math.random()) === 0 ? -val : val;
