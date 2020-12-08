@@ -1,5 +1,6 @@
-import { BoundingBox, Entity, System, Transform, Velocity } from '../../../src';
+import { BoundingBox, Entity, System, Transform } from '../../../src';
 import { AnimationComponent, AudioComponent, randomNegative } from '../misc';
+import { Velocity } from '../velocity';
 import { world, worldActions } from '../world';
 
 const playAudio = (audioElement: HTMLAudioElement) => {

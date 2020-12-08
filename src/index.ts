@@ -3,7 +3,6 @@ export * from './types';
 export * from './components/bounding-box';
 export * from './components/geometry';
 export * from './components/transform';
-export * from './components/velocity';
 
 export * from './ecs/component';
 export * from './ecs/entity';

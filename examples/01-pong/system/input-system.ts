@@ -1,4 +1,5 @@
-import { Entity, KeyboardInput, System, Velocity } from '../../../src';
+import { Entity, KeyboardInput, System } from '../../../src';
+import { Velocity } from '../velocity';
 import { world, worldActions } from '../world';
 
 export const createInputSystem = (canvas: HTMLCanvasElement, playerEntity: Entity): System => {

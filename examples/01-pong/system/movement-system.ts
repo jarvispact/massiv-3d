@@ -1,4 +1,5 @@
-import { BoundingBox, System, Transform, Velocity } from '../../../src';
+import { BoundingBox, System, Transform } from '../../../src';
+import { Velocity } from '../velocity';
 import { world } from '../world';
 
 export const createMovementSystem = (): System => {

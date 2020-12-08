@@ -4,7 +4,6 @@ module.exports = {
   mode: process.env.NODE_ENV === 'production' ? 'production' : 'development',
   entry: {
     main: path.resolve(__dirname, './index.ts'),
-    // 'collision-worker': path.resolve(__dirname, './systems/collision-system-worker.ts'),
   },
   module: {
     rules: [

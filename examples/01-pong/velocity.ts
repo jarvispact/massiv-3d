@@ -1,7 +1,7 @@
 import { vec3 } from 'gl-matrix';
-import { Component } from '../ecs/component';
-import { BufferConstructor } from '../types';
-import { isSABSupported } from '../utils/is-sab-supported';
+import { Component } from '../../src/ecs/component';
+import { BufferConstructor } from '../../src/types';
+import { isSABSupported } from '../../src/utils/is-sab-supported';
 
 type VelocityArgs = {
     translation?: vec3;

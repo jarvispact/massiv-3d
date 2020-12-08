@@ -13,7 +13,7 @@
     "build": "rollup -c",
     "git-add-dist": "git add ./dist/*",
     "test": "env TS_NODE_COMPILER_OPTIONS='{\"module\": \"commonjs\" }' mocha -r ts-node/register 'tests/**/*.spec.ts'",
-    "example:pong": "webpack-dev-server --config examples/pong/webpack.config.js"
+    "example:pong": "webpack-dev-server --config examples/01-pong/webpack.config.js"
   },
   "repository": {
     "type": "git",

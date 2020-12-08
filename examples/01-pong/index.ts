@@ -1,4 +1,4 @@
-import { BoundingBox, Entity, FileLoader, Geometry, getWebgl2Context, ParsedObjPrimitive, parseObjFile, Transform, UBO, Velocity } from '../../src';
+import { BoundingBox, Entity, FileLoader, Geometry, getWebgl2Context, ParsedObjPrimitive, parseObjFile, Transform, UBO } from '../../src';
 import { world } from './world';
 import { PerspectiveCamera } from './camera/perspective-camera';
 import { createWebgl2RenderSystem } from './system/webgl-2-render-system';
@@ -9,6 +9,7 @@ import { createInputSystem } from './system/input-system';
 import { getCameraUBOConfig, createColorComponent, randomNegative, createAnimationComponent, createAudioComponent } from './misc';
 // import { createRenderBoundingBoxSystem } from './system/render-bounding-box-system';
 import { createAnimationSystem } from './system/animation-system';
+import { Velocity } from './velocity';
 
 (async () => {
     const objects = await FileLoader.load('./assets/pong.obj').then(parseObjFile);

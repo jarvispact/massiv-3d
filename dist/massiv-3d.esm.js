@@ -444,84 +444,6 @@ class Transform {
     }
 }
 
-const translationArraySize$1 = 3;
-const scalingArraySize$1 = 3;
-const rotationArraySize = 3;
-const translationSize$1 = translationArraySize$1 * Float32Array.BYTES_PER_ELEMENT;
-const scalingSize$1 = scalingArraySize$1 * Float32Array.BYTES_PER_ELEMENT;
-const rotationSize = rotationArraySize * Float32Array.BYTES_PER_ELEMENT;
-const totalSize$2 = translationSize$1 + scalingSize$1 + rotationSize;
-const translationOffset$1 = 0;
-const scalingOffset$1 = translationSize$1;
-const rotationOffset = translationSize$1 + scalingSize$1;
-const bufferLayout$1 = {
-    translation: { offset: translationOffset$1, size: translationArraySize$1 },
-    scaling: { offset: scalingOffset$1, size: scalingArraySize$1 },
-    rotation: { offset: rotationOffset, size: rotationArraySize },
-};
-class Velocity {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    constructor(...args) {
-        if (args[0] && typeof args[0].byteLength === 'number') {
-            this.type = 'Velocity';
-            this.buffer = args[0];
-            this.data = {
-                translation: new Float32Array(this.buffer, bufferLayout$1.translation.offset, bufferLayout$1.translation.size),
-                scaling: new Float32Array(this.buffer, bufferLayout$1.scaling.offset, bufferLayout$1.scaling.size),
-                rotation: new Float32Array(this.buffer, bufferLayout$1.rotation.offset, bufferLayout$1.rotation.size),
-            };
-        }
-        else {
-            this.type = 'Velocity';
-            this.buffer = isSABSupported() ? new SharedArrayBuffer(totalSize$2) : new ArrayBuffer(totalSize$2);
-            this.data = {
-                translation: new Float32Array(this.buffer, bufferLayout$1.translation.offset, bufferLayout$1.translation.size),
-                scaling: new Float32Array(this.buffer, bufferLayout$1.scaling.offset, bufferLayout$1.scaling.size),
-                rotation: new Float32Array(this.buffer, bufferLayout$1.rotation.offset, bufferLayout$1.rotation.size),
-            };
-            if (args[0] && args[0].translation) {
-                this.setTranslation(args[0].translation[0], args[0].translation[1], args[0].translation[2]);
-            }
-            else {
-                this.setTranslation(0, 0, 0);
-            }
-            if (args[0] && args[0].scaling) {
-                this.setScale(args[0].scaling[0], args[0].scaling[1], args[0].scaling[2]);
-            }
-            else {
-                this.setScale(0, 0, 0);
-            }
-            if (args[0] && args[0].rotation) {
-                this.setRotation(args[0].rotation[0], args[0].rotation[1], args[0].rotation[2]);
-            }
-            else {
-                this.setRotation(0, 0, 0);
-            }
-        }
-    }
-    setTranslation(x, y, z) {
-        this.data.translation[0] = x;
-        this.data.translation[1] = y;
-        this.data.translation[2] = z;
-        return this;
-    }
-    setScale(x, y, z) {
-        this.data.scaling[0] = x;
-        this.data.scaling[1] = y;
-        this.data.scaling[2] = z;
-        return this;
-    }
-    setRotation(x, y, z) {
-        this.data.rotation[0] = x;
-        this.data.rotation[1] = y;
-        this.data.rotation[2] = z;
-        return this;
-    }
-    static fromBuffer(buffer) {
-        return new Velocity(buffer);
-    }
-}
-
 const intersection = (list1, list2) => list1.filter(x => list2.includes(x));
 
 const hasMoreThanOneComponentsOfSameType = (componentTypes) => [...new Set(componentTypes)].length < componentTypes.length;
@@ -1441,4 +1363,4 @@ class UBO {
     }
 }
 
-export { BoundingBox, DEG_TO_RAD, Entity, FileLoader, GLSL300ATTRIBUTE, Geometry, ImageLoader, KeyboardInput, MouseInput, RAD_TO_DEG, Transform, UBO, Velocity, World, boundingBoxBufferLayout, computeBoundingBox, createMap, createTexture2D, createWebgl2ArrayBuffer, createWebgl2ElementArrayBuffer, createWebgl2Program, createWebgl2Shader, createWebgl2VertexArray, defaultContextAttributeOptions, degreesToRadians, getGeometryBufferLayout, getLineGeometryFromBoundingBox, getWebgl2Context, glsl300, hexToRgb, intersection, isSABSupported, parseMtlFile, parseObjFile, radiansToDegrees, rgbToHex, setupWebgl2VertexAttribPointer, toFloat, toInt, worldActions };
+export { BoundingBox, DEG_TO_RAD, Entity, FileLoader, GLSL300ATTRIBUTE, Geometry, ImageLoader, KeyboardInput, MouseInput, RAD_TO_DEG, Transform, UBO, World, boundingBoxBufferLayout, computeBoundingBox, createMap, createTexture2D, createWebgl2ArrayBuffer, createWebgl2ElementArrayBuffer, createWebgl2Program, createWebgl2Shader, createWebgl2VertexArray, defaultContextAttributeOptions, degreesToRadians, getGeometryBufferLayout, getLineGeometryFromBoundingBox, getWebgl2Context, glsl300, hexToRgb, intersection, isSABSupported, parseMtlFile, parseObjFile, radiansToDegrees, rgbToHex, setupWebgl2VertexAttribPointer, toFloat, toInt, worldActions };
