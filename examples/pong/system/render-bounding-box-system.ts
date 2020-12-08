@@ -44,7 +44,7 @@ const fs = glsl300({
 `;
 
 export const createRenderBoundingBoxSystem = (gl: WebGL2RenderingContext, cameraUbo: CameraUBO): System => {
-    const cache: Array<CachedEntity> = [];
+    let cache: Array<CachedEntity> = [];
 
     const vertexShader = createWebgl2Shader(gl, gl.VERTEX_SHADER, vs.sourceCode);
     const fragmentShader = createWebgl2Shader(gl, gl.FRAGMENT_SHADER, fs.sourceCode);
@@ -86,8 +86,7 @@ export const createRenderBoundingBoxSystem = (gl: WebGL2RenderingContext, camera
                 });
             }
         } else if (action.type === 'REMOVE-ENTITY') {
-            const cachedItem = cache.find(item => item.name === action.payload.name);
-            if (cachedItem) cachedItem.cleanup();
+            cache = cache.filter(item => item.name !== action.payload.name);
         }
     });
 
