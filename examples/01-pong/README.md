@@ -37,7 +37,7 @@ and the game logic is written with the following systems:
 - rethink velocity component (maybe should not contain translation, scaling and rotation)
 - better ecs concept for animations
 - still no concept for camera and generalized render-system
-- do we really need to cache the transform updates?
+- do we really need to cache the transform updates (dirty flag and update method)?
 
 ## possible new features
 
