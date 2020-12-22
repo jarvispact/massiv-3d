@@ -45,6 +45,7 @@ declare type Callback = (event: KeyboardEvent) => void;
 export declare class KeyboardInput {
     private canvas;
     private keyDownMap;
+    private keydownCallbacks;
     private keyupCallbacks;
     constructor(canvas: HTMLCanvasElement);
     static get KEY(): {
@@ -92,5 +93,6 @@ export declare class KeyboardInput {
     };
     isKeyDown(key: keyof typeof KEY): boolean;
     onKeyUp(callback: Callback): this;
+    onKeyDown(callback: Callback): this;
 }
 export {};

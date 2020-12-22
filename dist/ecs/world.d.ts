@@ -25,7 +25,7 @@ declare type GenericAction = {
     type: string;
     payload?: unknown;
 };
-export declare class World<State extends Record<string, unknown> = Record<string, unknown>, WorldAction extends GenericAction = GenericAction> {
+export declare class World<State extends Record<string, unknown> = Record<string, unknown>, WorldAction extends GenericAction = InternalAction> {
     state: State;
     private reducer;
     private subscribers;

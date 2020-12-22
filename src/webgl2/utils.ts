@@ -205,7 +205,7 @@ const fixupUniformBufferIssue = (uniformBufferNormalMatrix: number[], normalMatr
     uniformBufferNormalMatrix[11] = 0;
 };
 
-type UBOConfig = {
+export type UBOConfig = {
     [key: string]: { data: mat4 | mat3 | vec3 | number[] };
 };
 
@@ -237,7 +237,7 @@ export class UBO<T extends UBOConfig> {
 
             const namesFromConfig = Object.keys(this.config);
             const uniformIndices = gl.getUniformIndices(shaderProgram, namesFromConfig) as Iterable<number>;
-            const uniformOffsets = gl.getActiveUniforms(shaderProgram, uniformIndices, gl.UNIFORM_OFFSET) as Nullable<number[]>;            
+            const uniformOffsets = gl.getActiveUniforms(shaderProgram, uniformIndices, gl.UNIFORM_OFFSET) as Nullable<number[]>;
             if (!uniformOffsets) throw new Error('invalid ubo config');
 
             this.views = namesFromConfig.reduce((accum, name, idx) => {
@@ -279,7 +279,7 @@ export class UBO<T extends UBOConfig> {
         return this;
     }
 
-    update() {
+    update() {    
         const gl = this.gl;
         gl.bindBuffer(gl.UNIFORM_BUFFER, this.webglBuffer);
         gl.bufferData(gl.UNIFORM_BUFFER, this.bufferData, gl.DYNAMIC_DRAW);

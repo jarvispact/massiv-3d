@@ -47,6 +47,7 @@ type Callback = (event: KeyboardEvent) => void;
 export class KeyboardInput {
     private canvas: HTMLCanvasElement;
     private keyDownMap: Record<string, boolean>;
+    private keydownCallbacks: Array<Callback> = [];
     private keyupCallbacks: Array<Callback> = [];
 
     constructor(canvas: HTMLCanvasElement) {
@@ -61,6 +62,10 @@ export class KeyboardInput {
 
         const keyDownHandler = (event: KeyboardEvent) => {
             this.keyDownMap[event.key] = true;
+
+            for (let i = 0; i < this.keydownCallbacks.length; i++) {
+                this.keydownCallbacks[i](event);
+            }
         };
 
         const keyUpHandler = (event: KeyboardEvent) => {
@@ -85,6 +90,11 @@ export class KeyboardInput {
 
     onKeyUp(callback: Callback) {
         this.keyupCallbacks.push(callback);
+        return this;
+    }
+
+    onKeyDown(callback: Callback) {
+        this.keydownCallbacks.push(callback);
         return this;
     }
 }

@@ -3,9 +3,12 @@ declare const BUTTON: {
     readonly AUXILIARY: 1;
     readonly SECONDARY: 2;
 };
+declare type Callback = (event: MouseEvent) => void;
 export declare class MouseInput {
     private canvas;
     private buttonDownMap;
+    private mousedownCallbacks;
+    private mouseupCallbacks;
     private mouseX;
     private mouseY;
     private wheelY;
@@ -19,5 +22,7 @@ export declare class MouseInput {
     getMouseX(): number;
     getMouseY(): number;
     getWheelY(): number;
+    onButtonDown(callback: Callback): this;
+    onButtonUp(callback: Callback): this;
 }
 export {};

@@ -47,7 +47,7 @@ export declare type Texture2DOptions = {
     generateMipmaps: boolean;
 };
 export declare const createTexture2D: (gl: WebGL2RenderingContext, image: HTMLImageElement, options?: Partial<Texture2DOptions> | undefined) => WebGLTexture;
-declare type UBOConfig = {
+export declare type UBOConfig = {
     [key: string]: {
         data: mat4 | mat3 | vec3 | number[];
     };
@@ -68,4 +68,3 @@ export declare class UBO<T extends UBOConfig> {
     update(): this;
     cleanup(): this;
 }
-export {};

@@ -29,7 +29,7 @@ const defaultReducer = (state: unknown) => state;
 
 export class World<
     State extends Record<string, unknown> = Record<string, unknown>,
-    WorldAction extends GenericAction = GenericAction> {
+    WorldAction extends GenericAction = InternalAction> {
     public state: State;
     private reducer: Reducer<State, InternalAction | WorldAction>;
     private subscribers: Array<SubscriberCallback<State, InternalAction | WorldAction>> = [];

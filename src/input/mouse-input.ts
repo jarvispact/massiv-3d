@@ -4,9 +4,13 @@ const BUTTON = {
     SECONDARY: 2,
 } as const;
 
+type Callback = (event: MouseEvent) => void;
+
 export class MouseInput {
     private canvas: HTMLCanvasElement;
     private buttonDownMap: Record<string, boolean>;
+    private mousedownCallbacks: Array<Callback> = [];
+    private mouseupCallbacks: Array<Callback> = [];
     private mouseX: number;
     private mouseY: number;
     private wheelY: number;
@@ -26,18 +30,22 @@ export class MouseInput {
         this.wheelY = 0;
 
         const mouseDownHandler = (event: MouseEvent) => {
+            for (let i = 0; i < this.mousedownCallbacks.length; i++) {
+                this.mousedownCallbacks[i](event);
+            }
+
             switch (event.button) {
-            case BUTTON.PRIMARY:
-                this.buttonDownMap[BUTTON.PRIMARY] = true;
-                break;
-            case BUTTON.AUXILIARY:
-                this.buttonDownMap[BUTTON.AUXILIARY] = true;
-                break;
-            case BUTTON.SECONDARY:
-                this.buttonDownMap[BUTTON.SECONDARY] = true;
-                break;
-            default:
-                break;
+                case BUTTON.PRIMARY:
+                    this.buttonDownMap[BUTTON.PRIMARY] = true;
+                    break;
+                case BUTTON.AUXILIARY:
+                    this.buttonDownMap[BUTTON.AUXILIARY] = true;
+                    break;
+                case BUTTON.SECONDARY:
+                    this.buttonDownMap[BUTTON.SECONDARY] = true;
+                    break;
+                default:
+                    break;
             }
         };
 
@@ -47,18 +55,22 @@ export class MouseInput {
         };
 
         const mouseUpHandler = (event: MouseEvent) => {
+            for (let i = 0; i < this.mouseupCallbacks.length; i++) {
+                this.mouseupCallbacks[i](event);
+            }
+
             switch (event.button) {
-            case BUTTON.PRIMARY:
-                this.buttonDownMap[BUTTON.PRIMARY] = false;
-                break;
-            case BUTTON.AUXILIARY:
-                this.buttonDownMap[BUTTON.AUXILIARY] = false;
-                break;
-            case BUTTON.SECONDARY:
-                this.buttonDownMap[BUTTON.SECONDARY] = false;
-                break;
-            default:
-                break;
+                case BUTTON.PRIMARY:
+                    this.buttonDownMap[BUTTON.PRIMARY] = false;
+                    break;
+                case BUTTON.AUXILIARY:
+                    this.buttonDownMap[BUTTON.AUXILIARY] = false;
+                    break;
+                case BUTTON.SECONDARY:
+                    this.buttonDownMap[BUTTON.SECONDARY] = false;
+                    break;
+                default:
+                    break;
             }
         };
 
@@ -92,5 +104,15 @@ export class MouseInput {
         const val = this.wheelY;
         this.wheelY = 0;
         return val;
+    }
+
+    onButtonDown(callback: Callback) {
+        this.mousedownCallbacks.push(callback);
+        return this;
+    }
+
+    onButtonUp(callback: Callback) {
+        this.mouseupCallbacks.push(callback);
+        return this;
     }
 }
