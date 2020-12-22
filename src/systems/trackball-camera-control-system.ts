@@ -1,8 +1,15 @@
 import { mat4 } from 'gl-matrix';
-import { MouseInput, PerspectiveCamera, System } from '../../../src';
-import { world } from '../world';
+import { PerspectiveCamera } from '../components/perspective-camera';
+import { System } from '../ecs/system';
+import { World } from '../ecs/world';
+import { MouseInput } from '../input/mouse-input';
 
-export const createCameraControlSystem = (canvas: HTMLCanvasElement): System => {
+type CameraControlArgs = {
+    world: World;
+    canvas: HTMLCanvasElement;
+};
+
+export const createTrackballCameraControlSystem = ({ world, canvas }: CameraControlArgs): System => {
     const mouseInput = new MouseInput(canvas);
 
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment

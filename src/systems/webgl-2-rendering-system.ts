@@ -1,6 +1,12 @@
 import { mat4, vec3 } from 'gl-matrix';
-import { createWebgl2ArrayBuffer, createWebgl2ElementArrayBuffer, createWebgl2Program, createWebgl2Shader, createWebgl2VertexArray, DirectionalLight, Geometry, getWebgl2Context, glsl300, PerspectiveCamera, PhongMaterial, setupWebgl2VertexAttribPointer, System, Transform, UBO, UBOConfig } from '../../../src';
-import { world } from '../world';
+import { DirectionalLight } from '../components/directional-light';
+import { Geometry } from '../components/geometry';
+import { PerspectiveCamera } from '../components/perspective-camera';
+import { PhongMaterial } from '../components/phong-material';
+import { Transform } from '../components/transform';
+import { System } from '../ecs/system';
+import { World } from '../ecs/world';
+import { createWebgl2ArrayBuffer, createWebgl2ElementArrayBuffer, createWebgl2Program, createWebgl2Shader, createWebgl2VertexArray, getWebgl2Context, glsl300, setupWebgl2VertexAttribPointer, UBO, UBOConfig } from '../webgl2/utils';
 
 const createVertexShaderSource = () => glsl300({
     attributes: [
@@ -126,11 +132,12 @@ type CachedRenderable = {
 };
 
 type Webgl2RenderingSystemArgs = {
+    world: World;
     canvas: HTMLCanvasElement;
     maxDirectionalLights?: number;
 };
 
-export const createWebgl2RenderingSystem = ({ canvas, maxDirectionalLights = 5 }: Webgl2RenderingSystemArgs): System => {
+export const createWebgl2RenderingSystem = ({ world, canvas, maxDirectionalLights = 5 }: Webgl2RenderingSystemArgs): System => {
     const gl = getWebgl2Context(canvas);
 
     const vertexShader = createWebgl2Shader(gl, gl.VERTEX_SHADER, createVertexShaderSource().sourceCode);

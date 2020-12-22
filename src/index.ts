@@ -20,6 +20,9 @@ export * from './loader/image-loader';
 export * from './loader/parse-obj-file';
 export * from './loader/parse-mtl-file';
 
+export * from './systems/trackball-camera-control-system';
+export * from './systems/webgl-2-rendering-system';
+
 export * from './utils/create-map';
 export * from './utils/hex-to-rgb';
 export * from './utils/intersection';

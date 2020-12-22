@@ -1,6 +1,4 @@
-import { DirectionalLight, Entity, FileLoader, Geometry, parseMtlFile, parseObjFile, PerspectiveCamera, PhongMaterial, Transform, ParsedObjPrimitive, ParsedMtlMaterial, KeyboardInput } from '../../src';
-import { createCameraControlSystem } from './systems/camera-control-system';
-import { createWebgl2RenderingSystem } from './systems/webgl-2-rendering-system';
+import { DirectionalLight, Entity, FileLoader, Geometry, parseMtlFile, parseObjFile, PerspectiveCamera, PhongMaterial, Transform, ParsedObjPrimitive, ParsedMtlMaterial, createTrackballCameraControlSystem, createWebgl2RenderingSystem } from '../../src';
 import { world } from './world';
 
 (async () => {
@@ -45,8 +43,8 @@ import { world } from './world';
         new PhongMaterial(sphereMaterial),
     ]);
 
-    world.addSystem(createCameraControlSystem(canvas));
-    world.addSystem(createWebgl2RenderingSystem({ canvas }));
+    world.addSystem(createTrackballCameraControlSystem({ world, canvas }));
+    world.addSystem(createWebgl2RenderingSystem({ world, canvas }));
 
     world.addEntity(cameraEntity);
     world.addEntity(lightEntity1);
