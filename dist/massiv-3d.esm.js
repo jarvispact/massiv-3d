@@ -260,6 +260,31 @@ const getLineGeometryFromBoundingBox = (boundingBox) => {
 //     max[0], max[1], min[2], // +x +y -z
 // ]);
 
+class DirectionalLight {
+    constructor(args = {}) {
+        this.type = 'DirectionalLight';
+        this.data = {
+            direction: args.direction || vec3.fromValues(3, 5, 1),
+            diffuseColor: args.diffuseColor || vec3.fromValues(1, 1, 1),
+            specularColor: args.specularColor || vec3.fromValues(1, 1, 1),
+        };
+        this.dirty = true;
+    }
+    setDiffuseColor(r, g, b) {
+        this.data.diffuseColor[0] = r;
+        this.data.diffuseColor[1] = g;
+        this.data.diffuseColor[2] = b;
+        this.dirty = true;
+    }
+    isDirty() {
+        return this.dirty;
+    }
+    setDirty(dirty) {
+        this.dirty = dirty;
+        return this;
+    }
+}
+
 class PerspectiveCamera {
     constructor(args) {
         this.type = 'PerspectiveCamera';
@@ -296,6 +321,33 @@ class PerspectiveCamera {
         mat4.perspective(this.data.projectionMatrix, this.data.fov, this.data.aspect, this.data.near, this.data.far);
         this.dirty = true;
         return this;
+    }
+    isDirty() {
+        return this.dirty;
+    }
+    setDirty(dirty) {
+        this.dirty = dirty;
+        return this;
+    }
+}
+
+class PhongMaterial {
+    constructor(args = {}) {
+        this.type = 'PhongMaterial';
+        this.data = {
+            ambientIntensity: args.ambientIntensity || 0.01,
+            diffuseColor: args.diffuseColor || vec3.fromValues(1, 1, 1),
+            specularColor: args.specularColor || vec3.fromValues(1, 1, 1),
+            specularExponent: args.specularExponent || 256,
+            opacity: args.opacity || 1,
+        };
+        this.dirty = true;
+    }
+    setDiffuseColor(r, g, b) {
+        this.data.diffuseColor[0] = r;
+        this.data.diffuseColor[1] = g;
+        this.data.diffuseColor[2] = b;
+        this.dirty = true;
     }
     isDirty() {
         return this.dirty;
@@ -1168,7 +1220,6 @@ const createObjFileParser = (config) => {
 const parseObjFile = createObjFileParser();
 
 const newMaterialRegex = /^newmtl\s(.*)$/;
-const ambientColorRegex = /^Ka\s(\S+)\s(\S+)\s(\S+)$/;
 const diffuseColorRegex = /^Kd\s(\S+)\s(\S+)\s(\S+)$/;
 const specularColorRegex = /^Ks\s(\S+)\s(\S+)\s(\S+)$/;
 const specularExponentRegex = /^Ns\s(\S+)$/;
@@ -1183,14 +1234,9 @@ const parseMtlFile = (mtlFileContent) => {
         const materialMatch = line.match(newMaterialRegex);
         if (materialMatch) {
             const [, name] = materialMatch;
-            materials.push({ name, ambientColor: [0.1, 0.1, 0.1], diffuseColor: [1, 1, 1], specularColor: [1, 1, 1], specularExponent: 512, opacity: 1 });
+            materials.push({ name, diffuseColor: [1, 1, 1], specularColor: [1, 1, 1], specularExponent: 256, opacity: 1 });
         }
         const currentMaterial = materials[materials.length - 1];
-        const ambientColorMatch = line.match(ambientColorRegex);
-        if (ambientColorMatch) {
-            const [, r, g, b] = ambientColorMatch;
-            currentMaterial.ambientColor = [toFloat(r), toFloat(g), toFloat(b)];
-        }
         const diffuseColorMatch = line.match(diffuseColorRegex);
         if (diffuseColorMatch) {
             const [, r, g, b] = diffuseColorMatch;
@@ -1444,4 +1490,4 @@ class UBO {
     }
 }
 
-export { BoundingBox, DEG_TO_RAD, Entity, FileLoader, GLSL300ATTRIBUTE, Geometry, ImageLoader, KeyboardInput, MouseInput, PerspectiveCamera, RAD_TO_DEG, Transform, UBO, World, boundingBoxBufferLayout, computeBoundingBox, createMap, createObjFileParser, createTexture2D, createWebgl2ArrayBuffer, createWebgl2ElementArrayBuffer, createWebgl2Program, createWebgl2Shader, createWebgl2VertexArray, defaultContextAttributeOptions, degreesToRadians, getGeometryBufferLayout, getLineGeometryFromBoundingBox, getWebgl2Context, glsl300, hexToRgb, intersection, isSABSupported, parseMtlFile, parseObjFile, radiansToDegrees, rgbToHex, setupWebgl2VertexAttribPointer, toFloat, toInt, worldActions };
+export { BoundingBox, DEG_TO_RAD, DirectionalLight, Entity, FileLoader, GLSL300ATTRIBUTE, Geometry, ImageLoader, KeyboardInput, MouseInput, PerspectiveCamera, PhongMaterial, RAD_TO_DEG, Transform, UBO, World, boundingBoxBufferLayout, computeBoundingBox, createMap, createObjFileParser, createTexture2D, createWebgl2ArrayBuffer, createWebgl2ElementArrayBuffer, createWebgl2Program, createWebgl2Shader, createWebgl2VertexArray, defaultContextAttributeOptions, degreesToRadians, getGeometryBufferLayout, getLineGeometryFromBoundingBox, getWebgl2Context, glsl300, hexToRgb, intersection, isSABSupported, parseMtlFile, parseObjFile, radiansToDegrees, rgbToHex, setupWebgl2VertexAttribPointer, toFloat, toInt, worldActions };

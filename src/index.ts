@@ -1,8 +1,10 @@
 export * from './types';
 
 export * from './components/bounding-box';
+export * from './components/directional-light';
 export * from './components/geometry';
 export * from './components/perspective-camera';
+export * from './components/phong-material';
 export * from './components/transform';
 
 export * from './ecs/component';

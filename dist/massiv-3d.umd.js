@@ -264,6 +264,31 @@
     //     max[0], max[1], min[2], // +x +y -z
     // ]);
 
+    class DirectionalLight {
+        constructor(args = {}) {
+            this.type = 'DirectionalLight';
+            this.data = {
+                direction: args.direction || glMatrix.vec3.fromValues(3, 5, 1),
+                diffuseColor: args.diffuseColor || glMatrix.vec3.fromValues(1, 1, 1),
+                specularColor: args.specularColor || glMatrix.vec3.fromValues(1, 1, 1),
+            };
+            this.dirty = true;
+        }
+        setDiffuseColor(r, g, b) {
+            this.data.diffuseColor[0] = r;
+            this.data.diffuseColor[1] = g;
+            this.data.diffuseColor[2] = b;
+            this.dirty = true;
+        }
+        isDirty() {
+            return this.dirty;
+        }
+        setDirty(dirty) {
+            this.dirty = dirty;
+            return this;
+        }
+    }
+
     class PerspectiveCamera {
         constructor(args) {
             this.type = 'PerspectiveCamera';
@@ -300,6 +325,33 @@
             glMatrix.mat4.perspective(this.data.projectionMatrix, this.data.fov, this.data.aspect, this.data.near, this.data.far);
             this.dirty = true;
             return this;
+        }
+        isDirty() {
+            return this.dirty;
+        }
+        setDirty(dirty) {
+            this.dirty = dirty;
+            return this;
+        }
+    }
+
+    class PhongMaterial {
+        constructor(args = {}) {
+            this.type = 'PhongMaterial';
+            this.data = {
+                ambientIntensity: args.ambientIntensity || 0.01,
+                diffuseColor: args.diffuseColor || glMatrix.vec3.fromValues(1, 1, 1),
+                specularColor: args.specularColor || glMatrix.vec3.fromValues(1, 1, 1),
+                specularExponent: args.specularExponent || 256,
+                opacity: args.opacity || 1,
+            };
+            this.dirty = true;
+        }
+        setDiffuseColor(r, g, b) {
+            this.data.diffuseColor[0] = r;
+            this.data.diffuseColor[1] = g;
+            this.data.diffuseColor[2] = b;
+            this.dirty = true;
         }
         isDirty() {
             return this.dirty;
@@ -1172,7 +1224,6 @@
     const parseObjFile = createObjFileParser();
 
     const newMaterialRegex = /^newmtl\s(.*)$/;
-    const ambientColorRegex = /^Ka\s(\S+)\s(\S+)\s(\S+)$/;
     const diffuseColorRegex = /^Kd\s(\S+)\s(\S+)\s(\S+)$/;
     const specularColorRegex = /^Ks\s(\S+)\s(\S+)\s(\S+)$/;
     const specularExponentRegex = /^Ns\s(\S+)$/;
@@ -1187,14 +1238,9 @@
             const materialMatch = line.match(newMaterialRegex);
             if (materialMatch) {
                 const [, name] = materialMatch;
-                materials.push({ name, ambientColor: [0.1, 0.1, 0.1], diffuseColor: [1, 1, 1], specularColor: [1, 1, 1], specularExponent: 512, opacity: 1 });
+                materials.push({ name, diffuseColor: [1, 1, 1], specularColor: [1, 1, 1], specularExponent: 256, opacity: 1 });
             }
             const currentMaterial = materials[materials.length - 1];
-            const ambientColorMatch = line.match(ambientColorRegex);
-            if (ambientColorMatch) {
-                const [, r, g, b] = ambientColorMatch;
-                currentMaterial.ambientColor = [toFloat(r), toFloat(g), toFloat(b)];
-            }
             const diffuseColorMatch = line.match(diffuseColorRegex);
             if (diffuseColorMatch) {
                 const [, r, g, b] = diffuseColorMatch;
@@ -1450,6 +1496,7 @@
 
     exports.BoundingBox = BoundingBox;
     exports.DEG_TO_RAD = DEG_TO_RAD;
+    exports.DirectionalLight = DirectionalLight;
     exports.Entity = Entity;
     exports.FileLoader = FileLoader;
     exports.GLSL300ATTRIBUTE = GLSL300ATTRIBUTE;
@@ -1458,6 +1505,7 @@
     exports.KeyboardInput = KeyboardInput;
     exports.MouseInput = MouseInput;
     exports.PerspectiveCamera = PerspectiveCamera;
+    exports.PhongMaterial = PhongMaterial;
     exports.RAD_TO_DEG = RAD_TO_DEG;
     exports.Transform = Transform;
     exports.UBO = UBO;

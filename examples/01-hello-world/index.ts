@@ -1,6 +1,4 @@
-import { Entity, FileLoader, Geometry, ParsedObjPrimitive, parseMtlFile, parseObjFile, PerspectiveCamera, Transform } from '../../src';
-import { Color } from './components/color';
-import { Translation } from './components/translation';
+import { DirectionalLight, Entity, FileLoader, Geometry, parseMtlFile, parseObjFile, PerspectiveCamera, PhongMaterial, Transform, ParsedObjPrimitive, ParsedMtlMaterial, KeyboardInput } from '../../src';
 import { createCameraControlSystem } from './systems/camera-control-system';
 import { createWebgl2RenderingSystem } from './systems/webgl-2-rendering-system';
 import { world } from './world';
@@ -15,13 +13,7 @@ import { world } from './world';
     ]);
 
     const lightEntity1 = new Entity('Light1', [
-        new Translation(3, 5, 5),
-        new Color(1, 0, 0),
-    ]);
-
-    const lightEntity2 = new Entity('Light2', [
-        new Translation(-3, 5, 5),
-        new Color(0, 1, 0),
+        new DirectionalLight({ direction: [3, 5, 1] }),
     ]);
 
     const materials = await FileLoader.load('./assets/hello-world.mtl').then(parseMtlFile);
@@ -31,19 +23,26 @@ import { world } from './world';
     const suzanne = objects.find(o => o.name === 'Suzanne') as ParsedObjPrimitive;
     const sphere = objects.find(o => o.name === 'Sphere') as ParsedObjPrimitive;
 
+    const torusMaterial = materials.find((_, idx) => idx === torus.materialIndex) as ParsedMtlMaterial;
+    const suzanneMaterial = materials.find((_, idx) => idx === suzanne.materialIndex) as ParsedMtlMaterial;
+    const sphereMaterial = materials.find((_, idx) => idx === sphere.materialIndex) as ParsedMtlMaterial;
+
     const torusEntity = new Entity('Torus', [
         new Transform(),
         new Geometry(torus),
+        new PhongMaterial(torusMaterial),
     ]);
 
     const suzanneEntity = new Entity('Suzanne', [
         new Transform(),
         new Geometry(suzanne),
+        new PhongMaterial(suzanneMaterial),
     ]);
 
     const sphereEntity = new Entity('Sphere', [
         new Transform(),
         new Geometry(sphere),
+        new PhongMaterial(sphereMaterial),
     ]);
 
     world.addSystem(createCameraControlSystem(canvas));
@@ -51,7 +50,6 @@ import { world } from './world';
 
     world.addEntity(cameraEntity);
     world.addEntity(lightEntity1);
-    world.addEntity(lightEntity2);
     world.addEntity(torusEntity);
     world.addEntity(suzanneEntity);
     world.addEntity(sphereEntity);

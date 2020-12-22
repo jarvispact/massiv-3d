@@ -2,7 +2,6 @@ import { vec3 } from 'gl-matrix';
 import { toFloat } from '../utils/to-float';
 
 const newMaterialRegex = /^newmtl\s(.*)$/;
-const ambientColorRegex = /^Ka\s(\S+)\s(\S+)\s(\S+)$/;
 const diffuseColorRegex = /^Kd\s(\S+)\s(\S+)\s(\S+)$/;
 const specularColorRegex = /^Ks\s(\S+)\s(\S+)\s(\S+)$/;
 const specularExponentRegex = /^Ns\s(\S+)$/;
@@ -10,7 +9,6 @@ const opacityRegex = /d\s(\S+)/;
 
 export type ParsedMtlMaterial = {
     name: string;
-    ambientColor: vec3;
     diffuseColor: vec3;
     specularColor: vec3;
     specularExponent: number;
@@ -29,16 +27,10 @@ export const parseMtlFile = (mtlFileContent: string): ParsedMtlMaterial[] => {
         const materialMatch = line.match(newMaterialRegex);
         if (materialMatch) {
             const [, name] = materialMatch;
-            materials.push({ name, ambientColor: [0.1, 0.1, 0.1], diffuseColor: [1, 1, 1], specularColor: [1, 1, 1], specularExponent: 512, opacity: 1 });
+            materials.push({ name, diffuseColor: [1, 1, 1], specularColor: [1, 1, 1], specularExponent: 256, opacity: 1 });
         }
 
         const currentMaterial = materials[materials.length - 1];
-
-        const ambientColorMatch = line.match(ambientColorRegex);
-        if (ambientColorMatch) {
-            const [, r, g, b] = ambientColorMatch;
-            currentMaterial.ambientColor = [toFloat(r), toFloat(g), toFloat(b)];
-        }
 
         const diffuseColorMatch = line.match(diffuseColorRegex);
         if (diffuseColorMatch) {

@@ -19,7 +19,6 @@ describe('parse-mtl-file', () => {
         const materials = parseMtlFile(mtlFile);
         expect(materials.length).to.eql(1);
         expect(materials[0].name).to.eql('None');
-        expect(materials[0].ambientColor).to.eql([0.8, 0.8, 0.8]);
         expect(materials[0].diffuseColor).to.eql([0.8, 0.8, 0.8]);
         expect(materials[0].specularColor).to.eql([0.8, 0.8, 0.8]);
         expect(materials[0].specularExponent).to.eql(500);
