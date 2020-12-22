@@ -1,4 +1,4 @@
-import { mat4, vec3 } from 'gl-matrix';
+import { mat3, mat4, vec3 } from 'gl-matrix';
 import { DirectionalLight } from '../components/directional-light';
 import { Geometry } from '../components/geometry';
 import { PerspectiveCamera } from '../components/perspective-camera';
@@ -18,20 +18,32 @@ const createVertexShaderSource = () => glsl300({
         { name: 'vPosition', type: 'vec3' },
     ],
 })`
-    uniform CameraUniforms {
+    struct Camera {
         vec3 translation;
         mat4 viewMatrix;
         mat4 projectionMatrix;
-    } camera;
+    };
 
-    uniform mat4 modelMatrix;
+    uniform CameraUniforms {
+        Camera camera;
+    };
+
+    struct Transform {
+        mat4 modelMatrix;
+        mat4 modelViewMatrix;
+        mat4 modelViewProjectionMatrix;
+        mat3 normalMatrix;
+    };
+
+    uniform TransformUniforms {
+        Transform transform;
+    };
 
     void main() {
-        mat4 modelView = camera.viewMatrix * modelMatrix;
-        mat3 normalMatrix = mat3(transpose(inverse(modelView)));
-        vNormal = normalMatrix * normal;
-        vPosition = vec3(modelMatrix * vec4(position, 1.0));
-        gl_Position = camera.projectionMatrix * camera.viewMatrix * modelMatrix * vec4(position, 1.0);
+        vec4 worldPosition = vec4(position, 1.0);
+        vPosition = vec3(transform.modelMatrix * worldPosition);
+        vNormal = transform.normalMatrix * normal;
+        gl_Position = transform.modelViewProjectionMatrix * worldPosition;
     }
 `;
 
@@ -44,11 +56,15 @@ const createFragmentShaderSource = (maxDirLights: number) => glsl300({
         { name: 'fragColor', type: 'vec4' }
     ],
 })`
-    uniform CameraUniforms {
+    struct Camera {
         vec3 translation;
         mat4 viewMatrix;
         mat4 projectionMatrix;
-    } camera;
+    };
+
+    uniform CameraUniforms {
+        Camera camera;
+    };
 
     struct DirLight {
         vec3 direction;
@@ -97,9 +113,9 @@ const createFragmentShaderSource = (maxDirLights: number) => glsl300({
 `;
 
 const cameraUboConfig = {
-    'CameraUniforms.translation': { data: vec3.create() },
-    'CameraUniforms.viewMatrix': { data: mat4.create() },
-    'CameraUniforms.projectionMatrix': { data: mat4.create() },
+    'camera.translation': { data: vec3.create() },
+    'camera.viewMatrix': { data: mat4.create() },
+    'camera.projectionMatrix': { data: mat4.create() },
 };
 
 type CachedCamera = {
@@ -125,6 +141,13 @@ const materialUboConfig = {
     'material.specularColor': { data: vec3.create() },
     'material.specularExponent': { data: [0] },
     'material.opacity': { data: [1] },
+};
+
+const transformUboConfig = {
+    'transform.modelMatrix': { data: mat4.create() },
+    'transform.modelViewMatrix': { data: mat4.create() },
+    'transform.modelViewProjectionMatrix': { data: mat4.create() },
+    'transform.normalMatrix': { data: mat3.create() },
 };
 
 type CachedRenderable = {
@@ -175,11 +198,13 @@ export const createWebgl2RenderingSystem = ({ world, canvas, maxDirectionalLight
 
                 lightCache.dirLights.push(directionalLight);
             } else if (transform && geometry && phongMaterial) {
-                const materialUbo = new UBO(gl, 'MaterialUniforms', 2, materialUboConfig);
+                const transformUbo = new UBO(gl, 'TransformUniforms', 2, transformUboConfig);
+                const materialUbo = new UBO(gl, 'MaterialUniforms', 3, materialUboConfig);
 
                 cameraCache.ubo.bindToShaderProgram(shaderProgram);
                 lightCache.ubo.bindToShaderProgram(shaderProgram);
 
+                transformUbo.bindToShaderProgram(shaderProgram);
                 materialUbo.bindToShaderProgram(shaderProgram);
 
                 const vao = createWebgl2VertexArray(gl);
@@ -191,11 +216,32 @@ export const createWebgl2RenderingSystem = ({ world, canvas, maxDirectionalLight
                 const indexBuffer = createWebgl2ElementArrayBuffer(gl, geometry.data.indices);
                 const indexCount = geometry.data.indices.length;
 
-                const modelMatrixLocation = gl.getUniformLocation(shaderProgram, 'modelMatrix');
-                gl.uniformMatrix4fv(modelMatrixLocation, false, transform.data.modelMatrix);
+                const modelViewMatrix = mat4.create();
+                mat4.multiply(modelViewMatrix, cameraCache.camera.data.viewMatrix, transform.data.modelMatrix);
+
+                const modelViewProjection = mat4.create();
+                mat4.multiply(modelViewProjection, cameraCache.camera.data.projectionMatrix, modelViewMatrix);
+
+                const normalMatrix = mat3.create();
+                mat3.normalFromMat4(normalMatrix, modelViewMatrix);
 
                 cache.push({
                     update: () => {
+                        transformUbo.bindBase();
+                        if (transform.isDirty() || cameraCache.camera.isDirty()) {
+                            console.log('transform or camera dirty, updating transform...');
+                            mat4.multiply(modelViewMatrix, cameraCache.camera.data.viewMatrix, transform.data.modelMatrix);
+                            mat4.multiply(modelViewProjection, cameraCache.camera.data.projectionMatrix, modelViewMatrix);
+                            mat3.normalFromMat4(normalMatrix, modelViewMatrix);
+                            transform.setDirty(false);
+                            transformUbo
+                                .setView('transform.modelMatrix', transform.data.modelMatrix)
+                                .setView('transform.modelViewMatrix', modelViewMatrix)
+                                .setView('transform.modelViewProjectionMatrix', modelViewProjection)
+                                .setView('transform.normalMatrix', normalMatrix)
+                                .update();
+                        }
+
                         materialUbo.bindBase();
                         if (phongMaterial.isDirty()) {
                             console.log('material update');
@@ -208,7 +254,7 @@ export const createWebgl2RenderingSystem = ({ world, canvas, maxDirectionalLight
                                 .setView('material.opacity', [phongMaterial.data.opacity])
                                 .update();
                         }
-                        gl.uniformMatrix4fv(modelMatrixLocation, false, transform.data.modelMatrix);
+
                         gl.bindVertexArray(vao);
                         gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
                         gl.drawElements(gl.TRIANGLES, indexCount, gl.UNSIGNED_INT, 0);
@@ -231,9 +277,9 @@ export const createWebgl2RenderingSystem = ({ world, canvas, maxDirectionalLight
         if (cameraCache.camera.isDirty()) {
             console.log('update camera ubo');
             cameraCache.ubo
-                .setView('CameraUniforms.translation', cameraCache.camera.data.translation)
-                .setView('CameraUniforms.viewMatrix', cameraCache.camera.data.viewMatrix)
-                .setView('CameraUniforms.projectionMatrix', cameraCache.camera.data.projectionMatrix)
+                .setView('camera.translation', cameraCache.camera.data.translation)
+                .setView('camera.viewMatrix', cameraCache.camera.data.viewMatrix)
+                .setView('camera.projectionMatrix', cameraCache.camera.data.projectionMatrix)
                 .update();
         }
 
