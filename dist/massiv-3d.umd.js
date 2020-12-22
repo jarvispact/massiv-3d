@@ -1453,6 +1453,7 @@
         constructor(gl, blockName, binding, config) {
             this.views = {};
             this.mat3BufferLayoutFuckup = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+            this.arrayCache = [0];
             this.gl = gl;
             this.blockName = blockName;
             this.binding = binding;
@@ -1471,14 +1472,19 @@
                 if (!uniformOffsets)
                     throw new Error('invalid ubo config');
                 this.views = namesFromConfig.reduce((accum, name, idx) => {
-                    if (this.config[name].data.length === 9) {
+                    if (typeof this.config[name] === 'number') {
+                        this.arrayCache[0] = this.config[name];
+                        accum[name] = new Float32Array(this.bufferData, uniformOffsets[idx], 1);
+                        accum[name].set(this.arrayCache);
+                    }
+                    else if (this.config[name].length === 9) {
                         accum[name] = new Float32Array(this.bufferData, uniformOffsets[idx], 12);
-                        fixupUniformBufferIssue(this.mat3BufferLayoutFuckup, this.config[name].data);
+                        fixupUniformBufferIssue(this.mat3BufferLayoutFuckup, this.config[name]);
                         accum[name].set(this.mat3BufferLayoutFuckup);
                     }
                     else {
-                        accum[name] = new Float32Array(this.bufferData, uniformOffsets[idx], this.config[name].data.length);
-                        accum[name].set(this.config[name].data);
+                        accum[name] = new Float32Array(this.bufferData, uniformOffsets[idx], this.config[name].length);
+                        accum[name].set(this.config[name]);
                     }
                     return accum;
                 }, {});
@@ -1494,20 +1500,36 @@
             gl.bindBufferBase(gl.UNIFORM_BUFFER, this.binding, this.webglBuffer);
             return this;
         }
-        setView(key, data) {
-            if (this.config[key].data.length === 9) {
-                fixupUniformBufferIssue(this.mat3BufferLayoutFuckup, data);
-                this.views[key].set(this.mat3BufferLayoutFuckup);
-            }
-            else {
-                this.views[key].set(data);
-            }
+        setMat4(key, data) {
+            this.views[key].set(data);
+            return this;
+        }
+        setMat3(key, data) {
+            fixupUniformBufferIssue(this.mat3BufferLayoutFuckup, data);
+            this.views[key].set(this.mat3BufferLayoutFuckup);
+            return this;
+        }
+        setVec4(key, data) {
+            this.views[key].set(data);
+            return this;
+        }
+        setVec3(key, data) {
+            this.views[key].set(data);
+            return this;
+        }
+        setVec2(key, data) {
+            this.views[key].set(data);
+            return this;
+        }
+        setScalar(key, data) {
+            this.arrayCache[0] = data;
+            this.views[key].set(this.arrayCache);
             return this;
         }
         update() {
             const gl = this.gl;
             gl.bindBuffer(gl.UNIFORM_BUFFER, this.webglBuffer);
-            gl.bufferData(gl.UNIFORM_BUFFER, this.bufferData, gl.DYNAMIC_DRAW);
+            gl.bufferSubData(gl.UNIFORM_BUFFER, 0, this.bufferData);
             return this;
         }
         cleanup() {
@@ -1517,10 +1539,7 @@
     }
 
     const createVertexShaderSource = () => glsl300({
-        attributes: [
-            { name: 'position', type: 'vec3', location: 0 },
-            { name: 'normal', type: 'vec3', location: 1 },
-        ],
+        attributes: [GLSL300ATTRIBUTE.POSITION, GLSL300ATTRIBUTE.NORMAL],
         out: [
             { name: 'vNormal', type: 'vec3' },
             { name: 'vPosition', type: 'vec3' },
@@ -1619,28 +1638,28 @@
     }
 `;
     const cameraUboConfig = {
-        'camera.translation': { data: glMatrix.vec3.create() },
-        'camera.viewMatrix': { data: glMatrix.mat4.create() },
-        'camera.projectionMatrix': { data: glMatrix.mat4.create() },
+        'camera.translation': glMatrix.vec3.create(),
+        'camera.viewMatrix': glMatrix.mat4.create(),
+        'camera.projectionMatrix': glMatrix.mat4.create(),
     };
     const getLightsUboConfig = (maxLights) => [...new Array(maxLights)].map((_, idx) => idx).reduce((accum, idx) => {
-        accum[`LightUniforms.dirLights[${idx}].direction`] = { data: glMatrix.vec3.create() };
-        accum[`LightUniforms.dirLights[${idx}].diffuseColor`] = { data: glMatrix.vec3.create() };
-        accum[`LightUniforms.dirLights[${idx}].specularColor`] = { data: glMatrix.vec3.create() };
+        accum[`LightUniforms.dirLights[${idx}].direction`] = glMatrix.vec3.create();
+        accum[`LightUniforms.dirLights[${idx}].diffuseColor`] = glMatrix.vec3.create();
+        accum[`LightUniforms.dirLights[${idx}].specularColor`] = glMatrix.vec3.create();
         return accum;
     }, {});
     const materialUboConfig = {
-        'material.ambientIntensity': { data: [0] },
-        'material.diffuseColor': { data: glMatrix.vec3.create() },
-        'material.specularColor': { data: glMatrix.vec3.create() },
-        'material.specularExponent': { data: [0] },
-        'material.opacity': { data: [1] },
+        'material.ambientIntensity': 0,
+        'material.diffuseColor': glMatrix.vec3.create(),
+        'material.specularColor': glMatrix.vec3.create(),
+        'material.specularExponent': 0,
+        'material.opacity': 1,
     };
     const transformUboConfig = {
-        'transform.modelMatrix': { data: glMatrix.mat4.create() },
-        'transform.modelViewMatrix': { data: glMatrix.mat4.create() },
-        'transform.modelViewProjectionMatrix': { data: glMatrix.mat4.create() },
-        'transform.normalMatrix': { data: glMatrix.mat3.create() },
+        'transform.modelMatrix': glMatrix.mat4.create(),
+        'transform.modelViewMatrix': glMatrix.mat4.create(),
+        'transform.modelViewProjectionMatrix': glMatrix.mat4.create(),
+        'transform.normalMatrix': glMatrix.mat3.create(),
     };
     const createWebgl2RenderingSystem = ({ world, canvas, maxDirectionalLights = 5 }) => {
         const gl = getWebgl2Context(canvas);
@@ -1685,7 +1704,7 @@
                     const positionBuffer = createWebgl2ArrayBuffer(gl, geometry.data.positions);
                     setupWebgl2VertexAttribPointer(gl, 0, 3);
                     const normalBuffer = createWebgl2ArrayBuffer(gl, geometry.data.normals);
-                    setupWebgl2VertexAttribPointer(gl, 1, 3);
+                    setupWebgl2VertexAttribPointer(gl, 2, 3);
                     const indexBuffer = createWebgl2ElementArrayBuffer(gl, geometry.data.indices);
                     const indexCount = geometry.data.indices.length;
                     const modelViewMatrix = glMatrix.mat4.create();
@@ -1704,10 +1723,10 @@
                                 glMatrix.mat3.normalFromMat4(normalMatrix, modelViewMatrix);
                                 transform.setDirty(false);
                                 transformUbo
-                                    .setView('transform.modelMatrix', transform.data.modelMatrix)
-                                    .setView('transform.modelViewMatrix', modelViewMatrix)
-                                    .setView('transform.modelViewProjectionMatrix', modelViewProjection)
-                                    .setView('transform.normalMatrix', normalMatrix)
+                                    .setMat4('transform.modelMatrix', transform.data.modelMatrix)
+                                    .setMat4('transform.modelViewMatrix', modelViewMatrix)
+                                    .setMat4('transform.modelViewProjectionMatrix', modelViewProjection)
+                                    .setMat3('transform.normalMatrix', normalMatrix)
                                     .update();
                             }
                             materialUbo.bindBase();
@@ -1715,11 +1734,11 @@
                                 console.log('material update');
                                 phongMaterial.setDirty(false);
                                 materialUbo
-                                    .setView('material.ambientIntensity', [phongMaterial.data.ambientIntensity])
-                                    .setView('material.diffuseColor', phongMaterial.data.diffuseColor)
-                                    .setView('material.specularColor', phongMaterial.data.specularColor)
-                                    .setView('material.specularExponent', [phongMaterial.data.specularExponent])
-                                    .setView('material.opacity', [phongMaterial.data.opacity])
+                                    .setScalar('material.ambientIntensity', phongMaterial.data.ambientIntensity)
+                                    .setVec3('material.diffuseColor', phongMaterial.data.diffuseColor)
+                                    .setVec3('material.specularColor', phongMaterial.data.specularColor)
+                                    .setScalar('material.specularExponent', phongMaterial.data.specularExponent)
+                                    .setScalar('material.opacity', phongMaterial.data.opacity)
                                     .update();
                             }
                             gl.bindVertexArray(vao);
@@ -1741,9 +1760,9 @@
             if (cameraCache.camera.isDirty()) {
                 console.log('update camera ubo');
                 cameraCache.ubo
-                    .setView('camera.translation', cameraCache.camera.data.translation)
-                    .setView('camera.viewMatrix', cameraCache.camera.data.viewMatrix)
-                    .setView('camera.projectionMatrix', cameraCache.camera.data.projectionMatrix)
+                    .setVec3('camera.translation', cameraCache.camera.data.translation)
+                    .setMat4('camera.viewMatrix', cameraCache.camera.data.viewMatrix)
+                    .setMat4('camera.projectionMatrix', cameraCache.camera.data.projectionMatrix)
                     .update();
             }
             for (let i = 0; i < lightCache.dirLights.length; i++) {
@@ -1752,9 +1771,9 @@
                     console.log(`light ${i} is dirty`);
                     lightNeedsUpdate = true;
                     lightCache.ubo
-                        .setView(`LightUniforms.dirLights[${i}].direction`, dirLight.data.direction)
-                        .setView(`LightUniforms.dirLights[${i}].diffuseColor`, dirLight.data.diffuseColor)
-                        .setView(`LightUniforms.dirLights[${i}].specularColor`, dirLight.data.specularColor);
+                        .setVec3(`LightUniforms.dirLights[${i}].direction`, dirLight.data.direction)
+                        .setVec3(`LightUniforms.dirLights[${i}].diffuseColor`, dirLight.data.diffuseColor)
+                        .setVec3(`LightUniforms.dirLights[${i}].specularColor`, dirLight.data.specularColor);
                 }
             }
             if (lightNeedsUpdate) {

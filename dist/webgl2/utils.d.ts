@@ -1,4 +1,4 @@
-import { mat4, mat3, vec3 } from 'gl-matrix';
+import { mat4, mat3, vec3, vec4, vec2 } from 'gl-matrix';
 export declare type WebGLContextAttributeOptions = {
     premultipliedAlpha: boolean;
     alpha: boolean;
@@ -14,18 +14,19 @@ export declare const createWebgl2ArrayBuffer: (gl: WebGL2RenderingContext, data:
 export declare const setupWebgl2VertexAttribPointer: (gl: WebGL2RenderingContext, location: number, bufferSize: number, type?: number, stride?: number, offset?: number) => void;
 export declare const createWebgl2ElementArrayBuffer: (gl: WebGL2RenderingContext, indices: Uint32Array) => WebGLBuffer;
 export declare const createWebgl2VertexArray: (gl: WebGL2RenderingContext) => WebGLVertexArrayObject;
+export declare type GLSL300Type = 'mat4' | 'mat3' | 'vec4' | 'vec3' | 'vec2' | 'float' | 'int';
 export declare type GLSL300AttributeConfig = {
     name: string;
-    type: string;
+    type: GLSL300Type;
     location: number;
 };
 export declare type GLSL300InConfig = {
     name: string;
-    type: string;
+    type: GLSL300Type;
 };
 export declare type GLSL300OutConfig = {
     name: string;
-    type: string;
+    type: GLSL300Type;
 };
 export declare type GLSL300Config = {
     floatPrecision?: 'highp' | 'mediump';
@@ -48,9 +49,7 @@ export declare type Texture2DOptions = {
 };
 export declare const createTexture2D: (gl: WebGL2RenderingContext, image: HTMLImageElement, options?: Partial<Texture2DOptions> | undefined) => WebGLTexture;
 export declare type UBOConfig = {
-    [key: string]: {
-        data: mat4 | mat3 | vec3 | number[];
-    };
+    [key: string]: mat4 | mat3 | vec4 | vec3 | vec3 | number;
 };
 export declare class UBO<T extends UBOConfig> {
     gl: WebGL2RenderingContext;
@@ -61,10 +60,16 @@ export declare class UBO<T extends UBOConfig> {
     config: T;
     views: Record<string, Float32Array>;
     mat3BufferLayoutFuckup: number[];
+    arrayCache: number[];
     constructor(gl: WebGL2RenderingContext, blockName: string, binding: number, config: T);
     bindToShaderProgram(shaderProgram: WebGLProgram): this;
     bindBase(): this;
-    setView<Key extends string>(key: Key | keyof T, data: T[keyof T]['data']): this;
+    setMat4<Key extends string>(key: Key | keyof T, data: mat4): this;
+    setMat3<Key extends string>(key: Key | keyof T, data: mat3): this;
+    setVec4<Key extends string>(key: Key | keyof T, data: vec4): this;
+    setVec3<Key extends string>(key: Key | keyof T, data: vec3): this;
+    setVec2<Key extends string>(key: Key | keyof T, data: vec2): this;
+    setScalar<Key extends string>(key: Key | keyof T, data: number): this;
     update(): this;
     cleanup(): this;
 }

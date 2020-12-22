@@ -1,4 +1,4 @@
-import { mat4, mat3, vec3 } from 'gl-matrix';
+import { mat4, mat3, vec3, vec4, vec2 } from 'gl-matrix';
 import { Nullable } from '../types';
 
 export type WebGLContextAttributeOptions = {
@@ -84,20 +84,22 @@ export const createWebgl2VertexArray = (gl: WebGL2RenderingContext): WebGLVertex
     return vao;
 };
 
+export type GLSL300Type = 'mat4' | 'mat3' | 'vec4' | 'vec3' | 'vec2' | 'float' | 'int';
+
 export type GLSL300AttributeConfig = {
     name: string;
-    type: string;
+    type: GLSL300Type;
     location: number;
 };
 
 export type GLSL300InConfig = {
     name: string;
-    type: string;
+    type: GLSL300Type;
 };
 
 export type GLSL300OutConfig = {
     name: string;
-    type: string;
+    type: GLSL300Type;
 };
 
 export type GLSL300Config = {
@@ -206,7 +208,7 @@ const fixupUniformBufferIssue = (uniformBufferNormalMatrix: number[], normalMatr
 };
 
 export type UBOConfig = {
-    [key: string]: { data: mat4 | mat3 | vec3 | number[] };
+    [key: string]: mat4 | mat3 | vec4 | vec3 | vec3 | number;
 };
 
 export class UBO<T extends UBOConfig> {
@@ -218,6 +220,7 @@ export class UBO<T extends UBOConfig> {
     config: T;
     views: Record<string, Float32Array> = {};
     mat3BufferLayoutFuckup = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+    arrayCache = [0];
 
     constructor(gl: WebGL2RenderingContext, blockName: string, binding: number, config: T) {
         this.gl = gl;
@@ -241,13 +244,17 @@ export class UBO<T extends UBOConfig> {
             if (!uniformOffsets) throw new Error('invalid ubo config');
 
             this.views = namesFromConfig.reduce((accum, name, idx) => {
-                if (this.config[name].data.length === 9) {
+                if (typeof this.config[name] === 'number') {
+                    this.arrayCache[0] = this.config[name] as number;
+                    accum[name] = new Float32Array(this.bufferData, uniformOffsets[idx], 1);
+                    accum[name].set(this.arrayCache);
+                } else if ((this.config[name] as Array<number>).length === 9) {
                     accum[name] = new Float32Array(this.bufferData, uniformOffsets[idx], 12);
-                    fixupUniformBufferIssue(this.mat3BufferLayoutFuckup, this.config[name].data as mat3);
+                    fixupUniformBufferIssue(this.mat3BufferLayoutFuckup, this.config[name] as mat3);
                     accum[name].set(this.mat3BufferLayoutFuckup);
                 } else {
-                    accum[name] = new Float32Array(this.bufferData, uniformOffsets[idx], this.config[name].data.length);
-                    accum[name].set(this.config[name].data);
+                    accum[name] = new Float32Array(this.bufferData, uniformOffsets[idx], (this.config[name] as Array<number>).length);
+                    accum[name].set((this.config[name] as Array<number>));
                 }
 
                 return accum;
@@ -268,21 +275,42 @@ export class UBO<T extends UBOConfig> {
         return this;
     }
 
-    setView<Key extends string>(key: Key | keyof T, data: T[keyof T]['data']) {
-        if (this.config[key].data.length === 9) {
-            fixupUniformBufferIssue(this.mat3BufferLayoutFuckup, data as mat3);
-            this.views[key as string].set(this.mat3BufferLayoutFuckup);
-        } else {
-            this.views[key as string].set(data);
-        }
+    setMat4<Key extends string>(key: Key | keyof T, data: mat4) {
+        this.views[key as string].set(data);
+        return this;
+    }
 
+    setMat3<Key extends string>(key: Key | keyof T, data: mat3) {
+        fixupUniformBufferIssue(this.mat3BufferLayoutFuckup, data);
+        this.views[key as string].set(this.mat3BufferLayoutFuckup);
+        return this;
+    }
+
+    setVec4<Key extends string>(key: Key | keyof T, data: vec4) {
+        this.views[key as string].set(data);
+        return this;
+    }
+
+    setVec3<Key extends string>(key: Key | keyof T, data: vec3) {
+        this.views[key as string].set(data);
+        return this;
+    }
+
+    setVec2<Key extends string>(key: Key | keyof T, data: vec2) {
+        this.views[key as string].set(data);
+        return this;
+    }
+
+    setScalar<Key extends string>(key: Key | keyof T, data: number) {
+        this.arrayCache[0] = data;
+        this.views[key as string].set(this.arrayCache);
         return this;
     }
 
     update() {    
         const gl = this.gl;
         gl.bindBuffer(gl.UNIFORM_BUFFER, this.webglBuffer);
-        gl.bufferData(gl.UNIFORM_BUFFER, this.bufferData, gl.DYNAMIC_DRAW);
+        gl.bufferSubData(gl.UNIFORM_BUFFER, 0, this.bufferData);
         return this;
     }
 

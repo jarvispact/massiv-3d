@@ -6,13 +6,10 @@ import { PhongMaterial } from '../components/phong-material';
 import { Transform } from '../components/transform';
 import { System } from '../ecs/system';
 import { World } from '../ecs/world';
-import { createWebgl2ArrayBuffer, createWebgl2ElementArrayBuffer, createWebgl2Program, createWebgl2Shader, createWebgl2VertexArray, getWebgl2Context, glsl300, setupWebgl2VertexAttribPointer, UBO, UBOConfig } from '../webgl2/utils';
+import { createWebgl2ArrayBuffer, createWebgl2ElementArrayBuffer, createWebgl2Program, createWebgl2Shader, createWebgl2VertexArray, getWebgl2Context, glsl300, GLSL300ATTRIBUTE, setupWebgl2VertexAttribPointer, UBO, UBOConfig } from '../webgl2/utils';
 
 const createVertexShaderSource = () => glsl300({
-    attributes: [
-        { name: 'position', type: 'vec3', location: 0 },
-        { name: 'normal', type: 'vec3', location: 1 },
-    ],
+    attributes: [GLSL300ATTRIBUTE.POSITION, GLSL300ATTRIBUTE.NORMAL],
     out: [
         { name: 'vNormal', type: 'vec3' },
         { name: 'vPosition', type: 'vec3' },
@@ -113,9 +110,9 @@ const createFragmentShaderSource = (maxDirLights: number) => glsl300({
 `;
 
 const cameraUboConfig = {
-    'camera.translation': { data: vec3.create() },
-    'camera.viewMatrix': { data: mat4.create() },
-    'camera.projectionMatrix': { data: mat4.create() },
+    'camera.translation': vec3.create(),
+    'camera.viewMatrix': mat4.create(),
+    'camera.projectionMatrix': mat4.create(),
 };
 
 type CachedCamera = {
@@ -124,9 +121,9 @@ type CachedCamera = {
 };
 
 const getLightsUboConfig = (maxLights: number) => [...new Array(maxLights)].map((_, idx) => idx).reduce((accum, idx) => {
-    accum[`LightUniforms.dirLights[${idx}].direction`] = { data: vec3.create() };
-    accum[`LightUniforms.dirLights[${idx}].diffuseColor`] = { data: vec3.create() };
-    accum[`LightUniforms.dirLights[${idx}].specularColor`] = { data: vec3.create() };
+    accum[`LightUniforms.dirLights[${idx}].direction`] = vec3.create();
+    accum[`LightUniforms.dirLights[${idx}].diffuseColor`] = vec3.create();
+    accum[`LightUniforms.dirLights[${idx}].specularColor`] = vec3.create();
     return accum;
 }, {} as UBOConfig);
 
@@ -136,18 +133,18 @@ type CachedLights = {
 };
 
 const materialUboConfig = {
-    'material.ambientIntensity': { data: [0] },
-    'material.diffuseColor': { data: vec3.create() },
-    'material.specularColor': { data: vec3.create() },
-    'material.specularExponent': { data: [0] },
-    'material.opacity': { data: [1] },
+    'material.ambientIntensity': 0,
+    'material.diffuseColor': vec3.create(),
+    'material.specularColor': vec3.create(),
+    'material.specularExponent': 0,
+    'material.opacity': 1,
 };
 
 const transformUboConfig = {
-    'transform.modelMatrix': { data: mat4.create() },
-    'transform.modelViewMatrix': { data: mat4.create() },
-    'transform.modelViewProjectionMatrix': { data: mat4.create() },
-    'transform.normalMatrix': { data: mat3.create() },
+    'transform.modelMatrix': mat4.create(),
+    'transform.modelViewMatrix': mat4.create(),
+    'transform.modelViewProjectionMatrix': mat4.create(),
+    'transform.normalMatrix': mat3.create(),
 };
 
 type CachedRenderable = {
@@ -211,7 +208,7 @@ export const createWebgl2RenderingSystem = ({ world, canvas, maxDirectionalLight
                 const positionBuffer = createWebgl2ArrayBuffer(gl, geometry.data.positions);
                 setupWebgl2VertexAttribPointer(gl, 0, 3);
                 const normalBuffer = createWebgl2ArrayBuffer(gl, geometry.data.normals);
-                setupWebgl2VertexAttribPointer(gl, 1, 3);
+                setupWebgl2VertexAttribPointer(gl, 2, 3);
 
                 const indexBuffer = createWebgl2ElementArrayBuffer(gl, geometry.data.indices);
                 const indexCount = geometry.data.indices.length;
@@ -235,10 +232,10 @@ export const createWebgl2RenderingSystem = ({ world, canvas, maxDirectionalLight
                             mat3.normalFromMat4(normalMatrix, modelViewMatrix);
                             transform.setDirty(false);
                             transformUbo
-                                .setView('transform.modelMatrix', transform.data.modelMatrix)
-                                .setView('transform.modelViewMatrix', modelViewMatrix)
-                                .setView('transform.modelViewProjectionMatrix', modelViewProjection)
-                                .setView('transform.normalMatrix', normalMatrix)
+                                .setMat4('transform.modelMatrix', transform.data.modelMatrix)
+                                .setMat4('transform.modelViewMatrix', modelViewMatrix)
+                                .setMat4('transform.modelViewProjectionMatrix', modelViewProjection)
+                                .setMat3('transform.normalMatrix', normalMatrix)
                                 .update();
                         }
 
@@ -247,11 +244,11 @@ export const createWebgl2RenderingSystem = ({ world, canvas, maxDirectionalLight
                             console.log('material update');
                             phongMaterial.setDirty(false);
                             materialUbo
-                                .setView('material.ambientIntensity', [phongMaterial.data.ambientIntensity])
-                                .setView('material.diffuseColor', phongMaterial.data.diffuseColor)
-                                .setView('material.specularColor', phongMaterial.data.specularColor)
-                                .setView('material.specularExponent', [phongMaterial.data.specularExponent])
-                                .setView('material.opacity', [phongMaterial.data.opacity])
+                                .setScalar('material.ambientIntensity', phongMaterial.data.ambientIntensity)
+                                .setVec3('material.diffuseColor', phongMaterial.data.diffuseColor)
+                                .setVec3('material.specularColor', phongMaterial.data.specularColor)
+                                .setScalar('material.specularExponent', phongMaterial.data.specularExponent)
+                                .setScalar('material.opacity', phongMaterial.data.opacity)
                                 .update();
                         }
 
@@ -277,9 +274,9 @@ export const createWebgl2RenderingSystem = ({ world, canvas, maxDirectionalLight
         if (cameraCache.camera.isDirty()) {
             console.log('update camera ubo');
             cameraCache.ubo
-                .setView('camera.translation', cameraCache.camera.data.translation)
-                .setView('camera.viewMatrix', cameraCache.camera.data.viewMatrix)
-                .setView('camera.projectionMatrix', cameraCache.camera.data.projectionMatrix)
+                .setVec3('camera.translation', cameraCache.camera.data.translation)
+                .setMat4('camera.viewMatrix', cameraCache.camera.data.viewMatrix)
+                .setMat4('camera.projectionMatrix', cameraCache.camera.data.projectionMatrix)
                 .update();
         }
 
@@ -289,9 +286,9 @@ export const createWebgl2RenderingSystem = ({ world, canvas, maxDirectionalLight
                 console.log(`light ${i} is dirty`);
                 lightNeedsUpdate = true;
                 lightCache.ubo
-                    .setView(`LightUniforms.dirLights[${i}].direction`, dirLight.data.direction)
-                    .setView(`LightUniforms.dirLights[${i}].diffuseColor`, dirLight.data.diffuseColor)
-                    .setView(`LightUniforms.dirLights[${i}].specularColor`, dirLight.data.specularColor)
+                    .setVec3(`LightUniforms.dirLights[${i}].direction`, dirLight.data.direction)
+                    .setVec3(`LightUniforms.dirLights[${i}].diffuseColor`, dirLight.data.diffuseColor)
+                    .setVec3(`LightUniforms.dirLights[${i}].specularColor`, dirLight.data.specularColor)
             }
         }
 
