@@ -13,7 +13,9 @@
     "build": "rollup -c",
     "git-add-dist": "git add ./dist/*",
     "test": "env TS_NODE_COMPILER_OPTIONS='{\"module\": \"commonjs\" }' mocha -r ts-node/register 'tests/**/*.spec.ts'",
-    "example:01": "webpack-dev-server --config examples/01-colored-quad/webpack.config.js"
+    "example:01": "webpack-dev-server --config examples/01-colored-quad/webpack.config.js",
+    "example:02": "webpack-dev-server --config examples/02-perspective-camera/webpack.config.js",
+    "example:03": "webpack-dev-server --config examples/03-textured-quad/webpack.config.js"
   },
   "repository": {
     "type": "git",
