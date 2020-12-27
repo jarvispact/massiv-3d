@@ -17,7 +17,8 @@
     "example:02": "webpack-dev-server --config examples/02-perspective-camera/webpack.config.js",
     "example:03": "webpack-dev-server --config examples/03-textured-quad/webpack.config.js",
     "example:04": "webpack-dev-server --config examples/04-animation/webpack.config.js",
-    "example:05": "webpack-dev-server --config examples/05-multiple-entities/webpack.config.js"
+    "example:05": "webpack-dev-server --config examples/05-multiple-entities/webpack.config.js",
+    "example:06": "webpack-dev-server --config examples/06-model-loading/webpack.config.js"
   },
   "repository": {
     "type": "git",

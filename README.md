@@ -57,3 +57,12 @@ window.requestAnimationFrame(tick);
 - Systems
     - FirstPersonCameraMovementSystem
     - OrbitCameraMovementSystem
+
+## Examples
+the `examples` folder holds basic, but also more complex components and systems, that shows a possible usage of the library in more depth. the quick start guide is:
+
+1. clone this repo
+2. `npm i`
+3. `npm run example:XX` where XX stands for: `example:01`, `example:02`, ...
+
+try the examples in order to get a better idea of the library and the concepts itself
