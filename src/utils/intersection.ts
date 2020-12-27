@@ -1,1 +1,1 @@
-export const intersection = (list1: Array<string>, list2: Array<string>) => list1.filter(x => list2.includes(x));
+export const intersection = <T>(list1: Array<T>, list2: Array<T>) => list1.filter(x => list2.includes(x));

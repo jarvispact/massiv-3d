@@ -13,7 +13,7 @@
     "build": "rollup -c",
     "git-add-dist": "git add ./dist/*",
     "test": "env TS_NODE_COMPILER_OPTIONS='{\"module\": \"commonjs\" }' mocha -r ts-node/register 'tests/**/*.spec.ts'",
-    "example:hello-world": "webpack-dev-server --config examples/01-hello-world/webpack.config.js"
+    "example:01": "webpack-dev-server --config examples/01-colored-quad/webpack.config.js"
   },
   "repository": {
     "type": "git",

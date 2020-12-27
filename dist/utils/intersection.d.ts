@@ -1,1 +1,1 @@
-export declare const intersection: (list1: Array<string>, list2: Array<string>) => string[];
+export declare const intersection: <T>(list1: T[], list2: T[]) => T[];

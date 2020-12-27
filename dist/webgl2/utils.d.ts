@@ -35,7 +35,7 @@ export declare type GLSL300Config = {
     in?: GLSL300InConfig[];
     out?: GLSL300OutConfig[];
 };
-export declare const GLSL300ATTRIBUTE: Record<'POSITION' | 'UV' | 'NORMAL', GLSL300AttributeConfig>;
+export declare const GLSL300ATTRIBUTE: Record<'POSITION' | 'UV' | 'NORMAL' | 'COLOR', GLSL300AttributeConfig>;
 export declare const glsl300: (config?: GLSL300Config) => (source: TemplateStringsArray, ...interpolations: (string | number)[]) => {
     config: GLSL300Config;
     sourceCode: string;
