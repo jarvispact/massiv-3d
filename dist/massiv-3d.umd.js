@@ -723,6 +723,66 @@
         return materials;
     };
 
+    const computeTangents = (positions, indices, uvs) => {
+        const tangents = new Array(positions.length);
+        const bitangents = new Array(positions.length);
+        for (let i = 0; i < indices.length; i += 3) {
+            const idx1 = indices[i + 0];
+            const idx2 = indices[i + 1];
+            const idx3 = indices[i + 2];
+            const pp1 = positions.slice(idx1 * 3, idx1 * 3 + 3);
+            const pp2 = positions.slice(idx2 * 3, idx2 * 3 + 3);
+            const pp3 = positions.slice(idx3 * 3, idx3 * 3 + 3);
+            const p1 = glMatrix.vec3.fromValues(pp1[0], pp1[1], pp1[2]);
+            const p2 = glMatrix.vec3.fromValues(pp2[0], pp2[1], pp2[2]);
+            const p3 = glMatrix.vec3.fromValues(pp3[0], pp3[1], pp3[2]);
+            const uuv1 = uvs.slice(idx1 * 2, idx1 * 2 + 2);
+            const uuv2 = uvs.slice(idx2 * 2, idx2 * 2 + 2);
+            const uuv3 = uvs.slice(idx3 * 2, idx3 * 2 + 2);
+            const uv1 = glMatrix.vec2.fromValues(uuv1[0], uuv1[1]);
+            const uv2 = glMatrix.vec2.fromValues(uuv2[0], uuv2[1]);
+            const uv3 = glMatrix.vec2.fromValues(uuv3[0], uuv3[1]);
+            const deltaPos1 = glMatrix.vec3.create();
+            const deltaPos2 = glMatrix.vec3.create();
+            glMatrix.vec3.subtract(deltaPos1, p2, p1);
+            glMatrix.vec3.subtract(deltaPos2, p3, p1);
+            const deltaUv1 = glMatrix.vec2.create();
+            const deltaUv2 = glMatrix.vec2.create();
+            glMatrix.vec2.subtract(deltaUv1, uv2, uv1);
+            glMatrix.vec2.subtract(deltaUv2, uv3, uv1);
+            const r = 1 / (deltaUv1[0] * deltaUv2[1] - deltaUv1[1] * deltaUv2[0]);
+            const tangent = glMatrix.vec3.create();
+            const bitangent = glMatrix.vec3.create();
+            const tmp1 = glMatrix.vec3.create();
+            const tmp2 = glMatrix.vec3.create();
+            glMatrix.vec3.subtract(tangent, glMatrix.vec3.scale(tmp1, deltaPos1, deltaUv2[1]), glMatrix.vec3.scale(tmp2, deltaPos2, deltaUv1[1]));
+            glMatrix.vec3.scale(tangent, tangent, r);
+            glMatrix.vec3.subtract(bitangent, glMatrix.vec3.scale(tmp1, deltaPos2, deltaUv1[0]), glMatrix.vec3.scale(tmp2, deltaPos1, deltaUv2[0]));
+            glMatrix.vec3.scale(bitangent, bitangent, r);
+            glMatrix.vec3.normalize(tangent, tangent);
+            glMatrix.vec3.normalize(bitangent, bitangent);
+            tangents[idx1 * 3] = tangent[0];
+            tangents[idx1 * 3 + 1] = tangent[1];
+            tangents[idx1 * 3 + 2] = tangent[2];
+            tangents[idx2 * 3] = tangent[0];
+            tangents[idx2 * 3 + 1] = tangent[1];
+            tangents[idx2 * 3 + 2] = tangent[2];
+            tangents[idx3 * 3] = tangent[0];
+            tangents[idx3 * 3 + 1] = tangent[1];
+            tangents[idx3 * 3 + 2] = tangent[2];
+            bitangents[idx1 * 3] = bitangent[0];
+            bitangents[idx1 * 3 + 1] = bitangent[1];
+            bitangents[idx1 * 3 + 2] = bitangent[2];
+            bitangents[idx2 * 3] = bitangent[0];
+            bitangents[idx2 * 3 + 1] = bitangent[1];
+            bitangents[idx2 * 3 + 2] = bitangent[2];
+            bitangents[idx3 * 3] = bitangent[0];
+            bitangents[idx3 * 3 + 1] = bitangent[1];
+            bitangents[idx3 * 3 + 2] = bitangent[2];
+        }
+        return { tangents, bitangents };
+    };
+
     const createMap = (in_min, in_max, out_min, out_max) => (value) => ((value - in_min) * (out_max - out_min)) / (in_max - in_min) + out_min;
 
     const defaultContextAttributeOptions = {
@@ -805,7 +865,9 @@
         POSITION: { name: 'position', type: 'vec3', location: 0 },
         UV: { name: 'uv', type: 'vec2', location: 1 },
         NORMAL: { name: 'normal', type: 'vec3', location: 2 },
-        COLOR: { name: 'color', type: 'vec3', location: 3 },
+        TANGENT: { name: 'tangent', type: 'vec3', location: 3 },
+        BITANGENT: { name: 'bitangent', type: 'vec3', location: 4 },
+        COLOR: { name: 'color', type: 'vec3', location: 5 },
     };
     const glsl300 = (config = {}) => (source, ...interpolations) => {
         const version = '#version 300 es';
@@ -851,11 +913,15 @@
             srcFormat: gl.RGBA,
             srcType: gl.UNSIGNED_BYTE,
             generateMipmaps: true,
+            wrapS: gl.CLAMP_TO_EDGE,
+            wrapT: gl.CLAMP_TO_EDGE,
         };
         const texOptions = Object.assign(Object.assign({}, defaultOptions), options);
         gl.texImage2D(gl.TEXTURE_2D, texOptions.level, texOptions.internalFormat, texOptions.srcFormat, texOptions.srcType, image);
         if (texOptions.generateMipmaps)
             gl.generateMipmap(gl.TEXTURE_2D);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, texOptions.wrapS);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, texOptions.wrapT);
         return texture;
     };
     // ==================================
@@ -974,6 +1040,7 @@
     exports.RAD_TO_DEG = RAD_TO_DEG;
     exports.UBO = UBO;
     exports.World = World;
+    exports.computeTangents = computeTangents;
     exports.createMap = createMap;
     exports.createObjFileParser = createObjFileParser;
     exports.createTexture2D = createTexture2D;

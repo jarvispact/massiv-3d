@@ -9,6 +9,7 @@ export * from './loader/file-loader';
 export * from './loader/image-loader';
 export * from './loader/parse-obj-file';
 export * from './loader/parse-mtl-file';
+export * from './utils/compute-tangents';
 export * from './utils/create-map';
 export * from './utils/intersection';
 export * from './utils/math';

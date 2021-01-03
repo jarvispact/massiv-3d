@@ -35,7 +35,7 @@ export declare type GLSL300Config = {
     in?: GLSL300InConfig[];
     out?: GLSL300OutConfig[];
 };
-export declare const GLSL300ATTRIBUTE: Record<'POSITION' | 'UV' | 'NORMAL' | 'COLOR', GLSL300AttributeConfig>;
+export declare const GLSL300ATTRIBUTE: Record<'POSITION' | 'UV' | 'NORMAL' | 'TANGENT' | 'BITANGENT' | 'COLOR', GLSL300AttributeConfig>;
 export declare const glsl300: (config?: GLSL300Config) => (source: TemplateStringsArray, ...interpolations: (string | number)[]) => {
     config: GLSL300Config;
     sourceCode: string;
@@ -46,6 +46,8 @@ export declare type Texture2DOptions = {
     srcFormat: number;
     srcType: number;
     generateMipmaps: boolean;
+    wrapS: number;
+    wrapT: number;
 };
 export declare const createTexture2D: (gl: WebGL2RenderingContext, image: HTMLImageElement, options?: Partial<Texture2DOptions> | undefined) => WebGLTexture;
 export declare type UBOConfig = {

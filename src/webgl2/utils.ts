@@ -115,11 +115,13 @@ const defaultGLSL300Config: GLSL300Config = {
     intPrecision: 'highp',
 };
 
-export const GLSL300ATTRIBUTE: Record<'POSITION' | 'UV' | 'NORMAL' | 'COLOR', GLSL300AttributeConfig> = {
+export const GLSL300ATTRIBUTE: Record<'POSITION' | 'UV' | 'NORMAL' | 'TANGENT' | 'BITANGENT' | 'COLOR', GLSL300AttributeConfig> = {
     POSITION: { name: 'position', type: 'vec3', location: 0 },
     UV: { name: 'uv', type: 'vec2', location: 1 },
     NORMAL: { name: 'normal', type: 'vec3', location: 2 },
-    COLOR: { name: 'color', type: 'vec3', location: 3 },
+    TANGENT: { name: 'tangent', type: 'vec3', location: 3 },
+    BITANGENT: { name: 'bitangent', type: 'vec3', location: 4 },
+    COLOR: { name: 'color', type: 'vec3', location: 5 },
 };
 
 export const glsl300 = (config: GLSL300Config = {}) => (source: TemplateStringsArray, ...interpolations: (string | number)[]) => {
@@ -165,6 +167,8 @@ export type Texture2DOptions = {
     srcFormat: number;
     srcType: number;
     generateMipmaps: boolean;
+    wrapS: number;
+    wrapT: number;
 };
 
 export const createTexture2D = (gl: WebGL2RenderingContext, image: HTMLImageElement, options?: Partial<Texture2DOptions>): WebGLTexture => {
@@ -178,12 +182,16 @@ export const createTexture2D = (gl: WebGL2RenderingContext, image: HTMLImageElem
         srcFormat: gl.RGBA,
         srcType: gl.UNSIGNED_BYTE,
         generateMipmaps: true,
+        wrapS: gl.CLAMP_TO_EDGE,
+        wrapT: gl.CLAMP_TO_EDGE,
     };
 
     const texOptions = { ...defaultOptions, ...options };
 
     gl.texImage2D(gl.TEXTURE_2D, texOptions.level, texOptions.internalFormat, texOptions.srcFormat, texOptions.srcType, image);
     if (texOptions.generateMipmaps) gl.generateMipmap(gl.TEXTURE_2D);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, texOptions.wrapS);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, texOptions.wrapT);
     return texture;
 };
 
