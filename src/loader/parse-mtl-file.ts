@@ -5,7 +5,7 @@ const newMaterialRegex = /^newmtl\s(.*)$/;
 const diffuseColorRegex = /^Kd\s(\S+)\s(\S+)\s(\S+)$/;
 const specularColorRegex = /^Ks\s(\S+)\s(\S+)\s(\S+)$/;
 const specularExponentRegex = /^Ns\s(\S+)$/;
-const opacityRegex = /d\s(\S+)/;
+const opacityRegex = /^d\s(\S+)$/;
 
 export type ParsedMtlMaterial = {
     name: string;

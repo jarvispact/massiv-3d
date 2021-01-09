@@ -1,4 +1,4 @@
-import { mat2, vec2, vec3 } from 'gl-matrix';
+import { vec3, vec2 } from 'gl-matrix';
 
 const intersection = (list1, list2) => list1.filter(x => list2.includes(x));
 
@@ -332,35 +332,30 @@ const ImageLoader = {
     }),
 };
 
-const DEG_TO_RAD = Math.PI / 180;
-const RAD_TO_DEG = 180 / Math.PI;
-const degreesToRadians = (degrees) => degrees * DEG_TO_RAD;
-const radiansToDegrees = (radians) => radians * RAD_TO_DEG;
-
 const toFloat = (val) => Number.parseFloat(val);
 
 const toInt = (val) => Number.parseInt(val, 10);
 
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
-const objectRegex = /^o\s(.*)$/;
 const useMaterialRegex = /^usemtl\s(.*)$/;
-const vertexPositionRegex = /^v\s(\S+)\s(\S+)\s(\S+)$/;
-const vertexUvRegex = /^vt\s(\S+)\s(\S+)$/;
-const vertexNormalRegex = /^vn\s(\S+)\s(\S+)\s(\S+)$/;
-const triangleFaceRegex = /^f\s(\S+)\s(\S+)\s(\S+)$/;
-const quadFaceRegex = /^f\s(\S+)\s(\S+)\s(\S+)\s(\S+)$/;
+const vertexPositionRegex = /^v\s+(\S+)\s(\S+)\s(\S+)$/;
+const vertexUvRegex = /^vt\s+(\S+)\s(\S+).*$/;
+const vertexNormalRegex = /^vn\s+(\S+)\s(\S+)\s(\S+)$/;
+const triangleFaceRegex = /^f\s+(\S+)\s(\S+)\s(\S+)$/;
+const quadFaceRegex = /^f\s+(\S+)\s(\S+)\s(\S+)\s(\S+)$/;
 const vRegex = /^(\d{1,})$/;
 const vnRegex = /^(\d{1,})\/\/(\d{1,})$/;
 const vuRegex = /^(\d{1,})\/(\d{1,})$/;
 const vnuRegex = /^(\d{1,})\/(\d{1,})\/(\d{1,})$/;
 const correctIndex = (idx) => idx - 1;
 const defaultConfig = {
-    uvRotationDegrees: 0,
+    flipUvX: false,
+    flipUvY: false,
+    splitPrimitiveMode: 'object',
 };
 const createObjFileParser = (config) => {
     const cfg = config ? Object.assign(Object.assign({}, defaultConfig), config) : defaultConfig;
-    const uvRotationMatrix = mat2.create();
-    mat2.rotate(uvRotationMatrix, uvRotationMatrix, degreesToRadians(cfg.uvRotationDegrees));
+    const primitiveRegex = cfg.splitPrimitiveMode === 'object' ? /^o\s(.*)$/ : /^g\s(.*)$/;
     return (objFileContent, materials = []) => {
         const objDataLines = objFileContent.trim().split('\n');
         const cache = {};
@@ -434,10 +429,10 @@ const createObjFileParser = (config) => {
             }
             const vertexUvMatch = line.match(vertexUvRegex);
             if (vertexUvMatch) {
-                const [, x, y] = vertexUvMatch;
-                const uvs = vec2.fromValues(toFloat(x), toFloat(y));
-                vec2.transformMat2(uvs, uvs, uvRotationMatrix);
-                allUvs.push([uvs[0], uvs[1]]);
+                const [, _x, _y] = vertexUvMatch;
+                const x = toFloat(_x);
+                const y = toFloat(_y);
+                allUvs.push([cfg.flipUvX ? 1 - x : x, cfg.flipUvY ? 1 - y : y]);
             }
             const vertexNormalMatch = line.match(vertexNormalRegex);
             if (vertexNormalMatch) {
@@ -462,7 +457,7 @@ const createObjFileParser = (config) => {
             }
             // ==============================================
             // ensure we are working on the correct primitive
-            const primitiveMatch = line.match(objectRegex);
+            const primitiveMatch = line.match(primitiveRegex);
             if (primitiveMatch) {
                 const [, name] = primitiveMatch;
                 primitives.push({ name, positions: [], uvs: [], normals: [], indices: [], materialIndex: -1, triangleCount: 0 });
@@ -681,7 +676,7 @@ const newMaterialRegex = /^newmtl\s(.*)$/;
 const diffuseColorRegex = /^Kd\s(\S+)\s(\S+)\s(\S+)$/;
 const specularColorRegex = /^Ks\s(\S+)\s(\S+)\s(\S+)$/;
 const specularExponentRegex = /^Ns\s(\S+)$/;
-const opacityRegex = /d\s(\S+)/;
+const opacityRegex = /^d\s(\S+)$/;
 const parseMtlFile = (mtlFileContent) => {
     const mtlDataLines = mtlFileContent.trim().split('\n');
     const materials = [];
@@ -781,6 +776,11 @@ const computeTangents = (positions, indices, uvs) => {
 
 const createMap = (in_min, in_max, out_min, out_max) => (value) => ((value - in_min) * (out_max - out_min)) / (in_max - in_min) + out_min;
 
+const DEG_TO_RAD = Math.PI / 180;
+const RAD_TO_DEG = 180 / Math.PI;
+const degreesToRadians = (degrees) => degrees * DEG_TO_RAD;
+const radiansToDegrees = (radians) => radians * RAD_TO_DEG;
+
 const defaultContextAttributeOptions = {
     premultipliedAlpha: false,
     alpha: false,
@@ -826,24 +826,33 @@ const createWebgl2Program = (gl, vertexShader, fragmentShader) => {
     gl.deleteProgram(program);
     throw new Error('could not create program');
 };
-const createWebgl2ArrayBuffer = (gl, data) => {
+const createWebgl2ArrayBuffer = (gl, data, usage) => {
     const buffer = gl.createBuffer();
     if (!buffer)
         throw new Error('could not create array buffer');
     gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
-    gl.bufferData(gl.ARRAY_BUFFER, data, gl.STATIC_DRAW);
+    gl.bufferData(gl.ARRAY_BUFFER, data, usage || gl.STATIC_DRAW);
     return buffer;
+};
+const updateWebgl2ArrayBuffer = (gl, buffer, data) => {
+    gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+    gl.bufferSubData(gl.ARRAY_BUFFER, 0, data);
 };
 const setupWebgl2VertexAttribPointer = (gl, location, bufferSize, type = gl.FLOAT, stride = 0, offset = 0) => {
     gl.enableVertexAttribArray(location);
     gl.vertexAttribPointer(location, bufferSize, type, false, stride, offset);
 };
-const createWebgl2ElementArrayBuffer = (gl, indices) => {
+const createWebgl2ElementArrayBuffer = (gl, indices, usage) => {
     const buffer = gl.createBuffer();
     if (!buffer)
         throw new Error('could not create element array buffer');
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, buffer);
-    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, indices, gl.STATIC_DRAW);
+    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, indices, usage || gl.STATIC_DRAW);
+    return buffer;
+};
+const updateWebgl2ElementArrayBuffer = (gl, buffer, indices) => {
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, buffer);
+    gl.bufferSubData(gl.ELEMENT_ARRAY_BUFFER, 0, indices);
     return buffer;
 };
 const createWebgl2VertexArray = (gl) => {
@@ -1026,4 +1035,4 @@ class UBO {
     }
 }
 
-export { DEG_TO_RAD, Entity, FileLoader, GLSL300ATTRIBUTE, ImageLoader, KeyboardInput, MouseInput, RAD_TO_DEG, UBO, World, computeTangents, createMap, createObjFileParser, createTexture2D, createWebgl2ArrayBuffer, createWebgl2ElementArrayBuffer, createWebgl2Program, createWebgl2Shader, createWebgl2VertexArray, defaultContextAttributeOptions, degreesToRadians, getWebgl2Context, glsl300, intersection, parseMtlFile, parseObjFile, radiansToDegrees, setupWebgl2VertexAttribPointer, toFloat, toInt, worldActions };
+export { DEG_TO_RAD, Entity, FileLoader, GLSL300ATTRIBUTE, ImageLoader, KeyboardInput, MouseInput, RAD_TO_DEG, UBO, World, computeTangents, createMap, createObjFileParser, createTexture2D, createWebgl2ArrayBuffer, createWebgl2ElementArrayBuffer, createWebgl2Program, createWebgl2Shader, createWebgl2VertexArray, defaultContextAttributeOptions, degreesToRadians, getWebgl2Context, glsl300, intersection, parseMtlFile, parseObjFile, radiansToDegrees, setupWebgl2VertexAttribPointer, toFloat, toInt, updateWebgl2ArrayBuffer, updateWebgl2ElementArrayBuffer, worldActions };

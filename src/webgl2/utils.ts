@@ -56,12 +56,17 @@ export const createWebgl2Program = (gl: WebGL2RenderingContext, vertexShader: We
     throw new Error('could not create program');
 };
 
-export const createWebgl2ArrayBuffer = (gl: WebGL2RenderingContext, data: Float32Array): WebGLBuffer => {
+export const createWebgl2ArrayBuffer = (gl: WebGL2RenderingContext, data: Float32Array, usage?: number): WebGLBuffer => {
     const buffer = gl.createBuffer();
     if (!buffer) throw new Error('could not create array buffer');
     gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
-    gl.bufferData(gl.ARRAY_BUFFER, data, gl.STATIC_DRAW);
+    gl.bufferData(gl.ARRAY_BUFFER, data, usage || gl.STATIC_DRAW);
     return buffer;
+};
+
+export const updateWebgl2ArrayBuffer = (gl: WebGL2RenderingContext, buffer: WebGLBuffer, data: Float32Array) => {
+    gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+    gl.bufferSubData(gl.ARRAY_BUFFER, 0, data);
 };
 
 export const setupWebgl2VertexAttribPointer = (gl: WebGL2RenderingContext, location: number, bufferSize: number, type = gl.FLOAT, stride = 0, offset = 0) => {
@@ -69,11 +74,17 @@ export const setupWebgl2VertexAttribPointer = (gl: WebGL2RenderingContext, locat
     gl.vertexAttribPointer(location, bufferSize, type, false, stride, offset);
 };
 
-export const createWebgl2ElementArrayBuffer = (gl: WebGL2RenderingContext, indices: Uint32Array): WebGLBuffer => {
+export const createWebgl2ElementArrayBuffer = (gl: WebGL2RenderingContext, indices: Uint32Array, usage?: number): WebGLBuffer => {
     const buffer = gl.createBuffer();
     if (!buffer) throw new Error('could not create element array buffer');
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, buffer);
-    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, indices, gl.STATIC_DRAW);
+    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, indices, usage || gl.STATIC_DRAW);
+    return buffer;
+};
+
+export const updateWebgl2ElementArrayBuffer = (gl: WebGL2RenderingContext, buffer: WebGLBuffer, indices: Uint32Array): WebGLBuffer => {
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, buffer);
+    gl.bufferSubData(gl.ELEMENT_ARRAY_BUFFER, 0, indices);
     return buffer;
 };
 

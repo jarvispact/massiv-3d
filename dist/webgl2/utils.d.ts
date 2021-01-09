@@ -10,9 +10,11 @@ export declare const defaultContextAttributeOptions: WebGLContextAttributeOption
 export declare const getWebgl2Context: (canvas: HTMLCanvasElement, contextAttributeOptions?: Partial<WebGLContextAttributeOptions> | undefined) => WebGL2RenderingContext;
 export declare const createWebgl2Shader: (gl: WebGL2RenderingContext, type: number, source: string) => WebGLShader;
 export declare const createWebgl2Program: (gl: WebGL2RenderingContext, vertexShader: WebGLShader, fragmentShader: WebGLShader) => WebGLProgram;
-export declare const createWebgl2ArrayBuffer: (gl: WebGL2RenderingContext, data: Float32Array) => WebGLBuffer;
+export declare const createWebgl2ArrayBuffer: (gl: WebGL2RenderingContext, data: Float32Array, usage?: number | undefined) => WebGLBuffer;
+export declare const updateWebgl2ArrayBuffer: (gl: WebGL2RenderingContext, buffer: WebGLBuffer, data: Float32Array) => void;
 export declare const setupWebgl2VertexAttribPointer: (gl: WebGL2RenderingContext, location: number, bufferSize: number, type?: number, stride?: number, offset?: number) => void;
-export declare const createWebgl2ElementArrayBuffer: (gl: WebGL2RenderingContext, indices: Uint32Array) => WebGLBuffer;
+export declare const createWebgl2ElementArrayBuffer: (gl: WebGL2RenderingContext, indices: Uint32Array, usage?: number | undefined) => WebGLBuffer;
+export declare const updateWebgl2ElementArrayBuffer: (gl: WebGL2RenderingContext, buffer: WebGLBuffer, indices: Uint32Array) => WebGLBuffer;
 export declare const createWebgl2VertexArray: (gl: WebGL2RenderingContext) => WebGLVertexArrayObject;
 export declare type GLSL300Type = 'mat4' | 'mat3' | 'vec4' | 'vec3' | 'vec2' | 'float' | 'int';
 export declare type GLSL300AttributeConfig = {

@@ -1,19 +1,17 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 /* eslint-disable max-len */
 
-import { mat2, vec2, vec3 } from 'gl-matrix';
-import { degreesToRadians } from '../utils/math';
+import { vec2, vec3 } from 'gl-matrix';
 import { toFloat } from '../utils/to-float';
 import { toInt } from '../utils/to-int';
 import { ParsedMtlMaterial } from './parse-mtl-file';
 
-const objectRegex = /^o\s(.*)$/;
 const useMaterialRegex = /^usemtl\s(.*)$/;
-const vertexPositionRegex = /^v\s(\S+)\s(\S+)\s(\S+)$/;
-const vertexUvRegex = /^vt\s(\S+)\s(\S+)$/;
-const vertexNormalRegex = /^vn\s(\S+)\s(\S+)\s(\S+)$/;
-const triangleFaceRegex = /^f\s(\S+)\s(\S+)\s(\S+)$/;
-const quadFaceRegex = /^f\s(\S+)\s(\S+)\s(\S+)\s(\S+)$/;
+const vertexPositionRegex = /^v\s+(\S+)\s(\S+)\s(\S+)$/;
+const vertexUvRegex = /^vt\s+(\S+)\s(\S+).*$/;
+const vertexNormalRegex = /^vn\s+(\S+)\s(\S+)\s(\S+)$/;
+const triangleFaceRegex = /^f\s+(\S+)\s(\S+)\s(\S+)$/;
+const quadFaceRegex = /^f\s+(\S+)\s(\S+)\s(\S+)\s(\S+)$/;
 const vRegex = /^(\d{1,})$/;
 const vnRegex = /^(\d{1,})\/\/(\d{1,})$/;
 const vuRegex = /^(\d{1,})\/(\d{1,})$/;
@@ -23,27 +21,30 @@ const correctIndex = (idx: number): number => idx - 1;
 
 export type ParsedObjPrimitive = {
     name: string;
-    positions: number[];
-    uvs: number[];
-    normals: number[];
-    indices: number[];
+    positions: Array<number>;
+    uvs: Array<number>;
+    normals: Array<number>;
+    indices: Array<number>;
     materialIndex: number;
     triangleCount: number;
 };
 
 export type ObjParserConfig = {
-    uvRotationDegrees?: number;
+    flipUvX: boolean;
+    flipUvY: boolean;
+    splitPrimitiveMode: 'object' | 'group';
 };
 
-const defaultConfig = {
-    uvRotationDegrees: 0,
+const defaultConfig: ObjParserConfig = {
+    flipUvX: false,
+    flipUvY: false,
+    splitPrimitiveMode: 'object',
 };
 
-export const createObjFileParser = (config?: ObjParserConfig) => {
+export const createObjFileParser = (config?: Partial<ObjParserConfig>) => {
     const cfg = config ? { ...defaultConfig, ...config } : defaultConfig;
 
-    const uvRotationMatrix = mat2.create();
-    mat2.rotate(uvRotationMatrix, uvRotationMatrix, degreesToRadians(cfg.uvRotationDegrees));
+    const primitiveRegex = cfg.splitPrimitiveMode === 'object' ? /^o\s(.*)$/ : /^g\s(.*)$/;
 
     return (objFileContent: string, materials: ParsedMtlMaterial[] = []): ParsedObjPrimitive[] => {
         const objDataLines = objFileContent.trim().split('\n');
@@ -124,10 +125,10 @@ export const createObjFileParser = (config?: ObjParserConfig) => {
 
             const vertexUvMatch = line.match(vertexUvRegex);
             if (vertexUvMatch) {
-                const [, x, y] = vertexUvMatch;
-                const uvs = vec2.fromValues(toFloat(x), toFloat(y));
-                vec2.transformMat2(uvs, uvs, uvRotationMatrix);
-                allUvs.push([uvs[0], uvs[1]]);
+                const [, _x, _y] = vertexUvMatch;
+                const x = toFloat(_x);
+                const y = toFloat(_y);
+                allUvs.push([cfg.flipUvX ? 1 - x : x, cfg.flipUvY ? 1 - y : y]);
             }
 
             const vertexNormalMatch = line.match(vertexNormalRegex);
@@ -156,7 +157,7 @@ export const createObjFileParser = (config?: ObjParserConfig) => {
             // ==============================================
             // ensure we are working on the correct primitive
 
-            const primitiveMatch = line.match(objectRegex);
+            const primitiveMatch = line.match(primitiveRegex);
             if (primitiveMatch) {
                 const [, name] = primitiveMatch;
                 primitives.push({ name, positions: [], uvs: [], normals: [], indices: [], materialIndex: -1, triangleCount: 0 });
