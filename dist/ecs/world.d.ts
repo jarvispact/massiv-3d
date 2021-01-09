@@ -40,7 +40,7 @@ export declare class World<State extends Record<string, unknown> = Record<string
     });
     dispatch(action: InternalAction | WorldAction): this;
     subscribe(callback: SubscriberCallback<State, InternalAction | WorldAction>): this;
-    getEntity(entityName: string): Nullable<Entity<string, import("./component").Component<string, unknown>>>;
+    getEntityByName(entityName: string): Nullable<Entity<string, import("./component").Component<string, unknown>>>;
     addEntity(entity: Entity): this;
     removeEntity(entity: Entity): this;
     removeEntityByName(entityName: string): this;

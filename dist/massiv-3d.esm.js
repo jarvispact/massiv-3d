@@ -94,10 +94,13 @@ class World {
         this.subscribers.push(callback);
         return this;
     }
-    getEntity(entityName) {
+    getEntityByName(entityName) {
         return this.entitiesByName[entityName];
     }
     addEntity(entity) {
+        if (this.entitiesByName[entity.name]) {
+            throw new Error('a entity with the same name was already added to the world');
+        }
         this.entities.push(entity);
         this.entitiesByName[entity.name] = entity;
         this.dispatch(worldActions.addEntity(entity));
@@ -110,7 +113,7 @@ class World {
         return this;
     }
     removeEntityByName(entityName) {
-        const entity = this.getEntity(entityName);
+        const entity = this.getEntityByName(entityName);
         if (entity)
             this.removeEntity(entity);
         return this;
@@ -714,6 +717,19 @@ const parseMtlFile = (mtlFileContent) => {
     return materials;
 };
 
+// out = [radius, phi, theta]
+const cartesianToSpherical = (out, x, y, z) => {
+    out[0] = Math.sqrt(x * x + y * y + z * z);
+    if (out[0] === 0) {
+        out[2] = 0;
+        out[1] = 0;
+    }
+    else {
+        out[2] = Math.atan2(x, z);
+        out[1] = Math.acos(Math.min(Math.max(y / out[0], -1), 1));
+    }
+};
+
 const computeTangents = (positions, indices, uvs) => {
     const tangents = new Array(positions.length);
     const bitangents = new Array(positions.length);
@@ -776,10 +792,19 @@ const computeTangents = (positions, indices, uvs) => {
 
 const createMap = (in_min, in_max, out_min, out_max) => (value) => ((value - in_min) * (out_max - out_min)) / (in_max - in_min) + out_min;
 
+const lerp = (start, end, t) => (1 - t) * start + t * end;
+
 const DEG_TO_RAD = Math.PI / 180;
 const RAD_TO_DEG = 180 / Math.PI;
 const degreesToRadians = (degrees) => degrees * DEG_TO_RAD;
 const radiansToDegrees = (radians) => radians * RAD_TO_DEG;
+
+const sphericalToCartesian = (out, radius, phi, theta) => {
+    const sinPhiRadius = Math.sin(phi) * radius;
+    out[0] = sinPhiRadius * Math.sin(theta);
+    out[1] = Math.cos(phi) * radius;
+    out[2] = sinPhiRadius * Math.cos(theta);
+};
 
 const defaultContextAttributeOptions = {
     premultipliedAlpha: false,
@@ -1035,4 +1060,4 @@ class UBO {
     }
 }
 
-export { DEG_TO_RAD, Entity, FileLoader, GLSL300ATTRIBUTE, ImageLoader, KeyboardInput, MouseInput, RAD_TO_DEG, UBO, World, computeTangents, createMap, createObjFileParser, createTexture2D, createWebgl2ArrayBuffer, createWebgl2ElementArrayBuffer, createWebgl2Program, createWebgl2Shader, createWebgl2VertexArray, defaultContextAttributeOptions, degreesToRadians, getWebgl2Context, glsl300, intersection, parseMtlFile, parseObjFile, radiansToDegrees, setupWebgl2VertexAttribPointer, toFloat, toInt, updateWebgl2ArrayBuffer, updateWebgl2ElementArrayBuffer, worldActions };
+export { DEG_TO_RAD, Entity, FileLoader, GLSL300ATTRIBUTE, ImageLoader, KeyboardInput, MouseInput, RAD_TO_DEG, UBO, World, cartesianToSpherical, computeTangents, createMap, createObjFileParser, createTexture2D, createWebgl2ArrayBuffer, createWebgl2ElementArrayBuffer, createWebgl2Program, createWebgl2Shader, createWebgl2VertexArray, defaultContextAttributeOptions, degreesToRadians, getWebgl2Context, glsl300, intersection, lerp, parseMtlFile, parseObjFile, radiansToDegrees, setupWebgl2VertexAttribPointer, sphericalToCartesian, toFloat, toInt, updateWebgl2ArrayBuffer, updateWebgl2ElementArrayBuffer, worldActions };

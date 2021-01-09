@@ -60,11 +60,15 @@ export class World<
         return this;
     }
 
-    getEntity(entityName: string) {
+    getEntityByName(entityName: string) {
         return this.entitiesByName[entityName];
     }
 
     addEntity(entity: Entity) {
+        if (this.entitiesByName[entity.name]) {
+            throw new Error('a entity with the same name was already added to the world');
+        }
+
         this.entities.push(entity);
         this.entitiesByName[entity.name] = entity;
         this.dispatch(worldActions.addEntity(entity));
@@ -79,7 +83,7 @@ export class World<
     }
 
     removeEntityByName(entityName: string) {
-        const entity = this.getEntity(entityName);
+        const entity = this.getEntityByName(entityName);
         if (entity) this.removeEntity(entity);
         return this;
     }

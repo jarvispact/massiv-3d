@@ -13,10 +13,13 @@ export * from './loader/image-loader';
 export * from './loader/parse-obj-file';
 export * from './loader/parse-mtl-file';
 
+export * from './utils/cartesian-to-spherical';
 export * from './utils/compute-tangents';
 export * from './utils/create-map';
 export * from './utils/intersection';
+export * from './utils/lerp';
 export * from './utils/math';
+export * from './utils/spherical-to-cartesian';
 export * from './utils/to-float';
 export * from './utils/to-int';
 

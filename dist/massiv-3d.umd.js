@@ -98,10 +98,13 @@
             this.subscribers.push(callback);
             return this;
         }
-        getEntity(entityName) {
+        getEntityByName(entityName) {
             return this.entitiesByName[entityName];
         }
         addEntity(entity) {
+            if (this.entitiesByName[entity.name]) {
+                throw new Error('a entity with the same name was already added to the world');
+            }
             this.entities.push(entity);
             this.entitiesByName[entity.name] = entity;
             this.dispatch(worldActions.addEntity(entity));
@@ -114,7 +117,7 @@
             return this;
         }
         removeEntityByName(entityName) {
-            const entity = this.getEntity(entityName);
+            const entity = this.getEntityByName(entityName);
             if (entity)
                 this.removeEntity(entity);
             return this;
@@ -718,6 +721,19 @@
         return materials;
     };
 
+    // out = [radius, phi, theta]
+    const cartesianToSpherical = (out, x, y, z) => {
+        out[0] = Math.sqrt(x * x + y * y + z * z);
+        if (out[0] === 0) {
+            out[2] = 0;
+            out[1] = 0;
+        }
+        else {
+            out[2] = Math.atan2(x, z);
+            out[1] = Math.acos(Math.min(Math.max(y / out[0], -1), 1));
+        }
+    };
+
     const computeTangents = (positions, indices, uvs) => {
         const tangents = new Array(positions.length);
         const bitangents = new Array(positions.length);
@@ -780,10 +796,19 @@
 
     const createMap = (in_min, in_max, out_min, out_max) => (value) => ((value - in_min) * (out_max - out_min)) / (in_max - in_min) + out_min;
 
+    const lerp = (start, end, t) => (1 - t) * start + t * end;
+
     const DEG_TO_RAD = Math.PI / 180;
     const RAD_TO_DEG = 180 / Math.PI;
     const degreesToRadians = (degrees) => degrees * DEG_TO_RAD;
     const radiansToDegrees = (radians) => radians * RAD_TO_DEG;
+
+    const sphericalToCartesian = (out, radius, phi, theta) => {
+        const sinPhiRadius = Math.sin(phi) * radius;
+        out[0] = sinPhiRadius * Math.sin(theta);
+        out[1] = Math.cos(phi) * radius;
+        out[2] = sinPhiRadius * Math.cos(theta);
+    };
 
     const defaultContextAttributeOptions = {
         premultipliedAlpha: false,
@@ -1049,6 +1074,7 @@
     exports.RAD_TO_DEG = RAD_TO_DEG;
     exports.UBO = UBO;
     exports.World = World;
+    exports.cartesianToSpherical = cartesianToSpherical;
     exports.computeTangents = computeTangents;
     exports.createMap = createMap;
     exports.createObjFileParser = createObjFileParser;
@@ -1063,10 +1089,12 @@
     exports.getWebgl2Context = getWebgl2Context;
     exports.glsl300 = glsl300;
     exports.intersection = intersection;
+    exports.lerp = lerp;
     exports.parseMtlFile = parseMtlFile;
     exports.parseObjFile = parseObjFile;
     exports.radiansToDegrees = radiansToDegrees;
     exports.setupWebgl2VertexAttribPointer = setupWebgl2VertexAttribPointer;
+    exports.sphericalToCartesian = sphericalToCartesian;
     exports.toFloat = toFloat;
     exports.toInt = toInt;
     exports.updateWebgl2ArrayBuffer = updateWebgl2ArrayBuffer;

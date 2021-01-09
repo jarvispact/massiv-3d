@@ -1,0 +1,1 @@
+export const lerp = (start: number, end: number, t: number) => (1 - t) * start + t * end;
