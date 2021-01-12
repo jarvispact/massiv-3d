@@ -1,4 +1,4 @@
-import { createObjFileParser, Entity, FileLoader, parseMtlFile, World } from '../../src';
+import { Entity, World } from '../../src';
 import { Geometry } from './components/geometry';
 import { createRenderSystem } from './systems/render-system';
 
@@ -24,20 +24,3 @@ const tick = (time: number) => {
 };
 
 window.requestAnimationFrame(tick);
-
-const test = async () => {
-    const roadPaths = ['./assets/road_straight', './assets/road_curve', './assets/road_intersection', './assets/road_crossing'];
-
-    const mtlPaths = roadPaths.map((p) => `${p}.mtl`);
-    const objPaths = roadPaths.map((p) => `${p}.obj`);
-
-    const parsedMaterials = await Promise.all(mtlPaths.map((path) => FileLoader.load(path).then(parseMtlFile)));
-    console.log({ parsedMaterials });
-
-    const parseObjFile = createObjFileParser({ splitObjectMode: 'group' });
-    const parsedPrimitives = await Promise.all(objPaths.map((path) => FileLoader.load(path).then(parseObjFile)));
-
-    console.log({ parsedPrimitives });
-};
-
-test();
