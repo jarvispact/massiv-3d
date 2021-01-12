@@ -354,75 +354,58 @@ const correctIndex = (idx) => idx - 1;
 const defaultConfig = {
     flipUvX: false,
     flipUvY: false,
-    splitPrimitiveMode: 'object',
+    splitObjectMode: 'object',
 };
 const createObjFileParser = (config) => {
     const cfg = config ? Object.assign(Object.assign({}, defaultConfig), config) : defaultConfig;
-    const primitiveRegex = cfg.splitPrimitiveMode === 'object' ? /^o\s(.*)$/ : /^g\s(.*)$/;
-    return (objFileContent, materials = []) => {
+    const objectRegex = cfg.splitObjectMode === 'object' ? /^o\s(.*)$/ : /^g\s(.*)$/;
+    return (objFileContent) => {
         const objDataLines = objFileContent.trim().split('\n');
-        const cache = {};
-        let indexCounter = 0;
         const allPositions = [];
         const allUvs = [];
         const allNormals = [];
-        const primitives = [];
         const do_v_vertex = (primitive, p_index) => {
-            const cached = cache[p_index];
-            if (cached !== undefined) {
-                primitive.indices.push(cached);
-            }
-            else {
-                primitive.positions.push(...[...allPositions[p_index]]);
-                primitive.indices.push(indexCounter);
-                cache[p_index] = indexCounter;
-                indexCounter += 1;
-            }
+            primitive.positions.push(...[...allPositions[p_index]]);
         };
         const do_vu_vertex = (primitive, p_index, u_index) => {
-            const cached = cache[`${p_index}-${u_index}`];
-            if (cached !== undefined) {
-                primitive.indices.push(cached);
-            }
-            else {
-                primitive.positions.push(...[...allPositions[p_index]]);
-                primitive.uvs.push(...[...allUvs[u_index]]);
-                primitive.indices.push(indexCounter);
-                cache[`${p_index}-${u_index}`] = indexCounter;
-                indexCounter += 1;
-            }
+            primitive.positions.push(...[...allPositions[p_index]]);
+            primitive.uvs.push(...[...allUvs[u_index]]);
         };
         const do_vn_vertex = (primitive, p_index, n_index) => {
-            const cached = cache[`${p_index}-${n_index}`];
-            if (cached !== undefined) {
-                primitive.indices.push(cached);
-            }
-            else {
-                primitive.positions.push(...[...allPositions[p_index]]);
-                primitive.normals.push(...[...allNormals[n_index]]);
-                primitive.indices.push(indexCounter);
-                cache[`${p_index}-${n_index}`] = indexCounter;
-                indexCounter += 1;
-            }
+            primitive.positions.push(...[...allPositions[p_index]]);
+            primitive.normals.push(...[...allNormals[n_index]]);
         };
         const do_vnu_vertex = (primitive, p_index, u_index, n_index) => {
-            const cached = cache[`${p_index}-${u_index}-${n_index}`];
-            if (cached !== undefined) {
-                primitive.indices.push(cached);
-            }
-            else {
-                primitive.positions.push(...[...allPositions[p_index]]);
-                primitive.uvs.push(...[...allUvs[u_index]]);
-                primitive.normals.push(...[...allNormals[n_index]]);
-                primitive.indices.push(indexCounter);
-                cache[`${p_index}-${u_index}-${n_index}`] = indexCounter;
-                indexCounter += 1;
-            }
+            primitive.positions.push(...[...allPositions[p_index]]);
+            primitive.uvs.push(...[...allUvs[u_index]]);
+            primitive.normals.push(...[...allNormals[n_index]]);
         };
+        const primitives = [];
+        let useMaterials = false;
+        let currentObject = 'default';
         for (let lineIndex = 0; lineIndex < objDataLines.length; lineIndex++) {
             const line = objDataLines[lineIndex].trim();
             if (!line)
                 continue;
+            if (line.startsWith('#'))
+                continue;
+            const useMaterialMatch = line.match(useMaterialRegex);
+            if (useMaterialMatch)
+                useMaterials = true;
+        }
+        for (let lineIndex = 0; lineIndex < objDataLines.length; lineIndex++) {
+            const line = objDataLines[lineIndex].trim();
+            if (!line)
+                continue;
+            if (line.startsWith('#'))
+                continue;
+            // ========================================================
+            // ensure that we are working on the correct object / group
+            const objectMatch = line.match(objectRegex);
+            if (objectMatch) {
+                const [, name] = objectMatch;
+                currentObject = name;
+            }
             // ========================================================
             // parse positions, normals and uvs into nested vec3 arrays
             const vertexPositionMatch = line.match(vertexPositionRegex);
@@ -442,31 +425,21 @@ const createObjFileParser = (config) => {
                 const [, x, y, z] = vertexNormalMatch;
                 allNormals.push([toFloat(x), toFloat(y), toFloat(z)]);
             }
-            // =============================================
-            // set materialIndex on current Primitive
-            // and handle multi material objects
-            const useMaterialMatch = line.match(useMaterialRegex);
-            if (useMaterialMatch && materials.length) {
-                const [, name] = useMaterialMatch;
-                const currentMaterialIndex = materials.findIndex(m => m.name === name);
-                const currentPrimitive = primitives[primitives.length - 1];
-                if (currentPrimitive && currentPrimitive.indices.length === 0) {
-                    currentPrimitive.materialIndex = currentMaterialIndex;
-                }
-                else if (currentPrimitive && currentPrimitive.indices.length > 0) {
-                    primitives.push({ name: `${currentPrimitive.name}.MULTIMATERIAL.${currentMaterialIndex}`, positions: [], uvs: [], normals: [], indices: [], materialIndex: currentMaterialIndex, triangleCount: 0 });
-                    indexCounter = 0;
+            // ===================================================
+            // ensure that we are working on the correct primitive
+            if (useMaterials) {
+                const useMaterialMatch = line.match(useMaterialRegex);
+                if (useMaterialMatch) {
+                    const [, name] = useMaterialMatch;
+                    primitives.push({ object: currentObject, positions: [], uvs: [], normals: [], material: name, triangleCount: 0 });
                 }
             }
-            // ==============================================
-            // ensure we are working on the correct primitive
-            const primitiveMatch = line.match(primitiveRegex);
-            if (primitiveMatch) {
-                const [, name] = primitiveMatch;
-                primitives.push({ name, positions: [], uvs: [], normals: [], indices: [], materialIndex: -1, triangleCount: 0 });
-                const prevoiusPrimitive = primitives[primitives.length - 2];
-                if (prevoiusPrimitive)
-                    indexCounter = 0;
+            else {
+                const objectMatch = line.match(objectRegex);
+                if (objectMatch) {
+                    const [, name] = objectMatch;
+                    primitives.push({ object: name, positions: [], uvs: [], normals: [], material: 'none', triangleCount: 0 });
+                }
             }
             const currentPrimitive = primitives[primitives.length - 1];
             // ====================
@@ -486,10 +459,11 @@ const createObjFileParser = (config) => {
                     const p_index_1 = correctIndex(toInt(p_idx_1));
                     const p_index_2 = correctIndex(toInt(p_idx_2));
                     const p_index_3 = correctIndex(toInt(p_idx_3));
-                    do_v_vertex(currentPrimitive, p_index_1);
-                    do_v_vertex(currentPrimitive, p_index_2);
-                    do_v_vertex(currentPrimitive, p_index_3);
-                    currentPrimitive.triangleCount++;
+                    const primitive = currentPrimitive;
+                    do_v_vertex(primitive, p_index_1);
+                    do_v_vertex(primitive, p_index_2);
+                    do_v_vertex(primitive, p_index_3);
+                    primitive.triangleCount++;
                 }
                 // ======================
                 // position and uv layout
@@ -506,10 +480,11 @@ const createObjFileParser = (config) => {
                     const u_index_1 = correctIndex(toInt(u_idx_1));
                     const u_index_2 = correctIndex(toInt(u_idx_2));
                     const u_index_3 = correctIndex(toInt(u_idx_3));
-                    do_vu_vertex(currentPrimitive, p_index_1, u_index_1);
-                    do_vu_vertex(currentPrimitive, p_index_2, u_index_2);
-                    do_vu_vertex(currentPrimitive, p_index_3, u_index_3);
-                    currentPrimitive.triangleCount++;
+                    const primitive = currentPrimitive;
+                    do_vu_vertex(primitive, p_index_1, u_index_1);
+                    do_vu_vertex(primitive, p_index_2, u_index_2);
+                    do_vu_vertex(primitive, p_index_3, u_index_3);
+                    primitive.triangleCount++;
                 }
                 // ==========================
                 // position and normal layout
@@ -526,10 +501,11 @@ const createObjFileParser = (config) => {
                     const n_index_1 = correctIndex(toInt(n_idx_1));
                     const n_index_2 = correctIndex(toInt(n_idx_2));
                     const n_index_3 = correctIndex(toInt(n_idx_3));
-                    do_vn_vertex(currentPrimitive, p_index_1, n_index_1);
-                    do_vn_vertex(currentPrimitive, p_index_2, n_index_2);
-                    do_vn_vertex(currentPrimitive, p_index_3, n_index_3);
-                    currentPrimitive.triangleCount++;
+                    const primitive = currentPrimitive;
+                    do_vn_vertex(primitive, p_index_1, n_index_1);
+                    do_vn_vertex(primitive, p_index_2, n_index_2);
+                    do_vn_vertex(primitive, p_index_3, n_index_3);
+                    primitive.triangleCount++;
                 }
                 // ==============================
                 // position, uv and normal layout
@@ -549,10 +525,11 @@ const createObjFileParser = (config) => {
                     const n_index_1 = correctIndex(toInt(n_idx_1));
                     const n_index_2 = correctIndex(toInt(n_idx_2));
                     const n_index_3 = correctIndex(toInt(n_idx_3));
-                    do_vnu_vertex(currentPrimitive, p_index_1, u_index_1, n_index_1);
-                    do_vnu_vertex(currentPrimitive, p_index_2, u_index_2, n_index_2);
-                    do_vnu_vertex(currentPrimitive, p_index_3, u_index_3, n_index_3);
-                    currentPrimitive.triangleCount++;
+                    const primitive = currentPrimitive;
+                    do_vnu_vertex(primitive, p_index_1, u_index_1, n_index_1);
+                    do_vnu_vertex(primitive, p_index_2, u_index_2, n_index_2);
+                    do_vnu_vertex(primitive, p_index_3, u_index_3, n_index_3);
+                    primitive.triangleCount++;
                 }
             }
             // ================
@@ -575,13 +552,14 @@ const createObjFileParser = (config) => {
                     const p_index_2 = correctIndex(toInt(p_idx_2));
                     const p_index_3 = correctIndex(toInt(p_idx_3));
                     const p_index_4 = correctIndex(toInt(p_idx_4));
-                    do_v_vertex(currentPrimitive, p_index_1);
-                    do_v_vertex(currentPrimitive, p_index_2);
-                    do_v_vertex(currentPrimitive, p_index_3);
-                    do_v_vertex(currentPrimitive, p_index_1);
-                    do_v_vertex(currentPrimitive, p_index_3);
-                    do_v_vertex(currentPrimitive, p_index_4);
-                    currentPrimitive.triangleCount += 2;
+                    const primitive = currentPrimitive;
+                    do_v_vertex(primitive, p_index_1);
+                    do_v_vertex(primitive, p_index_2);
+                    do_v_vertex(primitive, p_index_3);
+                    do_v_vertex(primitive, p_index_1);
+                    do_v_vertex(primitive, p_index_3);
+                    do_v_vertex(primitive, p_index_4);
+                    primitive.triangleCount += 2;
                 }
                 // ======================
                 // position and uv layout
@@ -602,13 +580,14 @@ const createObjFileParser = (config) => {
                     const u_index_2 = correctIndex(toInt(u_idx_2));
                     const u_index_3 = correctIndex(toInt(u_idx_3));
                     const u_index_4 = correctIndex(toInt(u_idx_4));
-                    do_vu_vertex(currentPrimitive, p_index_1, u_index_1);
-                    do_vu_vertex(currentPrimitive, p_index_2, u_index_2);
-                    do_vu_vertex(currentPrimitive, p_index_3, u_index_3);
-                    do_vu_vertex(currentPrimitive, p_index_1, u_index_1);
-                    do_vu_vertex(currentPrimitive, p_index_3, u_index_3);
-                    do_vu_vertex(currentPrimitive, p_index_4, u_index_4);
-                    currentPrimitive.triangleCount += 2;
+                    const primitive = currentPrimitive;
+                    do_vu_vertex(primitive, p_index_1, u_index_1);
+                    do_vu_vertex(primitive, p_index_2, u_index_2);
+                    do_vu_vertex(primitive, p_index_3, u_index_3);
+                    do_vu_vertex(primitive, p_index_1, u_index_1);
+                    do_vu_vertex(primitive, p_index_3, u_index_3);
+                    do_vu_vertex(primitive, p_index_4, u_index_4);
+                    primitive.triangleCount += 2;
                 }
                 // ==========================
                 // position and normal layout
@@ -629,13 +608,14 @@ const createObjFileParser = (config) => {
                     const n_index_2 = correctIndex(toInt(n_idx_2));
                     const n_index_3 = correctIndex(toInt(n_idx_3));
                     const n_index_4 = correctIndex(toInt(n_idx_4));
-                    do_vn_vertex(currentPrimitive, p_index_1, n_index_1);
-                    do_vn_vertex(currentPrimitive, p_index_2, n_index_2);
-                    do_vn_vertex(currentPrimitive, p_index_3, n_index_3);
-                    do_vn_vertex(currentPrimitive, p_index_1, n_index_1);
-                    do_vn_vertex(currentPrimitive, p_index_3, n_index_3);
-                    do_vn_vertex(currentPrimitive, p_index_4, n_index_4);
-                    currentPrimitive.triangleCount += 2;
+                    const primitive = currentPrimitive;
+                    do_vn_vertex(primitive, p_index_1, n_index_1);
+                    do_vn_vertex(primitive, p_index_2, n_index_2);
+                    do_vn_vertex(primitive, p_index_3, n_index_3);
+                    do_vn_vertex(primitive, p_index_1, n_index_1);
+                    do_vn_vertex(primitive, p_index_3, n_index_3);
+                    do_vn_vertex(primitive, p_index_4, n_index_4);
+                    primitive.triangleCount += 2;
                 }
                 // ==============================
                 // position, uv and normal layout
@@ -660,13 +640,14 @@ const createObjFileParser = (config) => {
                     const n_index_2 = correctIndex(toInt(n_idx_2));
                     const n_index_3 = correctIndex(toInt(n_idx_3));
                     const n_index_4 = correctIndex(toInt(n_idx_4));
-                    do_vnu_vertex(currentPrimitive, p_index_1, u_index_1, n_index_1);
-                    do_vnu_vertex(currentPrimitive, p_index_2, u_index_2, n_index_2);
-                    do_vnu_vertex(currentPrimitive, p_index_3, u_index_3, n_index_3);
-                    do_vnu_vertex(currentPrimitive, p_index_1, u_index_1, n_index_1);
-                    do_vnu_vertex(currentPrimitive, p_index_3, u_index_3, n_index_3);
-                    do_vnu_vertex(currentPrimitive, p_index_4, u_index_4, n_index_4);
-                    currentPrimitive.triangleCount += 2;
+                    const primitive = currentPrimitive;
+                    do_vnu_vertex(primitive, p_index_1, u_index_1, n_index_1);
+                    do_vnu_vertex(primitive, p_index_2, u_index_2, n_index_2);
+                    do_vnu_vertex(primitive, p_index_3, u_index_3, n_index_3);
+                    do_vnu_vertex(primitive, p_index_1, u_index_1, n_index_1);
+                    do_vnu_vertex(primitive, p_index_3, u_index_3, n_index_3);
+                    do_vnu_vertex(primitive, p_index_4, u_index_4, n_index_4);
+                    primitive.triangleCount += 2;
                 }
             }
         }

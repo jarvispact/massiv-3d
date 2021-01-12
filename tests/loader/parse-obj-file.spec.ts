@@ -23,11 +23,10 @@ describe('parse-obj-file', () => {
 
             const primitives = parseObjFile(plane.objFile);
             expect(primitives.length).to.eql(1);
-            expect(primitives[0].materialIndex).to.eql(-1);
+            expect(primitives[0].material).to.eql('none');
             expect(primitives[0].uvs.length).to.eql(0);
             expect(primitives[0].normals.length).to.eql(0);
-            expect(primitives[0].positions.length).to.eql(12);
-            expect(primitives[0].indices).to.eql([0, 1, 2, 0, 3, 1]);
+            expect(primitives[0].positions.length).to.eql(18);
         });
 
         it('should parse a obj file with positions and uvs', () => {
@@ -53,11 +52,10 @@ describe('parse-obj-file', () => {
 
             const primitives = parseObjFile(plane.objFile);
             expect(primitives.length).to.eql(1);
-            expect(primitives[0].materialIndex).to.eql(-1);
+            expect(primitives[0].material).to.eql('none');
+            expect(primitives[0].uvs.length).to.eql(12);
             expect(primitives[0].normals.length).to.eql(0);
-            expect(primitives[0].uvs.length).to.eql(8);
-            expect(primitives[0].positions.length).to.eql(12);
-            expect(primitives[0].indices).to.eql([0, 1, 2, 0, 3, 1]);
+            expect(primitives[0].positions.length).to.eql(18);
         });
 
         it('should parse a obj file with positions and normals', () => {
@@ -80,11 +78,10 @@ describe('parse-obj-file', () => {
 
             const primitives = parseObjFile(plane.objFile);            
             expect(primitives.length).to.eql(1);
-            expect(primitives[0].materialIndex).to.eql(-1);
+            expect(primitives[0].material).to.eql('none');
             expect(primitives[0].uvs.length).to.eql(0);
-            expect(primitives[0].positions.length).to.eql(12);
-            expect(primitives[0].normals.length).to.eql(12);
-            expect(primitives[0].indices).to.eql([0, 1, 2, 0, 3, 1]);
+            expect(primitives[0].positions.length).to.eql(18);
+            expect(primitives[0].normals.length).to.eql(18);
         });
 
         it('should parse a obj file with positions, normals and uvs', () => {
@@ -111,11 +108,10 @@ describe('parse-obj-file', () => {
 
             const primitives = parseObjFile(plane.objFile);
             expect(primitives.length).to.eql(1);
-            expect(primitives[0].materialIndex).to.eql(-1);
-            expect(primitives[0].uvs.length).to.eql(8);
-            expect(primitives[0].positions.length).to.eql(12);
-            expect(primitives[0].normals.length).to.eql(12);
-            expect(primitives[0].indices).to.eql([0, 1, 2, 0, 3, 1]);
+            expect(primitives[0].material).to.eql('none');
+            expect(primitives[0].uvs.length).to.eql(12);
+            expect(primitives[0].positions.length).to.eql(18);
+            expect(primitives[0].normals.length).to.eql(18);
         });
     });
 
@@ -138,11 +134,10 @@ describe('parse-obj-file', () => {
 
             const primitives = parseObjFile(plane.objFile);
             expect(primitives.length).to.eql(1);
-            expect(primitives[0].materialIndex).to.eql(-1);
+            expect(primitives[0].material).to.eql('none');
             expect(primitives[0].uvs.length).to.eql(0);
             expect(primitives[0].normals.length).to.eql(0);
-            expect(primitives[0].positions.length).to.eql(12);
-            expect(primitives[0].indices).to.eql([0, 1, 2, 0, 2, 3]);
+            expect(primitives[0].positions.length).to.eql(18);
         });
 
         it('should parse a obj file with positions and uvs', () => {
@@ -167,11 +162,10 @@ describe('parse-obj-file', () => {
 
             const primitives = parseObjFile(plane.objFile);
             expect(primitives.length).to.eql(1);
-            expect(primitives[0].materialIndex).to.eql(-1);
+            expect(primitives[0].material).to.eql('none');
             expect(primitives[0].normals.length).to.eql(0);
-            expect(primitives[0].uvs.length).to.eql(8);
-            expect(primitives[0].positions.length).to.eql(12);
-            expect(primitives[0].indices).to.eql([0, 1, 2, 0, 2, 3]);
+            expect(primitives[0].uvs.length).to.eql(12);
+            expect(primitives[0].positions.length).to.eql(18);
         });
 
         it('should parse a obj file with positions and normals', () => {
@@ -193,11 +187,10 @@ describe('parse-obj-file', () => {
 
             const primitives = parseObjFile(plane.objFile);
             expect(primitives.length).to.eql(1);
-            expect(primitives[0].materialIndex).to.eql(-1);
+            expect(primitives[0].material).to.eql('none');
             expect(primitives[0].uvs.length).to.eql(0);
-            expect(primitives[0].positions.length).to.eql(12);
-            expect(primitives[0].normals.length).to.eql(12);
-            expect(primitives[0].indices).to.eql([0, 1, 2, 0, 2, 3]);
+            expect(primitives[0].positions.length).to.eql(18);
+            expect(primitives[0].normals.length).to.eql(18);
         });
 
         it('should parse a obj file with positions, normals and uvs', () => {
@@ -223,11 +216,10 @@ describe('parse-obj-file', () => {
 
             const primitives = parseObjFile(plane.objFile);
             expect(primitives.length).to.eql(1);
-            expect(primitives[0].materialIndex).to.eql(-1);
-            expect(primitives[0].uvs.length).to.eql(8);
-            expect(primitives[0].positions.length).to.eql(12);
-            expect(primitives[0].normals.length).to.eql(12);
-            expect(primitives[0].indices).to.eql([0, 1, 2, 0, 2, 3]);
+            expect(primitives[0].material).to.eql('none');
+            expect(primitives[0].uvs.length).to.eql(12);
+            expect(primitives[0].positions.length).to.eql(18);
+            expect(primitives[0].normals.length).to.eql(18);
         });
     });
 
@@ -265,13 +257,22 @@ describe('parse-obj-file', () => {
                 mtlFile: null,
             };
 
-            const primitives = parseObjFile(multiple_objects.objFile);
+            const primitives = parseObjFile(multiple_objects.objFile);            
             expect(primitives.length).to.eql(2);
-            expect(primitives[0].name).to.eql('Plane');
-            expect(primitives[0].indices).to.eql([0, 1, 2, 0, 2, 3]);
 
-            expect(primitives[1].name).to.eql('Plane.001');
-            expect(primitives[1].indices).to.eql([0, 1, 2, 0, 2, 3]);
+            expect(primitives[0].object).to.eql('Plane');
+            expect(primitives[0].positions).to.eql([
+                -1,  0, -1,  1,  0, -1, 1,
+                 0, -3, -1,  0, -1,  1, 0,
+                -3, -1,  0, -3
+            ]);
+
+            expect(primitives[1].object).to.eql('Plane.001');
+            expect(primitives[1].positions).to.eql([
+                -1,  0,  3, 1, 0, 3, 1,
+                 0,  1, -1, 0, 3, 1, 0,
+                 1, -1,  0, 1
+            ]);
         });
     });
 
@@ -314,9 +315,9 @@ describe('parse-obj-file', () => {
             expect(materials.length).to.eql(1);
             expect(materials[0].name).to.eql('None');
 
-            const primitives = parseObjFile(primitive_with_material.objFile, materials);
+            const primitives = parseObjFile(primitive_with_material.objFile);
             expect(primitives.length).to.eql(1);
-            expect(primitives[0].materialIndex).to.eql(0);
+            expect(primitives[0].material).to.eql('None');
         });
 
         it('should parse 2 primitives with the same material', () => {
@@ -370,12 +371,12 @@ describe('parse-obj-file', () => {
             expect(materials.length).to.eql(1);
             expect(materials[0].name).to.eql('None');
 
-            const primitives = parseObjFile(multiple_primitives_with_same_material.objFile, materials);
+            const primitives = parseObjFile(multiple_primitives_with_same_material.objFile);
             expect(primitives.length).to.eql(2);
-            expect(primitives[0].name).to.eql('Plane');
-            expect(primitives[0].materialIndex).to.eql(0);
-            expect(primitives[1].name).to.eql('Plane.001');
-            expect(primitives[1].materialIndex).to.eql(0);
+            expect(primitives[0].object).to.eql('Plane');
+            expect(primitives[0].material).to.eql('None');
+            expect(primitives[1].object).to.eql('Plane.001');
+            expect(primitives[1].material).to.eql('None');
         });
 
         it('should parse 2 primitives with 2 materials', () => {
@@ -442,12 +443,12 @@ describe('parse-obj-file', () => {
             expect(materials[0].name).to.eql('Material');
             expect(materials[1].name).to.eql('Material.001');
 
-            const primitives = parseObjFile(multiple_objects_with_different_material.objFile, materials);
+            const primitives = parseObjFile(multiple_objects_with_different_material.objFile);
             expect(primitives.length).to.eql(2);
-            expect(primitives[0].name).to.eql('Plane');
-            expect(primitives[0].materialIndex).to.eql(0);
-            expect(primitives[1].name).to.eql('Plane.001');
-            expect(primitives[1].materialIndex).to.eql(1);
+            expect(primitives[0].object).to.eql('Plane');
+            expect(primitives[0].material).to.eql('Material');
+            expect(primitives[1].object).to.eql('Plane.001');
+            expect(primitives[1].material).to.eql('Material.001');
         });
 
         it('should parse a cube with multiple materials', () => {
@@ -493,7 +494,7 @@ describe('parse-obj-file', () => {
                     usemtl Material.001
                     f 8/9/4 7/10/4 5/11/4 6/12/4
                     f 6/13/5 2/8/5 4/5/5 8/14/5
-                    f 6/12/6 5/11/6 1/1/6 2/8/6    
+                    f 6/12/6 5/11/6 1/1/6 2/8/6
                 `,
                 mtlFile: `
                     # Blender MTL File: 'None'
@@ -517,7 +518,7 @@ describe('parse-obj-file', () => {
                     Ke 0.000000 0.000000 0.000000
                     Ni 1.450000
                     d 1.000000
-                    illum 2    
+                    illum 2
                 `,
             };
 
@@ -526,12 +527,12 @@ describe('parse-obj-file', () => {
             expect(materials[0].name).to.eql('Material');
             expect(materials[1].name).to.eql('Material.001');
 
-            const primitives = parseObjFile(cube_with_multi_material.objFile, materials);
+            const primitives = parseObjFile(cube_with_multi_material.objFile);
             expect(primitives.length).to.eql(2);
-            expect(primitives[0].name).to.eql('Cube');
-            expect(primitives[0].materialIndex).to.eql(0);
-            expect(primitives[1].name).to.eql('Cube.MULTIMATERIAL.1');
-            expect(primitives[1].materialIndex).to.eql(1);
+            expect(primitives[0].object).to.eql('Cube');
+            expect(primitives[0].material).to.eql('Material');
+            expect(primitives[1].object).to.eql('Cube');
+            expect(primitives[1].material).to.eql('Material.001');
         });
     });
 });

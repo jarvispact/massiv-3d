@@ -4,7 +4,6 @@
 import { vec2, vec3 } from 'gl-matrix';
 import { toFloat } from '../utils/to-float';
 import { toInt } from '../utils/to-int';
-import { ParsedMtlMaterial } from './parse-mtl-file';
 
 const useMaterialRegex = /^usemtl\s(.*)$/;
 const vertexPositionRegex = /^v\s+(\S+)\s(\S+)\s(\S+)$/;
@@ -20,99 +19,83 @@ const vnuRegex = /^(\d{1,})\/(\d{1,})\/(\d{1,})$/;
 const correctIndex = (idx: number): number => idx - 1;
 
 export type ParsedObjPrimitive = {
-    name: string;
+    object: string;
     positions: Array<number>;
     uvs: Array<number>;
     normals: Array<number>;
-    indices: Array<number>;
-    materialIndex: number;
+    material: string;
     triangleCount: number;
 };
 
 export type ObjParserConfig = {
     flipUvX: boolean;
     flipUvY: boolean;
-    splitPrimitiveMode: 'object' | 'group';
+    splitObjectMode: 'object' | 'group';
 };
 
 const defaultConfig: ObjParserConfig = {
     flipUvX: false,
     flipUvY: false,
-    splitPrimitiveMode: 'object',
+    splitObjectMode: 'object',
 };
 
 export const createObjFileParser = (config?: Partial<ObjParserConfig>) => {
     const cfg = config ? { ...defaultConfig, ...config } : defaultConfig;
+    const objectRegex = cfg.splitObjectMode === 'object' ? /^o\s(.*)$/ : /^g\s(.*)$/;
 
-    const primitiveRegex = cfg.splitPrimitiveMode === 'object' ? /^o\s(.*)$/ : /^g\s(.*)$/;
-
-    return (objFileContent: string, materials: ParsedMtlMaterial[] = []): ParsedObjPrimitive[] => {
+    return (objFileContent: string): ParsedObjPrimitive[] => {
         const objDataLines = objFileContent.trim().split('\n');
 
-        const cache: Record<string, number> = {};
-        let indexCounter = 0;
-
-        const allPositions: vec3[] = [];
-        const allUvs: vec2[] = [];
-        const allNormals: vec3[] = [];
-
-        const primitives: ParsedObjPrimitive[] = [];
+        const allPositions: Array<vec3> = [];
+        const allUvs: Array<vec2> = [];
+        const allNormals: Array<vec3> = [];
 
         const do_v_vertex = (primitive: ParsedObjPrimitive, p_index: number) => {
-            const cached = cache[p_index];
-            if (cached !== undefined) {
-                primitive.indices.push(cached);
-            } else {
-                primitive.positions.push(...[...allPositions[p_index]]);
-                primitive.indices.push(indexCounter);
-                cache[p_index] = indexCounter;
-                indexCounter += 1;
-            }
+            primitive.positions.push(...[...allPositions[p_index]]);
         };
-
+        
         const do_vu_vertex = (primitive: ParsedObjPrimitive, p_index: number, u_index: number) => {
-            const cached = cache[`${p_index}-${u_index}`];
-            if (cached !== undefined) {
-                primitive.indices.push(cached);
-            } else {
-                primitive.positions.push(...[...allPositions[p_index]]);
-                primitive.uvs.push(...[...allUvs[u_index]]);
-                primitive.indices.push(indexCounter);
-                cache[`${p_index}-${u_index}`] = indexCounter;
-                indexCounter += 1;
-            }
+            primitive.positions.push(...[...allPositions[p_index]]);
+            primitive.uvs.push(...[...allUvs[u_index]]);
         };
-
+        
         const do_vn_vertex = (primitive: ParsedObjPrimitive, p_index: number, n_index: number) => {
-            const cached = cache[`${p_index}-${n_index}`];
-            if (cached !== undefined) {
-                primitive.indices.push(cached);
-            } else {
-                primitive.positions.push(...[...allPositions[p_index]]);
-                primitive.normals.push(...[...allNormals[n_index]]);
-                primitive.indices.push(indexCounter);
-                cache[`${p_index}-${n_index}`] = indexCounter;
-                indexCounter += 1;
-            }
+            primitive.positions.push(...[...allPositions[p_index]]);
+            primitive.normals.push(...[...allNormals[n_index]]);
+        };
+        
+        const do_vnu_vertex = (primitive: ParsedObjPrimitive, p_index: number, u_index: number, n_index: number) => {    
+            primitive.positions.push(...[...allPositions[p_index]]);
+            primitive.uvs.push(...[...allUvs[u_index]]);
+            primitive.normals.push(...[...allNormals[n_index]]);
         };
 
-        const do_vnu_vertex = (primitive: ParsedObjPrimitive, p_index: number, u_index: number, n_index: number) => {
-            const cached = cache[`${p_index}-${u_index}-${n_index}`];
-            if (cached !== undefined) {
-                primitive.indices.push(cached);
-            } else {
-                primitive.positions.push(...[...allPositions[p_index]]);
-                primitive.uvs.push(...[...allUvs[u_index]]);
-                primitive.normals.push(...[...allNormals[n_index]]);
-                primitive.indices.push(indexCounter);
-                cache[`${p_index}-${u_index}-${n_index}`] = indexCounter;
-                indexCounter += 1;
-            }
-        };
+        const primitives: Array<ParsedObjPrimitive> = [];
+        let useMaterials = false;
+        let currentObject = 'default';
 
         for (let lineIndex = 0; lineIndex < objDataLines.length; lineIndex++) {
             const line = objDataLines[lineIndex].trim();
             if (!line) continue;
+            if (line.startsWith('#')) continue;
+
+            const useMaterialMatch = line.match(useMaterialRegex);
+            if (useMaterialMatch) useMaterials = true;
+        }
+
+        for (let lineIndex = 0; lineIndex < objDataLines.length; lineIndex++) {
+            const line = objDataLines[lineIndex].trim();
+            if (!line) continue;
+            if (line.startsWith('#')) continue;
+
+            // ========================================================
+            // ensure that we are working on the correct object / group
+
+            const objectMatch = line.match(objectRegex);
+            if (objectMatch) {
+                const [, name] = objectMatch;
+                currentObject = name;
+            }
 
             // ========================================================
             // parse positions, normals and uvs into nested vec3 arrays
@@ -137,33 +120,21 @@ export const createObjFileParser = (config?: Partial<ObjParserConfig>) => {
                 allNormals.push([toFloat(x), toFloat(y), toFloat(z)]);
             }
 
-            // =============================================
-            // set materialIndex on current Primitive
-            // and handle multi material objects
+            // ===================================================
+            // ensure that we are working on the correct primitive
 
-            const useMaterialMatch = line.match(useMaterialRegex);
-            if (useMaterialMatch && materials.length) {
-                const [, name] = useMaterialMatch;
-                const currentMaterialIndex = materials.findIndex(m => m.name === name);
-                const currentPrimitive = primitives[primitives.length - 1];
-                if (currentPrimitive && currentPrimitive.indices.length === 0) {
-                    currentPrimitive.materialIndex = currentMaterialIndex;
-                } else if (currentPrimitive && currentPrimitive.indices.length > 0) {
-                    primitives.push({ name: `${currentPrimitive.name}.MULTIMATERIAL.${currentMaterialIndex}`, positions: [], uvs: [], normals: [], indices: [], materialIndex: currentMaterialIndex, triangleCount: 0 });
-                    indexCounter = 0;
+            if (useMaterials) {
+                const useMaterialMatch = line.match(useMaterialRegex);
+                if (useMaterialMatch) {
+                    const [, name] = useMaterialMatch;
+                    primitives.push({ object: currentObject, positions: [], uvs: [], normals: [], material: name, triangleCount: 0 });
                 }
-            }
-
-            // ==============================================
-            // ensure we are working on the correct primitive
-
-            const primitiveMatch = line.match(primitiveRegex);
-            if (primitiveMatch) {
-                const [, name] = primitiveMatch;
-                primitives.push({ name, positions: [], uvs: [], normals: [], indices: [], materialIndex: -1, triangleCount: 0 });
-
-                const prevoiusPrimitive = primitives[primitives.length - 2];
-                if (prevoiusPrimitive) indexCounter = 0;
+            } else {
+                const objectMatch = line.match(objectRegex);
+                if (objectMatch) {
+                    const [, name] = objectMatch;
+                    primitives.push({ object: name, positions: [], uvs: [], normals: [], material: 'none', triangleCount: 0 });
+                }
             }
 
             const currentPrimitive = primitives[primitives.length - 1];
@@ -190,10 +161,11 @@ export const createObjFileParser = (config?: Partial<ObjParserConfig>) => {
                     const p_index_2 = correctIndex(toInt(p_idx_2));
                     const p_index_3 = correctIndex(toInt(p_idx_3));
 
-                    do_v_vertex(currentPrimitive, p_index_1);
-                    do_v_vertex(currentPrimitive, p_index_2);
-                    do_v_vertex(currentPrimitive, p_index_3);
-                    currentPrimitive.triangleCount++;
+                    const primitive = currentPrimitive;
+                    do_v_vertex(primitive, p_index_1);
+                    do_v_vertex(primitive, p_index_2);
+                    do_v_vertex(primitive, p_index_3);
+                    primitive.triangleCount++;
                 }
 
                 // ======================
@@ -214,10 +186,11 @@ export const createObjFileParser = (config?: Partial<ObjParserConfig>) => {
                     const u_index_2 = correctIndex(toInt(u_idx_2));
                     const u_index_3 = correctIndex(toInt(u_idx_3));
 
-                    do_vu_vertex(currentPrimitive, p_index_1, u_index_1);
-                    do_vu_vertex(currentPrimitive, p_index_2, u_index_2);
-                    do_vu_vertex(currentPrimitive, p_index_3, u_index_3);
-                    currentPrimitive.triangleCount++;
+                    const primitive = currentPrimitive;
+                    do_vu_vertex(primitive, p_index_1, u_index_1);
+                    do_vu_vertex(primitive, p_index_2, u_index_2);
+                    do_vu_vertex(primitive, p_index_3, u_index_3);
+                    primitive.triangleCount++;
                 }
 
                 // ==========================
@@ -238,10 +211,11 @@ export const createObjFileParser = (config?: Partial<ObjParserConfig>) => {
                     const n_index_2 = correctIndex(toInt(n_idx_2));
                     const n_index_3 = correctIndex(toInt(n_idx_3));
 
-                    do_vn_vertex(currentPrimitive, p_index_1, n_index_1);
-                    do_vn_vertex(currentPrimitive, p_index_2, n_index_2);
-                    do_vn_vertex(currentPrimitive, p_index_3, n_index_3);
-                    currentPrimitive.triangleCount++;
+                    const primitive = currentPrimitive;
+                    do_vn_vertex(primitive, p_index_1, n_index_1);
+                    do_vn_vertex(primitive, p_index_2, n_index_2);
+                    do_vn_vertex(primitive, p_index_3, n_index_3);
+                    primitive.triangleCount++;
                 }
 
                 // ==============================
@@ -265,10 +239,11 @@ export const createObjFileParser = (config?: Partial<ObjParserConfig>) => {
                     const n_index_2 = correctIndex(toInt(n_idx_2));
                     const n_index_3 = correctIndex(toInt(n_idx_3));
 
-                    do_vnu_vertex(currentPrimitive, p_index_1, u_index_1, n_index_1);
-                    do_vnu_vertex(currentPrimitive, p_index_2, u_index_2, n_index_2);
-                    do_vnu_vertex(currentPrimitive, p_index_3, u_index_3, n_index_3);
-                    currentPrimitive.triangleCount++;
+                    const primitive = currentPrimitive;
+                    do_vnu_vertex(primitive, p_index_1, u_index_1, n_index_1);
+                    do_vnu_vertex(primitive, p_index_2, u_index_2, n_index_2);
+                    do_vnu_vertex(primitive, p_index_3, u_index_3, n_index_3);
+                    primitive.triangleCount++;
                 }
             }
 
@@ -297,13 +272,14 @@ export const createObjFileParser = (config?: Partial<ObjParserConfig>) => {
                     const p_index_3 = correctIndex(toInt(p_idx_3));
                     const p_index_4 = correctIndex(toInt(p_idx_4));
 
-                    do_v_vertex(currentPrimitive, p_index_1);
-                    do_v_vertex(currentPrimitive, p_index_2);
-                    do_v_vertex(currentPrimitive, p_index_3);
-                    do_v_vertex(currentPrimitive, p_index_1);
-                    do_v_vertex(currentPrimitive, p_index_3);
-                    do_v_vertex(currentPrimitive, p_index_4);
-                    currentPrimitive.triangleCount += 2;
+                    const primitive = currentPrimitive;
+                    do_v_vertex(primitive, p_index_1);
+                    do_v_vertex(primitive, p_index_2);
+                    do_v_vertex(primitive, p_index_3);
+                    do_v_vertex(primitive, p_index_1);
+                    do_v_vertex(primitive, p_index_3);
+                    do_v_vertex(primitive, p_index_4);
+                    primitive.triangleCount += 2;
                 }
 
                 // ======================
@@ -328,13 +304,14 @@ export const createObjFileParser = (config?: Partial<ObjParserConfig>) => {
                     const u_index_3 = correctIndex(toInt(u_idx_3));
                     const u_index_4 = correctIndex(toInt(u_idx_4));
 
-                    do_vu_vertex(currentPrimitive, p_index_1, u_index_1);
-                    do_vu_vertex(currentPrimitive, p_index_2, u_index_2);
-                    do_vu_vertex(currentPrimitive, p_index_3, u_index_3);
-                    do_vu_vertex(currentPrimitive, p_index_1, u_index_1);
-                    do_vu_vertex(currentPrimitive, p_index_3, u_index_3);
-                    do_vu_vertex(currentPrimitive, p_index_4, u_index_4);
-                    currentPrimitive.triangleCount += 2;
+                    const primitive = currentPrimitive;
+                    do_vu_vertex(primitive, p_index_1, u_index_1);
+                    do_vu_vertex(primitive, p_index_2, u_index_2);
+                    do_vu_vertex(primitive, p_index_3, u_index_3);
+                    do_vu_vertex(primitive, p_index_1, u_index_1);
+                    do_vu_vertex(primitive, p_index_3, u_index_3);
+                    do_vu_vertex(primitive, p_index_4, u_index_4);
+                    primitive.triangleCount += 2;
                 }
 
                 // ==========================
@@ -359,13 +336,14 @@ export const createObjFileParser = (config?: Partial<ObjParserConfig>) => {
                     const n_index_3 = correctIndex(toInt(n_idx_3));
                     const n_index_4 = correctIndex(toInt(n_idx_4));
 
-                    do_vn_vertex(currentPrimitive, p_index_1, n_index_1);
-                    do_vn_vertex(currentPrimitive, p_index_2, n_index_2);
-                    do_vn_vertex(currentPrimitive, p_index_3, n_index_3);
-                    do_vn_vertex(currentPrimitive, p_index_1, n_index_1);
-                    do_vn_vertex(currentPrimitive, p_index_3, n_index_3);
-                    do_vn_vertex(currentPrimitive, p_index_4, n_index_4);
-                    currentPrimitive.triangleCount += 2;
+                    const primitive = currentPrimitive;
+                    do_vn_vertex(primitive, p_index_1, n_index_1);
+                    do_vn_vertex(primitive, p_index_2, n_index_2);
+                    do_vn_vertex(primitive, p_index_3, n_index_3);
+                    do_vn_vertex(primitive, p_index_1, n_index_1);
+                    do_vn_vertex(primitive, p_index_3, n_index_3);
+                    do_vn_vertex(primitive, p_index_4, n_index_4);
+                    primitive.triangleCount += 2;
                     
                 }
 
@@ -395,13 +373,14 @@ export const createObjFileParser = (config?: Partial<ObjParserConfig>) => {
                     const n_index_3 = correctIndex(toInt(n_idx_3));
                     const n_index_4 = correctIndex(toInt(n_idx_4));           
 
-                    do_vnu_vertex(currentPrimitive, p_index_1, u_index_1, n_index_1);
-                    do_vnu_vertex(currentPrimitive, p_index_2, u_index_2, n_index_2);
-                    do_vnu_vertex(currentPrimitive, p_index_3, u_index_3, n_index_3);
-                    do_vnu_vertex(currentPrimitive, p_index_1, u_index_1, n_index_1);
-                    do_vnu_vertex(currentPrimitive, p_index_3, u_index_3, n_index_3);
-                    do_vnu_vertex(currentPrimitive, p_index_4, u_index_4, n_index_4);
-                    currentPrimitive.triangleCount += 2;
+                    const primitive = currentPrimitive;
+                    do_vnu_vertex(primitive, p_index_1, u_index_1, n_index_1);
+                    do_vnu_vertex(primitive, p_index_2, u_index_2, n_index_2);
+                    do_vnu_vertex(primitive, p_index_3, u_index_3, n_index_3);
+                    do_vnu_vertex(primitive, p_index_1, u_index_1, n_index_1);
+                    do_vnu_vertex(primitive, p_index_3, u_index_3, n_index_3);
+                    do_vnu_vertex(primitive, p_index_4, u_index_4, n_index_4);
+                    primitive.triangleCount += 2;
                 }
             }
         }
