@@ -1,5 +1,5 @@
 import { mat3, mat4, vec3 } from 'gl-matrix';
-import { getWebgl2Context, glsl300, GLSL300ATTRIBUTE, System, World, createWebgl2Shader, createWebgl2Program, createWebgl2VertexArray, createWebgl2ArrayBuffer, setupWebgl2VertexAttribPointer, createWebgl2ElementArrayBuffer, Nullable, createTexture2D, UBO } from '../../../src';
+import { getWebgl2Context, glsl300, GLSL300ATTRIBUTE, System, World, createWebgl2Shader, createWebgl2Program, createWebgl2VertexArray, createWebgl2ArrayBuffer, setupWebgl2VertexAttribPointer, Nullable, createTexture2D, UBO } from '../../../src';
 import { Geometry } from '../components/geometry';
 import { Material } from '../components/material';
 import { PerspectiveCamera } from '../components/perspective-camera';
