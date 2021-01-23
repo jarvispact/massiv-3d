@@ -17,13 +17,13 @@ export const createRotationSystem = ({ world }: RotationSystemArgs): System => {
 
     world.subscribe((action) => {
         if (action.type === 'ADD-ENTITY') {
-            const transform = action.payload.getComponentByClass(Transform);
-            const rotation = action.payload.getComponentByClass(Rotation);
-            if (transform && rotation) cache.push({ entityName: action.payload.name, transform, rotation });
+            const transform = world.getComponent(action.payload, Transform);
+            const rotation = world.getComponent(action.payload, Rotation);
+            if (transform && rotation) cache.push({ entityName: action.payload, transform, rotation });
         } else if (action.type === 'REMOVE-ENTITY') {
             for (let i = 0; i < cache.length; i++) {
                 const cachedItem = cache[i];
-                if (cachedItem && cachedItem.entityName === action.payload.name) {
+                if (cachedItem && cachedItem.entityName === action.payload) {
                     cache[i] = null;
                 }
             }

@@ -1,4 +1,4 @@
-import { computeTangents, Entity, FileLoader, ImageLoader, parseObjFile, World } from '../../src';
+import { computeTangents, FileLoader, ImageLoader, parseObjFile, World } from '../../src';
 import { DirectionalLight } from './components/directional-light';
 import { Geometry } from './components/geometry';
 import { PhongMaterial } from './components/phong-material';
@@ -25,20 +25,20 @@ import { createRotationSystem } from './systems/rotation-system';
     world.addSystem(createRotationSystem({ world }));
     world.addSystem(createRenderSystem({ canvas, world }));
 
-    world.addEntity(new Entity('Camera', [
+    world.addEntity('Camera', [
         new PerspectiveCamera({ translation: [0, 2, 3], lookAt: [0, 0, 0], aspect: canvas.width / canvas.height }),
-    ]));
+    ]);
 
-    world.addEntity(new Entity('Light', [
+    world.addEntity('Light', [
         new DirectionalLight({ direction: [0, 5, 0] }),
-    ]));
+    ]);
 
-    world.addEntity(new Entity('DemoTorus', [
+    world.addEntity('DemoTorus', [
         new Transform(),
         new Rotation([0, 15, 0]),
-        new Geometry({ ...torus, ...computeTangents(torus.positions, torus.indices, torus.uvs) }),
+        new Geometry({ ...torus, ...computeTangents(torus.positions, torus.uvs) }),
         new PhongMaterial({ diffuseMap, specularMap, normalMap, uvRepeat: [8, 2], specularExponent: 64 }),
-    ]));
+    ]);
     
     const tick = (time: number) => {
         world.update(time);

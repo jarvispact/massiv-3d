@@ -4,60 +4,13 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 var glMatrix = require('gl-matrix');
 
-const intersection = (list1, list2) => list1.filter(x => list2.includes(x));
-
-const hasMoreThanOneComponentsOfSameType = (componentTypes) => [...new Set(componentTypes)].length < componentTypes.length;
 class Entity {
     constructor(name, components) {
         this.name = name;
-        this.componentTypes = components.map(c => c.type);
         this.components = components.reduce((accum, comp) => {
             accum[comp.type] = comp;
             return accum;
         }, {});
-        if (hasMoreThanOneComponentsOfSameType(this.componentTypes)) {
-            throw new Error('a entity can only one component of any type');
-        }
-    }
-    getComponentByType(type) {
-        return this.components[type];
-    }
-    getComponentByClass(klass) {
-        return this.components[klass.name];
-    }
-    getComponentTypes() {
-        return this.componentTypes;
-    }
-    getComponents() {
-        return Object.values(this.components).filter(Boolean);
-    }
-    addComponent(component) {
-        if (this.componentTypes.includes(component.type)) {
-            throw new Error('a entity can only one component of any type');
-        }
-        this.components[component.type] = component;
-        this.componentTypes.push(component.type);
-        return this;
-    }
-    removeComponent(component) {
-        this.components[component.type] = undefined;
-        this.componentTypes = this.componentTypes.filter(t => t !== component.type);
-        return this;
-    }
-    removeComponentByType(type) {
-        const comp = this.getComponentByType(type);
-        if (comp)
-            this.removeComponent(comp);
-        return this;
-    }
-    removeComponentByClass(component) {
-        const comp = this.getComponentByType(component.constructor.name);
-        if (comp)
-            this.removeComponent(comp);
-        return this;
-    }
-    hasComponents(types) {
-        return intersection(types, this.getComponentTypes()).length === types.length;
     }
 }
 
@@ -67,11 +20,15 @@ const createGetDelta = (then = 0) => (now) => {
     then = now;
     return delta;
 };
-const addEntity = (entity) => ({ type: 'ADD-ENTITY', payload: entity });
-const removeEntity = (entity) => ({ type: 'REMOVE-ENTITY', payload: entity });
+const addEntity = (entityName) => ({ type: 'ADD-ENTITY', payload: entityName });
+const removeEntity = (entityName) => ({ type: 'REMOVE-ENTITY', payload: entityName });
+const addComponent = (entityName, component) => ({ type: 'ADD-COMPONENT', payload: { entityName, component } });
+const removeComponent = (entityName, component) => ({ type: 'REMOVE-COMPONENT', payload: { entityName, component } });
 const worldActions = {
     addEntity,
     removeEntity,
+    addComponent,
+    removeComponent,
 };
 const actionValues = Object.values(worldActions)[0];
 const defaultReducer = (state) => state;
@@ -79,10 +36,8 @@ class World {
     constructor(args = {}) {
         this.subscribers = [];
         this.getDelta = createGetDelta();
-        this.entities = [];
-        this.entitiesByName = {};
+        this.entities = {};
         this.systems = [];
-        this.queryCache = [];
         this.state = args.initialState;
         this.reducer = args.reducer || defaultReducer;
     }
@@ -98,29 +53,55 @@ class World {
         this.subscribers.push(callback);
         return this;
     }
-    getEntityByName(entityName) {
-        return this.entitiesByName[entityName];
-    }
-    addEntity(entity) {
-        if (this.entitiesByName[entity.name]) {
+    addEntity(name, components) {
+        if (this.entities[name]) {
             throw new Error('a entity with the same name was already added to the world');
         }
-        this.entities.push(entity);
-        this.entitiesByName[entity.name] = entity;
-        this.dispatch(worldActions.addEntity(entity));
+        const entity = new Entity(name, components);
+        this.entities[name] = entity;
+        this.dispatch(worldActions.addEntity(name));
         return this;
     }
-    removeEntity(entity) {
-        this.entities = this.entities.filter(e => e !== entity);
-        this.entitiesByName[entity.name] = null;
-        this.dispatch(worldActions.removeEntity(entity));
+    removeEntity(name) {
+        const entity = this.entities[name];
+        if (!entity)
+            return this;
+        this.dispatch(worldActions.removeEntity(name));
+        this.entities[name] = null;
         return this;
     }
-    removeEntityByName(entityName) {
-        const entity = this.getEntityByName(entityName);
-        if (entity)
-            this.removeEntity(entity);
+    addComponent(entityName, component) {
+        const entity = this.entities[entityName];
+        if (!entity) {
+            throw new Error('a entity with this name was not added to the world');
+        }
+        const comp = entity.components[component.type];
+        if (comp) {
+            throw new Error('this entity already has a component of the same type');
+        }
+        entity.components[component.type] = component;
+        this.dispatch(worldActions.addComponent(entityName, component));
         return this;
+    }
+    removeComponent(entityName, componentType) {
+        const entity = this.entities[entityName];
+        if (!entity) {
+            throw new Error('a entity with this name was not added to the world');
+        }
+        const comp = entity.components[componentType];
+        if (comp) {
+            this.dispatch(worldActions.removeComponent(entityName, comp));
+            entity.components[componentType] = null;
+        }
+        return this;
+    }
+    getComponent(entityName, klassOrType) {
+        const entity = this.entities[entityName];
+        if (!entity)
+            return null;
+        if (typeof klassOrType === 'string')
+            return (entity.components[klassOrType] || null);
+        return (entity.components[klassOrType.name] || null);
     }
     addSystem(system) {
         this.systems.push(system);
@@ -129,16 +110,6 @@ class World {
     removeSystem(system) {
         this.systems = this.systems.filter(s => s !== system);
         return this;
-    }
-    queryEntities(requiredComponents) {
-        this.queryCache.length = 0;
-        for (let e = 0; e < this.entities.length; e++) {
-            const entity = this.entities[e];
-            if (intersection(requiredComponents, entity.getComponentTypes()).length === requiredComponents.length) {
-                this.queryCache.push(entity);
-            }
-        }
-        return this.queryCache;
     }
     update(time) {
         const delta = this.getDelta(time);
@@ -715,25 +686,17 @@ const cartesianToSpherical = (out, x, y, z) => {
     }
 };
 
-const computeTangents = (positions, indices, uvs) => {
-    const tangents = new Array(positions.length);
-    const bitangents = new Array(positions.length);
-    for (let i = 0; i < indices.length; i += 3) {
-        const idx1 = indices[i + 0];
-        const idx2 = indices[i + 1];
-        const idx3 = indices[i + 2];
-        const pp1 = positions.slice(idx1 * 3, idx1 * 3 + 3);
-        const pp2 = positions.slice(idx2 * 3, idx2 * 3 + 3);
-        const pp3 = positions.slice(idx3 * 3, idx3 * 3 + 3);
-        const p1 = glMatrix.vec3.fromValues(pp1[0], pp1[1], pp1[2]);
-        const p2 = glMatrix.vec3.fromValues(pp2[0], pp2[1], pp2[2]);
-        const p3 = glMatrix.vec3.fromValues(pp3[0], pp3[1], pp3[2]);
-        const uuv1 = uvs.slice(idx1 * 2, idx1 * 2 + 2);
-        const uuv2 = uvs.slice(idx2 * 2, idx2 * 2 + 2);
-        const uuv3 = uvs.slice(idx3 * 2, idx3 * 2 + 2);
-        const uv1 = glMatrix.vec2.fromValues(uuv1[0], uuv1[1]);
-        const uv2 = glMatrix.vec2.fromValues(uuv2[0], uuv2[1]);
-        const uv3 = glMatrix.vec2.fromValues(uuv3[0], uuv3[1]);
+const computeTangents = (positions, uvs) => {
+    const tangents = [];
+    const bitangents = [];
+    let uvIdx = 0;
+    for (let i = 0; i < positions.length; i += 9) {
+        const p1 = glMatrix.vec3.fromValues(positions[i + 0], positions[i + 1], positions[i + 2]);
+        const p2 = glMatrix.vec3.fromValues(positions[i + 3], positions[i + 4], positions[i + 5]);
+        const p3 = glMatrix.vec3.fromValues(positions[i + 6], positions[i + 7], positions[i + 8]);
+        const uv1 = glMatrix.vec2.fromValues(uvs[uvIdx + 0], uvs[uvIdx + 1]);
+        const uv2 = glMatrix.vec2.fromValues(uvs[uvIdx + 2], uvs[uvIdx + 3]);
+        const uv3 = glMatrix.vec2.fromValues(uvs[uvIdx + 4], uvs[uvIdx + 5]);
         const deltaPos1 = glMatrix.vec3.create();
         const deltaPos2 = glMatrix.vec3.create();
         glMatrix.vec3.subtract(deltaPos1, p2, p1);
@@ -753,35 +716,27 @@ const computeTangents = (positions, indices, uvs) => {
         glMatrix.vec3.scale(bitangent, bitangent, r);
         glMatrix.vec3.normalize(tangent, tangent);
         glMatrix.vec3.normalize(bitangent, bitangent);
-        tangents[idx1 * 3] = tangent[0];
-        tangents[idx1 * 3 + 1] = tangent[1];
-        tangents[idx1 * 3 + 2] = tangent[2];
-        tangents[idx2 * 3] = tangent[0];
-        tangents[idx2 * 3 + 1] = tangent[1];
-        tangents[idx2 * 3 + 2] = tangent[2];
-        tangents[idx3 * 3] = tangent[0];
-        tangents[idx3 * 3 + 1] = tangent[1];
-        tangents[idx3 * 3 + 2] = tangent[2];
-        bitangents[idx1 * 3] = bitangent[0];
-        bitangents[idx1 * 3 + 1] = bitangent[1];
-        bitangents[idx1 * 3 + 2] = bitangent[2];
-        bitangents[idx2 * 3] = bitangent[0];
-        bitangents[idx2 * 3 + 1] = bitangent[1];
-        bitangents[idx2 * 3 + 2] = bitangent[2];
-        bitangents[idx3 * 3] = bitangent[0];
-        bitangents[idx3 * 3 + 1] = bitangent[1];
-        bitangents[idx3 * 3 + 2] = bitangent[2];
+        tangents.push(tangent[0], tangent[1], tangent[2]);
+        tangents.push(tangent[0], tangent[1], tangent[2]);
+        tangents.push(tangent[0], tangent[1], tangent[2]);
+        bitangents.push(bitangent[0], bitangent[1], bitangent[2]);
+        bitangents.push(bitangent[0], bitangent[1], bitangent[2]);
+        bitangents.push(bitangent[0], bitangent[1], bitangent[2]);
+        uvIdx += 6;
     }
     return { tangents, bitangents };
 };
 
 const createMap = (in_min, in_max, out_min, out_max) => (value) => ((value - in_min) * (out_max - out_min)) / (in_max - in_min) + out_min;
 
+const DEG_TO_RAD = Math.PI / 180;
+const degreesToRadians = (degrees) => degrees * DEG_TO_RAD;
+
+const intersection = (list1, list2) => list1.filter(x => list2.includes(x));
+
 const lerp = (start, end, t) => (1 - t) * start + t * end;
 
-const DEG_TO_RAD = Math.PI / 180;
 const RAD_TO_DEG = 180 / Math.PI;
-const degreesToRadians = (degrees) => degrees * DEG_TO_RAD;
 const radiansToDegrees = (radians) => radians * RAD_TO_DEG;
 
 const sphericalToCartesian = (out, radius, phi, theta) => {
@@ -1046,7 +1001,6 @@ class UBO {
 }
 
 exports.DEG_TO_RAD = DEG_TO_RAD;
-exports.Entity = Entity;
 exports.FileLoader = FileLoader;
 exports.GLSL300ATTRIBUTE = GLSL300ATTRIBUTE;
 exports.ImageLoader = ImageLoader;

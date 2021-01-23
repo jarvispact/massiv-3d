@@ -50,7 +50,7 @@ export const createRenderSystem = ({ canvas, world }: RenderSystemArgs): System 
 
     world.subscribe((action) => {
         if (action.type === 'ADD-ENTITY') {
-            const geometry = action.payload.getComponentByClass(Geometry);
+            const geometry = world.getComponent(action.payload, Geometry);
             if (geometry) {
                 const vao = createWebgl2VertexArray(gl);
 
@@ -64,7 +64,7 @@ export const createRenderSystem = ({ canvas, world }: RenderSystemArgs): System 
                 const indexCount = geometry.data.indices.length;
 
                 cache.push({
-                    entityName: action.payload.name,
+                    entityName: action.payload,
                     update: () => {
                         gl.bindVertexArray(vao);
                         gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
@@ -81,7 +81,7 @@ export const createRenderSystem = ({ canvas, world }: RenderSystemArgs): System 
         } else if (action.type === 'REMOVE-ENTITY') {
             for (let i = 0; i < cache.length; i++) {
                 const cachedItem = cache[i];
-                if (cachedItem && cachedItem.entityName === action.payload.name) {
+                if (cachedItem && cachedItem.entityName === action.payload) {
                     cachedItem.cleanup();
                     cache[i] = null;
                 }

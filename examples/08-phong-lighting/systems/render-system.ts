@@ -234,11 +234,11 @@ export const createRenderSystem = ({ canvas, world, maxDirectionalLights = 3 }: 
 
     world.subscribe((action) => {
         if (action.type === 'ADD-ENTITY') {
-            const camera = action.payload.getComponentByClass(PerspectiveCamera);
-            const directionalLight = action.payload.getComponentByClass(DirectionalLight);
-            const transform = action.payload.getComponentByClass(Transform);
-            const geometry = action.payload.getComponentByClass(Geometry);
-            const phongMaterial = action.payload.getComponentByClass(PhongMaterial);
+            const camera = world.getComponent(action.payload, PerspectiveCamera);
+            const directionalLight = world.getComponent(action.payload, DirectionalLight);
+            const transform = world.getComponent(action.payload, Transform);
+            const geometry = world.getComponent(action.payload, Geometry);
+            const phongMaterial = world.getComponent(action.payload, PhongMaterial);
             if (camera) {
                 cameraCache.camera = camera;
             } else if (directionalLight) {
@@ -263,9 +263,6 @@ export const createRenderSystem = ({ canvas, world, maxDirectionalLights = 3 }: 
 
                 const bitangentBuffer = createWebgl2ArrayBuffer(gl, new Float32Array(geometry.data.bitangents));
                 setupWebgl2VertexAttribPointer(gl, GLSL300ATTRIBUTE.BITANGENT.location, 3);
-
-                const indexBuffer = createWebgl2ElementArrayBuffer(gl, new Uint32Array(geometry.data.indices));
-                const indexCount = geometry.data.indices.length;
 
                 const transformUbo = new UBO(gl, 'TransformUniforms', 2, transformUboConfig).bindToShaderProgram(shaderProgram);
                 const materialUbo = new UBO(gl, 'MaterialUniforms', 3, materialUboConfig).bindToShaderProgram(shaderProgram);
@@ -318,7 +315,7 @@ export const createRenderSystem = ({ canvas, world, maxDirectionalLights = 3 }: 
                 const normalMatrix = mat3.create();
 
                 cache.push({
-                    entityName: action.payload.name,
+                    entityName: action.payload,
                     update: () => {
                         transformUbo.bindBase();
                         if (transform.data.dirty || cameraCache.camera.data.dirty) {
@@ -353,8 +350,7 @@ export const createRenderSystem = ({ canvas, world, maxDirectionalLights = 3 }: 
 
 
                         gl.bindVertexArray(vao);
-                        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
-                        gl.drawElements(gl.TRIANGLES, indexCount, gl.UNSIGNED_INT, 0);
+                        gl.drawArrays(gl.TRIANGLES, 0, geometry.data.positions.length);
                     },
                     cleanup: () => {
                         gl.deleteBuffer(positionBuffer);
@@ -362,7 +358,6 @@ export const createRenderSystem = ({ canvas, world, maxDirectionalLights = 3 }: 
                         gl.deleteBuffer(normalBuffer);
                         gl.deleteBuffer(tangentBuffer);
                         gl.deleteBuffer(bitangentBuffer);
-                        gl.deleteBuffer(indexBuffer);
                         gl.deleteVertexArray(vao);
                     },
                 });
@@ -370,7 +365,7 @@ export const createRenderSystem = ({ canvas, world, maxDirectionalLights = 3 }: 
         } else if (action.type === 'REMOVE-ENTITY') {
             for (let i = 0; i < cache.length; i++) {
                 const cachedItem = cache[i];
-                if (cachedItem && cachedItem.entityName === action.payload.name) {
+                if (cachedItem && cachedItem.entityName === action.payload) {
                     cachedItem.cleanup();
                     cache[i] = null;
                 }

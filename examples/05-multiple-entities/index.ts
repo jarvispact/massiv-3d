@@ -1,5 +1,5 @@
 import { vec3 } from 'gl-matrix';
-import { Entity, ImageLoader, World } from '../../src';
+import { ImageLoader, World } from '../../src';
 import { Geometry } from './components/geometry';
 import { Material } from './components/material';
 import { PerspectiveCamera } from './components/perspective-camera';
@@ -20,9 +20,9 @@ import { createRotationSystem } from './systems/rotation-system';
     world.addSystem(createRotationSystem({ world }));
     world.addSystem(createRenderSystem({ canvas, world }));
 
-    world.addEntity(new Entity('Camera', [
+    world.addEntity('Camera', [
         new PerspectiveCamera({ translation: [0, 0, 4], lookAt: [0, 0, 0], aspect: canvas.width / canvas.height }),
-    ]));
+    ]);
 
     const data: Array<{translation: vec3, degrees: number}> = [
         { translation: [-1, 1, 0], degrees: 45 },
@@ -31,8 +31,8 @@ import { createRotationSystem } from './systems/rotation-system';
         { translation: [1, -1, 0], degrees: 180 },
     ];
 
-    data.forEach(({ translation, degrees }) => {
-        world.addEntity(new Entity('DemoPlane', [
+    data.forEach(({ translation, degrees }, idx) => {
+        world.addEntity(`DemoPlane-${idx}`, [
             new Transform({ translation }),
             new Rotation({ degrees }),
             new Geometry({
@@ -41,7 +41,7 @@ import { createRotationSystem } from './systems/rotation-system';
                 uvs: [0, 0, 1, 0, 1, 1, 0, 1],
             }),
             new Material({ diffuseMap }),
-        ]));
+        ]);
     });
     
     const tick = (time: number) => {

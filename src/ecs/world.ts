@@ -1,7 +1,7 @@
-import { Entity } from './entity';
-import { intersection } from '../utils/intersection';
 import { System } from './system';
-import { Nullable } from '../types';
+import { Class, Nullable } from '../types';
+import { Component } from './component';
+import { Entity } from './entity';
 
 const createGetDelta = (then = 0) => (now: number): number => {
     now *= 0.001;
@@ -13,12 +13,16 @@ const createGetDelta = (then = 0) => (now: number): number => {
 type SubscriberCallback<State, WorldAction> = (action: WorldAction, newState: State, prevState: State) => void;
 type Reducer<State, WorldAction> = (state: State, action: WorldAction) => State;
 
-const addEntity = <E extends Entity>(entity: E) => ({ type: 'ADD-ENTITY', payload: entity } as const);
-const removeEntity = <E extends Entity>(entity: E) => ({ type: 'REMOVE-ENTITY', payload: entity } as const);
+const addEntity = (entityName: string) => ({ type: 'ADD-ENTITY', payload: entityName } as const);
+const removeEntity = (entityName: string) => ({ type: 'REMOVE-ENTITY', payload: entityName } as const);
+const addComponent = <C extends Component>(entityName: string, component: C) => ({ type: 'ADD-COMPONENT', payload: { entityName, component } } as const);
+const removeComponent = <C extends Component>(entityName: string, component: C) => ({ type: 'REMOVE-COMPONENT', payload: { entityName, component } } as const);
 
 export const worldActions = {
     addEntity,
     removeEntity,
+    addComponent,
+    removeComponent,
 };
 
 const actionValues = Object.values(worldActions)[0];
@@ -34,10 +38,8 @@ export class World<
     private reducer: Reducer<State, InternalAction | WorldAction>;
     private subscribers: Array<SubscriberCallback<State, InternalAction | WorldAction>> = [];
     private getDelta = createGetDelta();
-    private entities: Array<Entity> = [];
-    private entitiesByName: Record<string, Nullable<Entity>> = {};
+    private entities: Record<string, Nullable<Entity>> = {};
     private systems: System[] = [];
-    private queryCache: Entity[] = [];
 
     constructor(args: { initialState?: State, reducer?: Reducer<State, InternalAction | WorldAction> } = {}) {
         this.state = args.initialState as State;
@@ -60,32 +62,65 @@ export class World<
         return this;
     }
 
-    getEntityByName(entityName: string) {
-        return this.entitiesByName[entityName];
-    }
-
-    addEntity(entity: Entity) {
-        if (this.entitiesByName[entity.name]) {
+    addEntity<Comp extends Component>(name: string, components: Array<Comp>) {
+        if (this.entities[name]) {
             throw new Error('a entity with the same name was already added to the world');
         }
-
-        this.entities.push(entity);
-        this.entitiesByName[entity.name] = entity;
-        this.dispatch(worldActions.addEntity(entity));
+        
+        const entity = new Entity(name, components);
+        this.entities[name] = entity;
+        this.dispatch(worldActions.addEntity(name));
         return this;
     }
 
-    removeEntity(entity: Entity) {
-        this.entities = this.entities.filter(e => e !== entity);
-        this.entitiesByName[entity.name] = null;
-        this.dispatch(worldActions.removeEntity(entity));
+    removeEntity(name: string) {
+        const entity = this.entities[name];
+        if (!entity) return this;
+
+        this.dispatch(worldActions.removeEntity(name));
+        this.entities[name] = null;
         return this;
     }
 
-    removeEntityByName(entityName: string) {
-        const entity = this.getEntityByName(entityName);
-        if (entity) this.removeEntity(entity);
+    addComponent(entityName: string, component: Component) {
+        const entity = this.entities[entityName];
+        if (!entity) {
+            throw new Error('a entity with this name was not added to the world');
+        }
+
+        const comp = entity.components[component.type];
+        if (comp) {
+            throw new Error('this entity already has a component of the same type');
+        }
+
+        entity.components[component.type] = component;
+        this.dispatch(worldActions.addComponent(entityName, component));
         return this;
+    }
+
+    removeComponent(entityName: string, componentType: string) {
+        const entity = this.entities[entityName];
+        if (!entity) {
+            throw new Error('a entity with this name was not added to the world');
+        }
+
+        const comp = entity.components[componentType];
+        if (comp) {
+            this.dispatch(worldActions.removeComponent(entityName, comp));
+            entity.components[componentType] = null;
+        }
+
+        return this;
+    }
+
+    getComponent<C extends Component>(entityName: string, componentType: string): C;
+    getComponent<C extends Component>(entityName: string, klass: Class<C>): C;
+    getComponent<C extends Component>(entityName: string, klassOrType: unknown) {
+        const entity = this.entities[entityName];
+        if (!entity) return null;
+
+        if (typeof klassOrType === 'string') return (entity.components[klassOrType] || null) as Nullable<C>;
+        return (entity.components[(klassOrType as Class<C>).name] || null) as Nullable<C>;
     }
 
     addSystem(system: System) {
@@ -96,19 +131,6 @@ export class World<
     removeSystem(system: System) {
         this.systems = this.systems.filter(s => s !== system);
         return this;
-    }
-
-    queryEntities(requiredComponents: string[]) {
-        this.queryCache.length = 0;
-
-        for (let e = 0; e < this.entities.length; e++) {
-            const entity = this.entities[e];
-            if (intersection(requiredComponents, entity.getComponentTypes()).length === requiredComponents.length) {
-                this.queryCache.push(entity);
-            }
-        }
-
-        return this.queryCache;
     }
 
     update(time: number) {

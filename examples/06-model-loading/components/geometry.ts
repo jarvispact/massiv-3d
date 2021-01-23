@@ -2,7 +2,6 @@ import { Component } from '../../../src';
 
 type GeometryData = {
     positions: Array<number>;
-    indices: Array<number>;
     uvs: Array<number>;
     normals: Array<number>;
 }

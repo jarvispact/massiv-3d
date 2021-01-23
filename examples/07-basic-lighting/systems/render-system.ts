@@ -122,10 +122,10 @@ export const createRenderSystem = ({ canvas, world }: RenderSystemArgs): System 
 
     world.subscribe((action) => {
         if (action.type === 'ADD-ENTITY') {
-            const camera = action.payload.getComponentByClass(PerspectiveCamera);
-            const transform = action.payload.getComponentByClass(Transform);
-            const geometry = action.payload.getComponentByClass(Geometry);
-            const material = action.payload.getComponentByClass(Material);
+            const camera = world.getComponent(action.payload, PerspectiveCamera);
+            const transform = world.getComponent(action.payload, Transform);
+            const geometry = world.getComponent(action.payload, Geometry);
+            const material = world.getComponent(action.payload, Material);
             if (camera) {
                 cameraCache.camera = camera;
             } else if (transform && geometry && material) {
@@ -140,9 +140,6 @@ export const createRenderSystem = ({ canvas, world }: RenderSystemArgs): System 
                 const normalBuffer = createWebgl2ArrayBuffer(gl, new Float32Array(geometry.data.normals));
                 setupWebgl2VertexAttribPointer(gl, GLSL300ATTRIBUTE.NORMAL.location, 3);
 
-                const indexBuffer = createWebgl2ElementArrayBuffer(gl, new Uint32Array(geometry.data.indices));
-                const indexCount = geometry.data.indices.length;
-
                 const transformUbo = new UBO(gl, 'TransformUniforms', 1, transformUboConfig).bindToShaderProgram(shaderProgram);
 
                 const diffuseMapLocation = gl.getUniformLocation(shaderProgram, 'diffuseMap');
@@ -155,7 +152,7 @@ export const createRenderSystem = ({ canvas, world }: RenderSystemArgs): System 
                 const normalMatrix = mat3.create();
 
                 cache.push({
-                    entityName: action.payload.name,
+                    entityName: action.payload,
                     update: () => {
                         transformUbo.bindBase();
                         if (transform.data.dirty || cameraCache.camera.data.dirty) {
@@ -174,14 +171,12 @@ export const createRenderSystem = ({ canvas, world }: RenderSystemArgs): System 
                         gl.uniform1i(diffuseMapLocation, 0);
 
                         gl.bindVertexArray(vao);
-                        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
-                        gl.drawElements(gl.TRIANGLES, indexCount, gl.UNSIGNED_INT, 0);
+                        gl.drawArrays(gl.TRIANGLES, 0, geometry.data.positions.length);
                     },
                     cleanup: () => {
                         gl.deleteBuffer(positionBuffer);
                         gl.deleteBuffer(uvBuffer);
                         gl.deleteBuffer(normalBuffer);
-                        gl.deleteBuffer(indexBuffer);
                         gl.deleteVertexArray(vao);
                     },
                 });
@@ -189,7 +184,7 @@ export const createRenderSystem = ({ canvas, world }: RenderSystemArgs): System 
         } else if (action.type === 'REMOVE-ENTITY') {
             for (let i = 0; i < cache.length; i++) {
                 const cachedItem = cache[i];
-                if (cachedItem && cachedItem.entityName === action.payload.name) {
+                if (cachedItem && cachedItem.entityName === action.payload) {
                     cachedItem.cleanup();
                     cache[i] = null;
                 }

@@ -1,24 +1,50 @@
-import { Entity } from './entity';
 import { System } from './system';
-import { Nullable } from '../types';
+import { Class } from '../types';
+import { Component } from './component';
 declare type SubscriberCallback<State, WorldAction> = (action: WorldAction, newState: State, prevState: State) => void;
 declare type Reducer<State, WorldAction> = (state: State, action: WorldAction) => State;
 export declare const worldActions: {
-    addEntity: <E extends Entity<string, import("./component").Component<string, unknown>>>(entity: E) => {
+    addEntity: (entityName: string) => {
         readonly type: "ADD-ENTITY";
-        readonly payload: E;
+        readonly payload: string;
     };
-    removeEntity: <E_1 extends Entity<string, import("./component").Component<string, unknown>>>(entity: E_1) => {
+    removeEntity: (entityName: string) => {
         readonly type: "REMOVE-ENTITY";
-        readonly payload: E_1;
+        readonly payload: string;
+    };
+    addComponent: <C extends Component<string, unknown>>(entityName: string, component: C) => {
+        readonly type: "ADD-COMPONENT";
+        readonly payload: {
+            readonly entityName: string;
+            readonly component: C;
+        };
+    };
+    removeComponent: <C_1 extends Component<string, unknown>>(entityName: string, component: C_1) => {
+        readonly type: "REMOVE-COMPONENT";
+        readonly payload: {
+            readonly entityName: string;
+            readonly component: C_1;
+        };
     };
 };
-declare const actionValues: (<E extends Entity<string, import("./component").Component<string, unknown>>>(entity: E) => {
+declare const actionValues: ((entityName: string) => {
     readonly type: "ADD-ENTITY";
-    readonly payload: E;
-}) | (<E_1 extends Entity<string, import("./component").Component<string, unknown>>>(entity: E_1) => {
+    readonly payload: string;
+}) | ((entityName: string) => {
     readonly type: "REMOVE-ENTITY";
-    readonly payload: E_1;
+    readonly payload: string;
+}) | (<C extends Component<string, unknown>>(entityName: string, component: C) => {
+    readonly type: "ADD-COMPONENT";
+    readonly payload: {
+        readonly entityName: string;
+        readonly component: C;
+    };
+}) | (<C_1 extends Component<string, unknown>>(entityName: string, component: C_1) => {
+    readonly type: "REMOVE-COMPONENT";
+    readonly payload: {
+        readonly entityName: string;
+        readonly component: C_1;
+    };
 });
 declare type InternalAction = ReturnType<typeof actionValues>;
 declare type GenericAction = {
@@ -31,22 +57,21 @@ export declare class World<State extends Record<string, unknown> = Record<string
     private subscribers;
     private getDelta;
     private entities;
-    private entitiesByName;
     private systems;
-    private queryCache;
     constructor(args?: {
         initialState?: State;
         reducer?: Reducer<State, InternalAction | WorldAction>;
     });
     dispatch(action: InternalAction | WorldAction): this;
     subscribe(callback: SubscriberCallback<State, InternalAction | WorldAction>): this;
-    getEntityByName(entityName: string): Nullable<Entity<string, import("./component").Component<string, unknown>>>;
-    addEntity(entity: Entity): this;
-    removeEntity(entity: Entity): this;
-    removeEntityByName(entityName: string): this;
+    addEntity<Comp extends Component>(name: string, components: Array<Comp>): this;
+    removeEntity(name: string): this;
+    addComponent(entityName: string, component: Component): this;
+    removeComponent(entityName: string, componentType: string): this;
+    getComponent<C extends Component>(entityName: string, componentType: string): C;
+    getComponent<C extends Component>(entityName: string, klass: Class<C>): C;
     addSystem(system: System): this;
     removeSystem(system: System): this;
-    queryEntities(requiredComponents: string[]): Entity<string, import("./component").Component<string, unknown>>[];
     update(time: number): this;
 }
 export {};

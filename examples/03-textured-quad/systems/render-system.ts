@@ -92,9 +92,9 @@ export const createRenderSystem = ({ canvas, world }: RenderSystemArgs): System 
 
     world.subscribe((action) => {
         if (action.type === 'ADD-ENTITY') {
-            const camera = action.payload.getComponentByClass(PerspectiveCamera);
-            const geometry = action.payload.getComponentByClass(Geometry);
-            const material = action.payload.getComponentByClass(Material);
+            const camera = world.getComponent(action.payload, PerspectiveCamera);
+            const geometry = world.getComponent(action.payload, Geometry);
+            const material = world.getComponent(action.payload, Material);
             if (camera) {
                 cameraCache.camera = camera;
             } else if (geometry && material) {
@@ -116,7 +116,7 @@ export const createRenderSystem = ({ canvas, world }: RenderSystemArgs): System 
                 gl.uniform1i(diffuseMapLocation, 0);
 
                 cache.push({
-                    entityName: action.payload.name,
+                    entityName: action.payload,
                     update: () => {
                         gl.activeTexture(gl.TEXTURE0 + 0);
                         gl.bindTexture(gl.TEXTURE_2D, diffuseTexture);
@@ -137,7 +137,7 @@ export const createRenderSystem = ({ canvas, world }: RenderSystemArgs): System 
         } else if (action.type === 'REMOVE-ENTITY') {
             for (let i = 0; i < cache.length; i++) {
                 const cachedItem = cache[i];
-                if (cachedItem && cachedItem.entityName === action.payload.name) {
+                if (cachedItem && cachedItem.entityName === action.payload) {
                     cachedItem.cleanup();
                     cache[i] = null;
                 }
