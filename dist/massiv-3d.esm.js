@@ -26,7 +26,7 @@ const worldActions = {
     addComponent,
     removeComponent,
 };
-const actionValues = Object.values(worldActions)[0];
+Object.values(worldActions)[0];
 const defaultReducer = (state) => state;
 class World {
     constructor(args = {}) {
